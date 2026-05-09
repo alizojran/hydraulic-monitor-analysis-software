@@ -16,34 +16,55 @@ export const useDspStore = defineStore('dsp', () => {
   let worker: Worker | null = null
   let requestId = 0
   let pendingRequest = false
+  let pendingTimer: ReturnType<typeof setTimeout> | null = null
 
   function initWorker() {
     if (worker) return
-    worker = new Worker(new URL('../workers/fft.worker.ts', import.meta.url), { type: 'module' })
+    try {
+      worker = new Worker(new URL('../workers/fft.worker.ts', import.meta.url), { type: 'module' })
+    } catch (err) {
+      console.error('[dsp] worker construction failed:', err)
+      return
+    }
     worker.onmessage = (e) => {
       if (e.data.type === 'result') {
         pendingRequest = false
+        if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null }
         fftResult.value = e.data.result
-        // push to waterfall history
         const mag = e.data.result.magnitudeDb as Float32Array
-        // normalize to 0..1 for heatmap
         const col = new Float32Array(mag.length)
         for (let i = 0; i < mag.length; i++) col[i] = Math.max(0, Math.min(1, (mag[i] + 120) / 120))
         const hist = [...spectrumHistory.value, col]
         if (hist.length > maxHistoryCols) hist.shift()
         spectrumHistory.value = hist
         spectrumHistoryTotal.value++
+      } else if (e.data.type === 'error') {
+        console.error('[dsp] worker error:', e.data.error)
+        pendingRequest = false
+        if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null }
       }
+    }
+    worker.onerror = (ev) => {
+      console.error('[dsp] worker onerror:', ev.message || ev)
+      pendingRequest = false
+      if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null }
     }
   }
 
   function requestFft(samples: Float32Array, channelId: string) {
     if (pendingRequest) return
     initWorker()
+    if (!worker) return
     pendingRequest = true
+    // Watchdog: if no response in 1 s, free the slot so we keep retrying
+    pendingTimer = setTimeout(() => {
+      console.warn('[dsp] worker request timed out')
+      pendingRequest = false
+      pendingTimer = null
+    }, 1000)
     const id = ++requestId
     const copy = samples.slice()
-    worker!.postMessage({ type: 'compute', samples: copy, config: fftConfig.value, channelId, requestId: id }, [copy.buffer])
+    worker.postMessage({ type: 'compute', samples: copy, config: fftConfig.value, channelId, requestId: id }, [copy.buffer])
   }
 
   function setFftConfig(partial: Partial<FftConfig>) {

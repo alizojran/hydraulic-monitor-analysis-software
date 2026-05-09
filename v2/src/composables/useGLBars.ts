@@ -1,16 +1,16 @@
-import { ref, onMounted, onUnmounted, type Ref } from 'vue'
+import { ref, watch, onUnmounted, type Ref } from 'vue'
 import { GLBars } from '@/gl/GLBars'
 
 export function useGLBars(canvasRef: Ref<HTMLCanvasElement | null>) {
   let bars: GLBars | null = null
   const isAvailable = ref(false)
 
-  onMounted(() => {
-    if (canvasRef.value) {
-      bars = new GLBars(canvasRef.value)
+  watch(canvasRef, (canvas) => {
+    if (canvas && !bars) {
+      bars = new GLBars(canvas)
       isAvailable.value = !bars.failed
     }
-  })
+  }, { immediate: true, flush: 'post' })
 
   onUnmounted(() => {
     bars?.destroy()

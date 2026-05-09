@@ -1,16 +1,16 @@
-import { ref, onMounted, onUnmounted, type Ref } from 'vue'
+import { ref, watch, onUnmounted, type Ref } from 'vue'
 import { GLHeatmap } from '@/gl/GLHeatmap'
 
 export function useGLHeatmap(canvasRef: Ref<HTMLCanvasElement | null>, freqBins = 128, timeCols = 256) {
   let heatmap: GLHeatmap | null = null
   const isAvailable = ref(false)
 
-  onMounted(() => {
-    if (canvasRef.value) {
-      heatmap = new GLHeatmap(canvasRef.value, freqBins, timeCols)
+  watch(canvasRef, (canvas) => {
+    if (canvas && !heatmap) {
+      heatmap = new GLHeatmap(canvas, freqBins, timeCols)
       isAvailable.value = !heatmap.failed
     }
-  })
+  }, { immediate: true, flush: 'post' })
 
   onUnmounted(() => {
     heatmap?.destroy()
