@@ -34,11 +34,9 @@
         </div>
       </div>
 
-      <!-- Right: waveform on top, spectrogram below -->
+      <!-- Right: full-height spectrogram waterfall -->
       <div class="ac-right">
-        <div class="ac-wave-label mono text-dim">WAVEFORM · 20 Hz – 20 kHz</div>
-        <div class="waveform"><GlowCanvas ref="waveCanvas" /></div>
-        <div class="ac-wave-label mono text-dim">SPECTROGRAM</div>
+        <div class="ac-wave-label mono text-dim">SPECTROGRAM · 20 Hz – 20 kHz · {{ locale === 'zh' ? '瀑布图' : 'Waterfall' }}</div>
         <div class="spectrogram"><GlowCanvas ref="spectroCanvas" /></div>
       </div>
     </div>
@@ -48,20 +46,18 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useAcquisitionStore } from '@/stores/acquisition'
-import { useGLPlot } from '@/composables/useGLPlot'
 import { useGLHeatmap } from '@/composables/useGLHeatmap'
-import { useAnimationLoop, shouldDraw } from '@/composables/useAnimationLoop'
+import { useAnimationLoop } from '@/composables/useAnimationLoop'
 import GlowCanvas from '@/components/common/GlowCanvas.vue'
+import { useI18n } from 'vue-i18n'
 
+const { locale } = useI18n()
 const acqStore = useAcquisitionStore()
 
-const waveCanvas = ref<InstanceType<typeof GlowCanvas> | null>(null)
 const spectroCanvas = ref<InstanceType<typeof GlowCanvas> | null>(null)
-const waveRef = computed(() => waveCanvas.value?.canvas ?? null)
 const spectroRef = computed(() => spectroCanvas.value?.canvas ?? null)
 
-const { draw: drawWave } = useGLPlot(waveRef)
-const { pushColumn, draw: drawSpectro } = useGLHeatmap(spectroRef, 64, 200)
+const { pushColumn, draw: drawSpectro } = useGLHeatmap(spectroRef, 64, 240)
 
 const db = computed(() => acqStore.channelValues['S01'] ?? 72)
 const buf = computed(() => acqStore.channelBuffers['S01']?.buffer ?? [])
@@ -107,10 +103,6 @@ let peakRollTimer = 0
 let spectroTimer = 0
 
 useAnimationLoop((now) => {
-  if (shouldDraw('ac-wave', 24) && buf.value.length >= 2) {
-    drawWave(buf.value, '#ffe600', { min: 40, max: 120, fill: true, fillAlpha: 0.18 })
-  }
-
   if (now - spectroTimer > 100) {
     spectroTimer = now
     const N = 128
@@ -203,7 +195,6 @@ useAnimationLoop((now) => {
   display: flex; flex-direction: column; gap: 2px;
   min-height: 0;
 }
-.ac-wave-label { font-size: 9px; letter-spacing: 0.1em; padding: 2px 0 0; }
-.waveform { height: 60px; flex-shrink: 0; }
+.ac-wave-label { font-size: 9px; letter-spacing: 0.1em; padding: 2px 0 4px; }
 .spectrogram { flex: 1; min-height: 60px; }
 </style>
