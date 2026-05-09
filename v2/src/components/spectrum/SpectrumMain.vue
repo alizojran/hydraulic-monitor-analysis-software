@@ -19,6 +19,15 @@
       <select :value="dspStore.fftConfig.averages" @change="e => dspStore.setFftConfig({ averages: parseInt((e.target as HTMLSelectElement).value) as any })">
         <option v-for="a in [1,4,8,16,32]" :key="a">{{ a }}</option>
       </select>
+      <span class="flex-spacer" />
+      <button
+        class="env-btn"
+        :class="{ on: dspStore.envelopeMode }"
+        :title="locale === 'zh' ? '希尔伯特包络解调' : 'Hilbert envelope demodulation'"
+        @click="dspStore.toggleEnvelopeMode"
+      >
+        {{ locale === 'zh' ? '包络' : 'Envelope' }}
+      </button>
     </div>
 
     <div class="canvas-area">
@@ -152,6 +161,16 @@ function onChChange(e: Event) {
 .spec-header {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   padding: 6px 8px; font-size: 11px; border-bottom: 1px solid var(--border);
+}
+.flex-spacer { flex: 1; }
+.env-btn {
+  font-size: 10.5px; padding: 2px 9px;
+  font-family: var(--font-mono); letter-spacing: 0.04em;
+  background: var(--bg-2); border: 1px solid var(--border); color: var(--text-2);
+}
+.env-btn.on {
+  background: rgba(179,102,255,0.12); border-color: var(--purple); color: var(--purple);
+  box-shadow: 0 0 8px rgba(179,102,255,0.25);
 }
 .canvas-area { display: flex; flex: 1; min-height: 0; position: relative; }
 .y-axis {

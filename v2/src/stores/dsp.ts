@@ -31,6 +31,10 @@ export const useDspStore = defineStore('dsp', () => {
   const spectrumHistoryTotal = ref(0)
   const maxHistoryCols = 360
 
+  // Envelope demodulation toggle (Hilbert → |·| → FFT)
+  const envelopeMode = ref(false)
+  function toggleEnvelopeMode() { envelopeMode.value = !envelopeMode.value }
+
   // Bearing diagnostic state
   const bearingPreset = ref<string>('SKF 6205')
   const bearingParams = ref<Omit<BearingParams, 'rpmHz'>>({
@@ -113,7 +117,6 @@ export const useDspStore = defineStore('dsp', () => {
     initWorker()
     if (!worker) return
     pendingRequest = true
-    // Watchdog: if no response in 1 s, free the slot so we keep retrying
     pendingTimer = setTimeout(() => {
       console.warn('[dsp] worker request timed out')
       pendingRequest = false
@@ -121,10 +124,15 @@ export const useDspStore = defineStore('dsp', () => {
     }, 1000)
     const id = ++requestId
     const copy = samples.slice()
-    // Spread fftConfig.value to a plain object — the reactive Proxy can't
-    // be structured-cloned across the worker boundary (DataCloneError).
     const cfg = { ...fftConfig.value }
-    worker.postMessage({ type: 'compute', samples: copy, config: cfg, channelId, requestId: id }, [copy.buffer])
+    worker.postMessage({
+      type: 'compute',
+      samples: copy,
+      config: cfg,
+      channelId,
+      requestId: id,
+      envelope: envelopeMode.value,
+    }, [copy.buffer])
   }
 
   function setFftConfig(partial: Partial<FftConfig>) {
@@ -157,5 +165,6 @@ export const useDspStore = defineStore('dsp', () => {
     setOctaveBands, setOctaveWeighting, destroyWorker,
     bearingPreset, bearingParams, bearingShaftRpm, bearingOverlay, bearingFreqs,
     setBearingPreset, updateBearingParams, setBearingShaftRpm, toggleBearingOverlay,
+    envelopeMode, toggleEnvelopeMode,
   }
 })

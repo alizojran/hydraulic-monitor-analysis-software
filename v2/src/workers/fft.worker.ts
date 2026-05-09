@@ -21,6 +21,7 @@ interface FftRequest {
   config: FftConfig
   channelId: string
   requestId: number
+  envelope?: boolean   // when true, run Hilbert → |·| → FFT(envelope)
 }
 
 // ─── Window functions ───────────────────────────────────────────────
@@ -160,9 +161,38 @@ function findPeaks(magDb: Float32Array, magLin: Float32Array, freqs: Float32Arra
 }
 
 // ─── Message handler ────────────────────────────────────────────────
+// Hilbert envelope via FFT: returns |analytic(x)|.
+// 1. FFT(x), 2. zero negative freqs + double positive, 3. IFFT, 4. magnitude.
+function hilbertEnvelope(input: Float32Array): Float32Array {
+  const N = input.length
+  const re = new Float32Array(N)
+  const im = new Float32Array(N)
+  re.set(input)
+  fftInPlace(re, im)
+
+  // Single-sided mask: bin 0 + bin N/2 unchanged, 1..N/2-1 doubled, rest zero.
+  for (let i = 1; i < N / 2; i++) {
+    re[i] *= 2; im[i] *= 2
+  }
+  for (let i = N / 2 + 1; i < N; i++) {
+    re[i] = 0; im[i] = 0
+  }
+  // IFFT via conjugate-FFT-conjugate / N
+  for (let i = 0; i < N; i++) im[i] = -im[i]
+  fftInPlace(re, im)
+  const inv = 1 / N
+  const env = new Float32Array(N)
+  for (let i = 0; i < N; i++) {
+    const r = re[i] * inv
+    const m = -im[i] * inv  // un-conjugate
+    env[i] = Math.sqrt(r * r + m * m)
+  }
+  return env
+}
+
 self.onmessage = (e: MessageEvent<FftRequest>) => {
   try {
-    const { type, samples, config, channelId, requestId } = e.data
+    const { type, samples, config, channelId, requestId, envelope } = e.data
     if (type !== 'compute') return
 
     const t0 = performance.now()
@@ -177,10 +207,28 @@ self.onmessage = (e: MessageEvent<FftRequest>) => {
       windowed[i] = s * win[i]
     }
 
-    const re = new Float32Array(fftSize)
-    const im = new Float32Array(fftSize)
-    re.set(windowed)
-    fftInPlace(re, im)
+    let re: Float32Array
+    let im: Float32Array
+
+    if (envelope) {
+      // Hilbert envelope of the windowed signal, then FFT of (envelope - mean).
+      // DC removal so the envelope spectrum isn't dominated by the bias.
+      const env = hilbertEnvelope(windowed)
+      let mean = 0
+      for (let i = 0; i < fftSize; i++) mean += env[i]
+      mean /= fftSize
+      const envWin = new Float32Array(fftSize)
+      for (let i = 0; i < fftSize; i++) envWin[i] = (env[i] - mean) * win[i]
+      re = new Float32Array(fftSize)
+      im = new Float32Array(fftSize)
+      re.set(envWin)
+      fftInPlace(re, im)
+    } else {
+      re = new Float32Array(fftSize)
+      im = new Float32Array(fftSize)
+      re.set(windowed)
+      fftInPlace(re, im)
+    }
 
     const halfN = fftSize / 2
     const magnitudeLinear = new Float32Array(halfN)
