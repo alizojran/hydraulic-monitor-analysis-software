@@ -8,7 +8,7 @@
     </div>
 
     <div class="rpm-body">
-      <canvas ref="gaugeCanvas" class="gauge" width="200" height="110" />
+      <canvas ref="gaugeCanvas" class="gauge" width="180" height="92" />
       <div class="rpm-val">
         <span class="mono rpm-num">{{ Math.round(rpm) }}</span>
         <span class="text-dim rpm-unit">RPM</span>
@@ -100,7 +100,7 @@ function drawGauge(rpm: number) {
   const w = canvas.width, h = canvas.height
   ctx.clearRect(0, 0, w, h)
 
-  const cx = w / 2, cy = h - 16, r = h - 24
+  const cx = w / 2, cy = h - 12, r = h - 20
   const startAngle = Math.PI
   const endAngle = 0
   const fraction = Math.max(0, Math.min(1, (rpm - 0) / 2400))
@@ -109,15 +109,15 @@ function drawGauge(rpm: number) {
   ctx.beginPath()
   ctx.arc(cx, cy, r, startAngle, endAngle, false)
   ctx.strokeStyle = '#1a2d40'
-  ctx.lineWidth = 10
+  ctx.lineWidth = 8
   ctx.stroke()
 
   ctx.beginPath()
   ctx.arc(cx, cy, r, startAngle, currentAngle, false)
   ctx.strokeStyle = '#00d9ff'
-  ctx.lineWidth = 10
+  ctx.lineWidth = 8
   ctx.shadowColor = '#00d9ff'
-  ctx.shadowBlur = 8
+  ctx.shadowBlur = 6
   ctx.stroke()
   ctx.shadowBlur = 0
 
@@ -185,29 +185,30 @@ useAnimationLoop((now) => {
 
 .rpm-body {
   display: flex; flex-direction: column; align-items: center;
-  padding: 8px 0 2px;
+  padding: 4px 0 0;
 }
 .gauge { display: block; }
 .rpm-val {
-  display: flex; align-items: baseline; gap: 4px;
-  margin-top: -6px;
+  display: flex; align-items: baseline; gap: 3px;
+  margin-top: -4px;
 }
 .rpm-num {
-  font-size: 24px; font-weight: 700; color: var(--cyan);
+  font-size: 20px; font-weight: 700; color: var(--cyan);
   text-shadow: 0 0 12px rgba(0,217,255,0.5);
 }
-.rpm-unit { font-size: 10px; }
+.rpm-unit { font-size: 9px; }
 
 .rpm-stats {
-  display: flex; flex-direction: column; gap: 2px;
-  padding: 6px 10px; font-size: 10.5px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1px 10px;
+  padding: 5px 10px; font-size: 10px;
   border-top: 1px solid var(--border);
+  background: var(--bg-2);
 }
-.stat-row { display: flex; justify-content: space-between; }
-.stat-row .text-dim { letter-spacing: 0.04em; }
+.stat-row { display: flex; justify-content: space-between; gap: 4px; }
+.stat-row .text-dim { letter-spacing: 0.04em; font-size: 9.5px; }
 .text-red { color: var(--red); }
 .text-amber { color: var(--amber); }
 .text-green { color: var(--green); }
 
-.rpm-trend { height: 36px; padding: 0 4px 4px; }
+.rpm-trend { height: 28px; padding: 0 4px 3px; flex-shrink: 0; }
 </style>

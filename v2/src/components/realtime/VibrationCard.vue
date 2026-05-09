@@ -157,26 +157,26 @@ useAnimationLoop((now) => {
 
 .vib-value {
   display: flex; align-items: baseline; gap: 8px;
-  padding: 8px 10px 2px;
+  padding: 6px 10px 2px;
 }
-.vib-rms { font-size: 22px; font-weight: 700; line-height: 1.05; }
+.vib-rms { font-size: 20px; font-weight: 700; line-height: 1.05; }
 .vib-rms small { font-size: 10px; font-weight: 500; color: var(--text-2); margin-left: 2px; }
-.vib-trend { font-size: 10px; color: var(--text-2); margin-left: auto; }
+.vib-trend { font-size: 9.5px; color: var(--text-2); margin-left: auto; }
 .vib-trend.up { color: var(--red); }
 .vib-trend.down { color: var(--green); }
 
 .fft-header {
   display: flex; justify-content: space-between;
-  padding: 4px 10px 2px; font-size: 9.5px; letter-spacing: 0.06em;
+  padding: 3px 10px 2px; font-size: 9px; letter-spacing: 0.06em;
 }
-.fft-wrap { flex: 1; min-height: 80px; padding: 0 4px; }
+.fft-wrap { flex: 1; min-height: 50px; padding: 0 4px; }
 
 .vib-stats {
   display: grid; grid-template-columns: 1fr 1fr;
   gap: 1px 10px;
-  padding: 6px 10px; border-top: 1px solid var(--border);
-  background: var(--bg-2); font-size: 10.5px;
+  padding: 4px 10px 5px; border-top: 1px solid var(--border);
+  background: var(--bg-2); font-size: 10px; flex-shrink: 0;
 }
-.vib-stat { display: flex; justify-content: space-between; }
-.vib-stat .text-dim { letter-spacing: 0.04em; }
+.vib-stat { display: flex; justify-content: space-between; gap: 4px; }
+.vib-stat .text-dim { letter-spacing: 0.04em; font-size: 9.5px; }
 </style>

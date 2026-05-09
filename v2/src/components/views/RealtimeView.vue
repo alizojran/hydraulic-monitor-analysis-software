@@ -91,7 +91,7 @@ const currentWindow = computed(() =>
 }
 .center {
   display: grid;
-  grid-template-rows: auto minmax(0, 1.4fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1.3fr) auto minmax(0, 1.15fr) auto minmax(0, 0.95fr);
   overflow: hidden;
 }
 .right  { border-left: 1px solid var(--border); overflow-y: auto; }
