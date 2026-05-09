@@ -22,6 +22,14 @@
       <span class="flex-spacer" />
       <button
         class="env-btn"
+        :class="{ on: dspStore.xAxisMode === 'order' }"
+        :title="locale === 'zh' ? '阶次跟踪：X 轴用 shaft 频率倍数' : 'Order-axis: X labelled in multiples of shaft Hz'"
+        @click="dspStore.toggleXAxisMode"
+      >
+        {{ dspStore.xAxisMode === 'order' ? 'ORDER' : 'Hz' }}
+      </button>
+      <button
+        class="env-btn"
         :class="{ on: dspStore.envelopeMode }"
         :title="locale === 'zh' ? '希尔伯特包络解调' : 'Hilbert envelope demodulation'"
         @click="dspStore.toggleEnvelopeMode"
@@ -81,9 +89,9 @@
       <div v-if="res" class="stat">THD <span class="mono text-1">{{ (res.thd * 100).toFixed(1) }}%</span></div>
       <div v-if="res" class="stat text-dim">Δf {{ res.binHz.toFixed(2) }} Hz/bin</div>
       <span class="flex-spacer" />
-      <div v-if="m1Hz !== null" class="stat">M1 <span class="mono text-amber">{{ m1Hz.toFixed(1) }} Hz</span><span class="mono text-dim">{{ formatDb(m1Db) }} dB</span></div>
-      <div v-if="m2Hz !== null" class="stat">M2 <span class="mono text-purple">{{ m2Hz.toFixed(1) }} Hz</span><span class="mono text-dim">{{ formatDb(m2Db) }} dB</span></div>
-      <div v-if="m1Hz !== null && m2Hz !== null" class="stat text-cyan">Δ <span class="mono">{{ Math.abs(m2Hz - m1Hz).toFixed(1) }} Hz</span> · <span class="mono">1/Δ {{ (1000 / Math.abs(m2Hz - m1Hz)).toFixed(1) }} ms</span></div>
+      <div v-if="m1Hz !== null" class="stat">M1 <span class="mono text-amber">{{ formatXValue(m1Hz) }}</span><span class="mono text-dim">{{ formatDb(m1Db) }} dB</span></div>
+      <div v-if="m2Hz !== null" class="stat">M2 <span class="mono text-purple">{{ formatXValue(m2Hz) }}</span><span class="mono text-dim">{{ formatDb(m2Db) }} dB</span></div>
+      <div v-if="m1Hz !== null && m2Hz !== null" class="stat text-cyan">Δ <span class="mono">{{ formatXValue(Math.abs(m2Hz - m1Hz)) }}</span> · <span class="mono">1/Δ {{ (1000 / Math.abs(m2Hz - m1Hz)).toFixed(1) }} ms</span></div>
       <button v-if="m1Hz !== null || m2Hz !== null" class="clear-cur" @click="clearCursors">×</button>
     </div>
   </div>
@@ -121,6 +129,18 @@ const yTicks = [
 const xTicks = computed(() => {
   if (!res.value) return []
   const nyq = dspStore.fftConfig.sampleRate / 2
+
+  if (dspStore.xAxisMode === 'order') {
+    const shaftHz = Math.max(0.01, dspStore.bearingShaftRpm / 60)
+    const maxOrder = nyq / shaftHz
+    const candidates = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512].filter(o => o <= maxOrder)
+    return candidates.map(order => ({
+      hz: order * shaftHz,
+      pct: (order * shaftHz / nyq) * 100,
+      label: `${order}×`,
+    }))
+  }
+
   const ticks = [0.1, 0.2, 0.5, 1, 2, 5, 10].map(v => v * 1000).filter(hz => hz <= nyq)
   return ticks.map(hz => ({
     hz,
@@ -159,6 +179,14 @@ function dbAt(hz: number | null): number {
 }
 function formatDb(v: number): string {
   return Number.isFinite(v) && v > -120 ? v.toFixed(1) : '—'
+}
+
+function formatXValue(hz: number): string {
+  if (dspStore.xAxisMode === 'order') {
+    const shaftHz = Math.max(0.01, dspStore.bearingShaftRpm / 60)
+    return `${(hz / shaftHz).toFixed(2)}×`
+  }
+  return `${hz.toFixed(1)} Hz`
 }
 
 function onCanvasClick(e: MouseEvent) {

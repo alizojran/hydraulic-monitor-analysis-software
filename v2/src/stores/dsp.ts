@@ -35,6 +35,12 @@ export const useDspStore = defineStore('dsp', () => {
   const envelopeMode = ref(false)
   function toggleEnvelopeMode() { envelopeMode.value = !envelopeMode.value }
 
+  // X-axis mode: 'hz' or 'order' (multiples of shaft Hz)
+  const xAxisMode = ref<'hz' | 'order'>('hz')
+  function toggleXAxisMode() {
+    xAxisMode.value = xAxisMode.value === 'hz' ? 'order' : 'hz'
+  }
+
   // Bearing diagnostic state
   const bearingPreset = ref<string>('SKF 6205')
   const bearingParams = ref<Omit<BearingParams, 'rpmHz'>>({
@@ -178,6 +184,7 @@ export const useDspStore = defineStore('dsp', () => {
     bearingPreset, bearingParams, bearingShaftRpm, bearingOverlay, bearingFreqs,
     setBearingPreset, updateBearingParams, setBearingShaftRpm, toggleBearingOverlay,
     envelopeMode, toggleEnvelopeMode,
+    xAxisMode, toggleXAxisMode,
     gearTeeth, gearOverlay, gearFreqs, setGearTeeth, toggleGearOverlay,
   }
 })
