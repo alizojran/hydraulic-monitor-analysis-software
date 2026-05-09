@@ -4,9 +4,14 @@ import { useAlarmsStore } from '@/stores/alarms'
 import { CHANNEL_DEFS } from '@/config/channels'
 import type { SampleFrame } from '@/types/channel'
 
-// Simulated sample rate
-const SIM_RATE = 1000 // Hz
-const SIM_INTERVAL = 1000 / SIM_RATE
+// Simulated DAQ rate. Browsers cap setInterval at ~1 ms granularity, so we
+// tick at 1 kHz and emit a batch of 10 samples per tick — the data stream
+// the rest of the app sees runs at 10 kHz with proper 0.1 ms physical
+// spacing between samples.
+const SIM_RATE = 10000 // Hz
+const SIM_TICK_HZ = 1000
+const SAMPLES_PER_TICK = SIM_RATE / SIM_TICK_HZ
+const SIM_TICK_MS = 1000 / SIM_TICK_HZ
 
 function genSample(id: string, T: number, rpm: number): number {
   const ch = CHANNEL_DEFS.find(c => c.id === id)
@@ -72,23 +77,33 @@ export function useSimulator() {
 
   let intervalId: ReturnType<typeof setInterval> | null = null
   let startTime = 0
+  let sampleIndex = 0
 
   function start() {
     startTime = Date.now()
+    sampleIndex = 0
     acqStore.start()
     intervalId = setInterval(() => {
       if (!acqStore.isRunning || acqStore.isPaused) return
-      const now = Date.now()
-      const T = (now - startTime) / 1000
       const rpm = acqStore.channelValues['V01'] ?? 1500
+      let lastFrame: SampleFrame | null = null
 
-      const frame: SampleFrame = {
-        timestamp: now,
-        channels: new Map(CHANNEL_DEFS.map(ch => [ch.id, genSample(ch.id, T, rpm)])),
+      // Emit a batch of SAMPLES_PER_TICK samples spaced at 1/SIM_RATE seconds
+      for (let i = 0; i < SAMPLES_PER_TICK; i++) {
+        const T = sampleIndex / SIM_RATE
+        const ts = startTime + sampleIndex * (1000 / SIM_RATE)
+        sampleIndex++
+        const frame: SampleFrame = {
+          timestamp: ts,
+          channels: new Map(CHANNEL_DEFS.map(ch => [ch.id, genSample(ch.id, T, rpm)])),
+        }
+        acqStore.pushFrame(frame)
+        lastFrame = frame
       }
-      acqStore.pushFrame(frame)
-      alarmStore.evaluateFrame(frame, {}, {})
-    }, SIM_INTERVAL)
+      // Evaluate alarms once per tick (latest sample) — 1 kHz is plenty,
+      // and avoids 10× cost of running per-sample.
+      if (lastFrame) alarmStore.evaluateFrame(lastFrame, {}, {})
+    }, SIM_TICK_MS)
   }
 
   function stop() {

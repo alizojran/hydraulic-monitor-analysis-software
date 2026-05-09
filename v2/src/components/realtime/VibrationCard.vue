@@ -17,7 +17,7 @@
 
     <div class="fft-header mono text-dim">
       <span>FFT · {{ Math.round(rpmHz * 60) }} RPM</span>
-      <span>0 Hz <span style="margin: 0 4px">→</span> 500 Hz</span>
+      <span>0 Hz <span style="margin: 0 4px">→</span> 5 kHz</span>
     </div>
 
     <div class="fft-wrap">
@@ -88,7 +88,7 @@ const VIB_FREQS = new Float32Array(VIB_BINS)
   for (let k = 0; k < VIB_BINS; k++) {
     const f = Math.pow(k / (VIB_BINS - 1), 1.6) * 0.98
     const w = Math.PI * f
-    VIB_FREQS[k] = f * 500   // Hz at 1 kHz sample rate (Nyquist = 500)
+    VIB_FREQS[k] = f * 5000  // Hz; Nyquist at 10 kHz sample rate = 5000
     const base = k * VIB_N
     for (let n = 0; n < VIB_N; n++) {
       VIB_COS[base + n] = Math.cos(w * n)

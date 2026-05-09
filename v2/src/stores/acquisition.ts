@@ -72,7 +72,7 @@ export const useAcquisitionStore = defineStore('acquisition', () => {
   const isRunning = ref(false)
   const isPaused = ref(false)
   const timeWindowSec = ref(300)
-  const sampleRate = ref(1000)
+  const sampleRate = ref(10000)
   const sessionStartTime = ref<number | null>(null)
   const elapsedSec = ref(0)
 

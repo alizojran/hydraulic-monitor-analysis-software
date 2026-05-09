@@ -6,15 +6,15 @@
     <div class="param-list">
       <div class="param-row">
         <span class="pk">{{ locale === 'zh' ? '采样率' : 'Sample Rate' }}</span>
-        <span class="pv mono">{{ acqStore.sampleRate.toLocaleString() }} Hz</span>
+        <span class="pv mono">{{ (acqStore.sampleRate / 1000).toFixed(0) }} kHz</span>
       </div>
       <div class="param-row">
         <span class="pk">{{ locale === 'zh' ? '分辨率' : 'Resolution' }}</span>
-        <span class="pv mono text-cyan">24-bit</span>
+        <span class="pv mono text-cyan">16-bit</span>
       </div>
       <div class="param-row">
         <span class="pk">{{ locale === 'zh' ? '抗混叠' : 'Anti-alias' }}</span>
-        <span class="pv mono">400 Hz</span>
+        <span class="pv mono">{{ (acqStore.sampleRate * 0.4 / 1000).toFixed(1) }} kHz</span>
       </div>
       <div class="param-row">
         <span class="pk">{{ locale === 'zh' ? '同步源' : 'Sync' }}</span>
