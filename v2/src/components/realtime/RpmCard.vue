@@ -151,8 +151,8 @@ function drawGauge(rpm: number) {
 
 let accTimer = 0
 useAnimationLoop((now) => {
-  if (shouldDraw('rpm-gauge', 10)) drawGauge(rpm.value)
-  if (shouldDraw('rpm-trend', 10) && buf.value.length >= 2) {
+  if (shouldDraw('rpm-gauge', 5)) drawGauge(rpm.value)
+  if (shouldDraw('rpm-trend', 5) && buf.value.length >= 2) {
     drawTrend(buf.value, '#00d9ff', { min: 0, max: 2400, fill: true, fillAlpha: 0.2 })
   }
   // Compute acceleration over a 0.5s window

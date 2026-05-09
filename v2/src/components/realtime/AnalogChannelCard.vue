@@ -68,7 +68,7 @@ const hasAlarm = computed(() =>
 )
 
 useAnimationLoop(() => {
-  if (!shouldDraw(props.channelId, 10)) return
+  if (!shouldDraw(props.channelId, 5)) return
   const b = buf.value
   if (b.length < 2) return
   draw(b, ch.hex, { min: ch.min, max: ch.max, fill: true, fillAlpha: 0.18 })
