@@ -59,11 +59,12 @@ self.onmessage = (e: MessageEvent<FftRequest>) => {
   const win = getWindow(windowName, fftSize)
   const windowed = new Float32Array(fftSize)
 
-  // Use the last fftSize samples (or zero-pad if fewer)
-  const offset = Math.max(0, samples.length - fftSize)
+  // Use the last fftSize samples (or left-zero-pad if fewer)
+  const start = Math.max(0, samples.length - fftSize)
+  const padLeft = Math.max(0, fftSize - samples.length)
   for (let i = 0; i < fftSize; i++) {
-    const s = i < (fftSize - offset) ? 0 : samples[offset + i - (fftSize - offset)]
-    windowed[i] = (s || 0) * win[i]
+    const s = i < padLeft ? 0 : samples[start + (i - padLeft)]
+    windowed[i] = s * win[i]
   }
 
   // fft.js expects real/imag interleaved output array

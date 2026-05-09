@@ -6,7 +6,7 @@ export const DEFAULT_FFT_CONFIG: FftConfig = {
   overlap: 0.5,
   window: 'hanning',
   averages: 4,
-  sampleRate: 10000,
+  sampleRate: 1000,
 }
 
 export const DEFAULT_ALARM_RULES: AlarmRule[] = [
