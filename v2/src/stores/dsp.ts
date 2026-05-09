@@ -64,7 +64,10 @@ export const useDspStore = defineStore('dsp', () => {
     }, 1000)
     const id = ++requestId
     const copy = samples.slice()
-    worker.postMessage({ type: 'compute', samples: copy, config: fftConfig.value, channelId, requestId: id }, [copy.buffer])
+    // Spread fftConfig.value to a plain object — the reactive Proxy can't
+    // be structured-cloned across the worker boundary (DataCloneError).
+    const cfg = { ...fftConfig.value }
+    worker.postMessage({ type: 'compute', samples: copy, config: cfg, channelId, requestId: id }, [copy.buffer])
   }
 
   function setFftConfig(partial: Partial<FftConfig>) {
