@@ -23,7 +23,16 @@
     "loading": "Loading",
     "sampleRate": "Sample Rate",
     "channels": "Channels",
-    "window": "Window"
+    "window": "Window",
+    "buffer": "Buffer",
+    "elapsed": "Elapsed"
+  },
+  "storage": {
+    "local": "Local SSD",
+    "writeRate": "Write Rate",
+    "duration": "Duration",
+    "format": "Format",
+    "remaining": "Remaining"
   },
   "channel": {
     "CH01": "Main Pump Outlet",
@@ -57,6 +66,7 @@
     "acoustic": "Acoustic",
     "kpi": "Key Indicators",
     "alarmFeed": "Live Alarms",
+    "storage": "Storage",
     "eventLog": "Event Log",
     "timeWindow": "Time Window"
   },

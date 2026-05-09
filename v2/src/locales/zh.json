@@ -23,7 +23,16 @@
     "loading": "加载中",
     "sampleRate": "采样率",
     "channels": "通道",
-    "window": "时间窗"
+    "window": "时间窗",
+    "buffer": "缓冲区",
+    "elapsed": "采集时长"
+  },
+  "storage": {
+    "local": "本地 SSD",
+    "writeRate": "写入速率",
+    "duration": "记录长度",
+    "format": "文件格式",
+    "remaining": "剩余时长"
   },
   "channel": {
     "CH01": "主泵出口压力",
@@ -57,6 +66,7 @@
     "acoustic": "声学监测",
     "kpi": "关键指标",
     "alarmFeed": "实时告警",
+    "storage": "存储",
     "eventLog": "事件日志",
     "timeWindow": "时间窗口"
   },

@@ -15,6 +15,8 @@
       <ConfigView   v-if="uiStore.activeTab === 'config'" />
     </div>
 
+    <AppFooter />
+
     <div v-if="uiStore.loadingActive" class="loading-overlay">
       <div class="loading-box">
         <div class="loading-label">{{ uiStore.loadingLabel }}</div>
@@ -35,6 +37,7 @@ import { useAcquisitionStore } from '@/stores/acquisition'
 import { useSimulator } from '@/composables/useSimulator'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppStatusBar from '@/components/layout/AppStatusBar.vue'
+import AppFooter from '@/components/layout/AppFooter.vue'
 import DataSourceSwitcher from '@/components/common/DataSourceSwitcher.vue'
 import RealtimeView from '@/components/views/RealtimeView.vue'
 import SpectrumView from '@/components/views/SpectrumView.vue'
