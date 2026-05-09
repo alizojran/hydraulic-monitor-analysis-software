@@ -175,6 +175,25 @@
       "postTrigger": "Post-Trigger"
     }
   },
+  "acoustic": {
+    "spl": "Sound Pressure",
+    "subtitle": "S01 · Mic · 20 Hz – 20 kHz · A-weighted",
+    "peakFreq": "Peak Freq",
+    "bandwidth": "Bandwidth"
+  },
+  "vibration": {
+    "peakFreq": "Peak Freq"
+  },
+  "rpm": {
+    "nominal": "Nominal",
+    "deviation": "Deviation",
+    "acceleration": "Accel",
+    "runtime": "Runtime",
+    "statusSteady": "STEADY",
+    "statusAccel": "ACCEL",
+    "statusDecel": "DECEL",
+    "statusStopped": "STOPPED"
+  },
   "common": {
     "loading": "Loading…",
     "error": "Error",

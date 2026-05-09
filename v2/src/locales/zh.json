@@ -175,6 +175,25 @@
       "postTrigger": "后触发"
     }
   },
+  "acoustic": {
+    "spl": "声压 SPL",
+    "subtitle": "S01 · 麦克风 · 20 Hz – 20 kHz · A 计权",
+    "peakFreq": "主频",
+    "bandwidth": "带宽"
+  },
+  "vibration": {
+    "peakFreq": "主频"
+  },
+  "rpm": {
+    "nominal": "标称",
+    "deviation": "偏差",
+    "acceleration": "加速度",
+    "runtime": "运行时长",
+    "statusSteady": "稳态",
+    "statusAccel": "加速中",
+    "statusDecel": "减速中",
+    "statusStopped": "停止"
+  },
   "common": {
     "loading": "加载中…",
     "error": "错误",

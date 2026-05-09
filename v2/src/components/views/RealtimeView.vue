@@ -62,5 +62,5 @@ import KpiPanel from '@/components/realtime/KpiPanel.vue'
   gap: 6px;
   flex: 1;
 }
-.acoustic-wrap { min-height: 130px; }
+.acoustic-wrap { min-height: 220px; flex-shrink: 0; }
 </style>
