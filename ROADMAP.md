@@ -30,20 +30,23 @@
 
 ## 规划路线
 
-### P1 — 核心闭环（必做，1–2 周）
+### P1 — 核心闭环 ✅ 已完成（2026-05-09）
 
-| # | 任务 | 关键文件 | 估时 |
-|---|---|---|---|
-| 1.1 | **CSV 加载完整链路** | `io/csv-parser.worker.ts` 新建 + `useFileLoader` 完善 + 新建 `FileDropZone.vue` | 1d |
-| 1.2 | **WAV 加载** | `io/wavDecoder.ts` + 主线程 AudioContext 解码 + 重采样到 10kHz | 0.5d |
-| 1.3 | **文件回放控制** | 播放/暂停/速度调节 / 进度条 / 时间游标 | 1d |
-| 1.4 | **告警评估接通真实 RMS/Peak** | 在 `pushFrame` 或 `useSimulator` 计算每通道滚动 RMS/Peak，传给 `evaluateFrame` | 0.5d |
-| 1.5 | **历史会话录制** | 开始采集自动新建 session，结束存 metadata 到 localStorage；按时间窗采样压缩 | 1d |
-| 1.6 | **历史会话回放** | 时间轴拖拽 + 多轨同步 + 速度调节 | 1.5d |
-| 1.7 | **CSV 数据导出** | 实时缓冲区按通道选择导出 + 历史会话导出 | 0.5d |
-| 1.8 | **PNG 截图** | 任意 canvas 或整页快照（html2canvas 或自己 dom-to-image） | 0.5d |
+| # | 任务 | 状态 |
+|---|---|---|
+| 1.1 | CSV 加载完整链路 | ✅ `csv-parser.worker.ts` + `useFileLoader` + `DataSourceSwitcher` 拖拽 |
+| 1.2 | WAV 加载 | ✅ AudioContext 解码 + stride 重采样到 10 kHz |
+| 1.3 | 文件回放控制 | ✅ `usePlayback` + `PlaybackControls.vue`（播/停/拖拽 seek/0.25–8× 速度）|
+| 1.4 | 告警评估接通真实 RMS/Peak | ✅ `useSimulator` 250ms 刷新 1s 滚动指标，传给 `evaluateFrame` |
+| 1.5 | 历史会话录制 | ✅ `sessionStore.beginSession/endSession`，App.vue 自动钩入开始/停止/切源 |
+| 1.6 | 历史会话视图 | ✅ HistoryView 重写：源标签徽章 + 详情面板 6 项指标 + 通道列 + 删除/清空 |
+| 1.7 | CSV 数据导出 | ✅ `useExport.exportCsv`（顶栏 ⤓ CSV 按钮）|
+| 1.8 | PNG 截图 | ✅ `useExport.exportPng`（html-to-image，WebGL preserveDrawingBuffer 已开）|
 
-**里程碑**：用户能加载真实 CSV 数据，看到告警实际触发，能录制和回放，能导出报告。
+**里程碑达成**：完整的"采集 → 分析 → 告警 → 导出 → 归档"闭环。可作为 **v2.1** 发版基线。
+
+> 注：会话归档只存元数据（不存原始样本，因 localStorage 5 MB 上限）。
+> 真实数据的"录-回放"走 CSV 导出 → 重新加载的路径。
 
 ---
 
