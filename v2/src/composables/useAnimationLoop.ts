@@ -49,6 +49,10 @@ export function shouldDraw(key: string, fps: number): boolean {
 export function useAnimationLoop(callback: LoopCallback) {
   onMounted(() => {
     try { uiStore = useUiStore() } catch {}
+    // Clear throttle timestamps so the first frame after (re-)mount draws
+    // immediately — important when switching tabs (v-if) so curves don't
+    // sit blank for the rate-limit interval.
+    drawTimes.clear()
     callbacks.add(callback)
     startLoop()
   })
@@ -56,4 +60,10 @@ export function useAnimationLoop(callback: LoopCallback) {
     callbacks.delete(callback)
     if (callbacks.size === 0) stopLoop()
   })
+}
+
+/** Force the next shouldDraw(key) call to return true. */
+export function invalidateThrottle(key?: string) {
+  if (key) drawTimes.delete(key)
+  else drawTimes.clear()
 }
