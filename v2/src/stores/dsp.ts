@@ -74,6 +74,18 @@ export const useDspStore = defineStore('dsp', () => {
   function setBearingShaftRpm(rpm: number) { bearingShaftRpm.value = rpm }
   function toggleBearingOverlay() { bearingOverlay.value = !bearingOverlay.value }
 
+  // Gear mesh / sidebands
+  const gearTeeth = ref(0)              // 0 = disabled
+  const gearOverlay = ref(false)
+  const gearFreqs = computed(() => {
+    if (gearTeeth.value <= 0) return { mesh: 0, sb1: 0, sb2: 0 }
+    const shaftHz = bearingShaftRpm.value / 60
+    const mesh = gearTeeth.value * shaftHz
+    return { mesh, sb1: mesh - shaftHz, sb2: mesh + shaftHz }
+  })
+  function setGearTeeth(z: number) { gearTeeth.value = Math.max(0, Math.floor(z)) }
+  function toggleGearOverlay() { gearOverlay.value = !gearOverlay.value }
+
   let worker: Worker | null = null
   let requestId = 0
   let pendingRequest = false
@@ -166,5 +178,6 @@ export const useDspStore = defineStore('dsp', () => {
     bearingPreset, bearingParams, bearingShaftRpm, bearingOverlay, bearingFreqs,
     setBearingPreset, updateBearingParams, setBearingShaftRpm, toggleBearingOverlay,
     envelopeMode, toggleEnvelopeMode,
+    gearTeeth, gearOverlay, gearFreqs, setGearTeeth, toggleGearOverlay,
   }
 })

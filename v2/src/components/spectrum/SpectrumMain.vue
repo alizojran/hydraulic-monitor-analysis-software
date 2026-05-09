@@ -47,6 +47,17 @@
             <span class="b-label mono" :style="{ color: b.color, background: b.bgColor }">{{ b.label }}</span>
           </div>
         </div>
+        <!-- Gear mesh overlay -->
+        <div v-if="dspStore.gearOverlay && gearOverlays.length" class="bearing-overlay">
+          <div
+            v-for="g in gearOverlays"
+            :key="g.label"
+            class="b-marker"
+            :style="{ left: g.pct + '%', borderColor: g.color }"
+          >
+            <span class="b-label mono" :style="{ color: g.color, background: g.bgColor }">{{ g.label }}</span>
+          </div>
+        </div>
         <!-- M1 / M2 cursors -->
         <div class="cursors-overlay">
           <div v-if="m1Pct !== null" class="cursor m1" :style="{ left: m1Pct + '%' }">
@@ -173,6 +184,25 @@ const bearingOverlays = computed(() => {
     { label: 'BPFO', hz: f.bpfo, ...BEARING_COLORS.BPFO },
     { label: 'BSF',  hz: f.bsf,  ...BEARING_COLORS.BSF },
     { label: 'FTF',  hz: f.ftf,  ...BEARING_COLORS.FTF },
+  ]
+  return items
+    .filter(it => it.hz > 0 && it.hz <= nyq)
+    .map(it => ({
+      label: it.label,
+      pct: (it.hz / nyq) * 100,
+      color: it.fg,
+      bgColor: it.bg,
+    }))
+})
+
+const gearOverlays = computed(() => {
+  if (!res.value || dspStore.gearTeeth <= 0) return []
+  const nyq = dspStore.fftConfig.sampleRate / 2
+  const f = dspStore.gearFreqs
+  const items = [
+    { label: 'GMF', hz: f.mesh, fg: '#b366ff', bg: 'rgba(179,102,255,0.18)' },
+    { label: '−SB', hz: f.sb1,  fg: '#8a4ad6', bg: 'rgba(138,74,214,0.14)' },
+    { label: '+SB', hz: f.sb2,  fg: '#8a4ad6', bg: 'rgba(138,74,214,0.14)' },
   ]
   return items
     .filter(it => it.hz > 0 && it.hz <= nyq)

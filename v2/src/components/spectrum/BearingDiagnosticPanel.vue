@@ -55,6 +55,30 @@
       <span class="diag-icon">{{ diagnosis.icon }}</span>
       <span class="diag-text">{{ diagnosis.text }}</span>
     </div>
+
+    <!-- Gear sub-section -->
+    <div class="bd-head" style="margin-top:6px;border-top:1px dashed var(--border);padding-top:6px">
+      <span class="title">{{ locale === 'zh' ? '齿轮' : 'GEAR' }}</span>
+      <button class="toggle" :class="{ on: dspStore.gearOverlay }"
+        :disabled="dspStore.gearTeeth <= 0"
+        @click="dspStore.toggleGearOverlay">
+        {{ dspStore.gearOverlay ? 'ON' : 'OFF' }}
+      </button>
+    </div>
+    <div class="row">
+      <span class="lbl">{{ locale === 'zh' ? '齿数 Z' : 'Teeth Z' }}</span>
+      <input class="inline-num" type="number" min="0" max="200"
+        :value="dspStore.gearTeeth"
+        @input="dspStore.setGearTeeth(parseInt(($event.target as HTMLInputElement).value) || 0)" />
+    </div>
+    <div v-if="dspStore.gearTeeth > 0" class="row">
+      <span class="lbl mono" style="color: var(--purple)">GMF</span>
+      <span class="val mono text-purple">{{ dspStore.gearFreqs.mesh.toFixed(1) }} Hz</span>
+    </div>
+    <div v-if="dspStore.gearTeeth > 0" class="row">
+      <span class="lbl mono text-dim">±SB</span>
+      <span class="val mono text-dim">{{ dspStore.gearFreqs.sb1.toFixed(1) }} / {{ dspStore.gearFreqs.sb2.toFixed(1) }} Hz</span>
+    </div>
   </div>
 </template>
 
@@ -205,4 +229,12 @@ function onParam(key: 'ballCount' | 'pitchDiamMm' | 'ballDiamMm' | 'contactAngle
 .diag.high { color: var(--red); border-color: rgba(255,51,85,0.5); background: rgba(255,51,85,0.08); }
 .diag-icon { font-weight: 600; }
 .diag-text { line-height: 1.3; }
+
+.text-purple { color: var(--purple); }
+.inline-num {
+  width: 60px; background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: 2px; padding: 1px 6px; color: var(--text-1);
+  font-family: var(--font-mono); font-size: 11px; outline: none;
+}
+.toggle:disabled { opacity: 0.4; cursor: not-allowed; }
 </style>
