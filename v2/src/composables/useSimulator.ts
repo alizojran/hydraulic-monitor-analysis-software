@@ -76,8 +76,31 @@ export function useSimulator() {
   const alarmStore = useAlarmsStore()
 
   let intervalId: ReturnType<typeof setInterval> | null = null
+  let metricsId: ReturnType<typeof setInterval> | null = null
   let startTime = 0
   let sampleIndex = 0
+
+  // Rolling RMS/Peak per channel — refreshed every 250 ms over the last 1 s
+  // of raw samples. Plain objects (not reactive) — alarmStore.evaluateFrame
+  // reads them by reference each tick, no need to trigger Vue reactivity.
+  const channelRms: Record<string, number> = {}
+  const channelPeak: Record<string, number> = {}
+  const METRICS_WINDOW = 10000   // 1 s @ 10 kHz
+
+  function refreshMetrics() {
+    for (const ch of CHANNEL_DEFS) {
+      const buf = acqStore.getFftSamples(ch.id, METRICS_WINDOW)
+      let sumSq = 0, peak = 0
+      for (let i = 0; i < buf.length; i++) {
+        const v = buf[i]
+        sumSq += v * v
+        const a = Math.abs(v)
+        if (a > peak) peak = a
+      }
+      channelRms[ch.id] = Math.sqrt(sumSq / buf.length)
+      channelPeak[ch.id] = peak
+    }
+  }
 
   function start() {
     startTime = Date.now()
@@ -100,14 +123,16 @@ export function useSimulator() {
         acqStore.pushFrame(frame)
         lastFrame = frame
       }
-      // Evaluate alarms once per tick (latest sample) — 1 kHz is plenty,
-      // and avoids 10× cost of running per-sample.
-      if (lastFrame) alarmStore.evaluateFrame(lastFrame, {}, {})
+      // Evaluate alarms once per tick (latest sample) with real RMS/Peak
+      if (lastFrame) alarmStore.evaluateFrame(lastFrame, channelRms, channelPeak)
     }, SIM_TICK_MS)
+
+    metricsId = setInterval(refreshMetrics, 250)
   }
 
   function stop() {
     if (intervalId) { clearInterval(intervalId); intervalId = null }
+    if (metricsId) { clearInterval(metricsId); metricsId = null }
     acqStore.stop()
   }
 
@@ -116,6 +141,7 @@ export function useSimulator() {
 
   onUnmounted(() => {
     if (intervalId) { clearInterval(intervalId); intervalId = null }
+    if (metricsId) { clearInterval(metricsId); metricsId = null }
   })
 
   return { start, stop, pause, resume }

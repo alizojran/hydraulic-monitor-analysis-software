@@ -23,7 +23,7 @@ export class GLHeatmap {
     this.timeCols = timeCols
     this.colBuffer = new Uint8Array(freqBins)
 
-    const gl = canvas.getContext('webgl2', { antialias: false, premultipliedAlpha: true })
+    const gl = canvas.getContext('webgl2', { antialias: false, premultipliedAlpha: true, preserveDrawingBuffer: true })
     if (!gl) { this.failed = true; return }
     this.gl = gl
 

@@ -40,6 +40,8 @@
         </template>
       </template>
 
+      <button class="hdr-btn" :title="$t('common.export')" @click="onExportCsv">⤓ CSV</button>
+      <button class="hdr-btn" :title="$t('common.screenshot')" @click="onExportPng">⌘ PNG</button>
       <button class="lang-btn" @click="toggleLang">{{ $t('common.language') }}</button>
     </div>
   </header>
@@ -49,6 +51,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useUiStore } from '@/stores/ui'
 import { useAcquisitionStore } from '@/stores/acquisition'
+import { useExport } from '@/composables/useExport'
 import type { TabId } from '@/stores/ui'
 import { useI18n } from 'vue-i18n'
 
@@ -59,8 +62,12 @@ const TABS: { id: TabId }[] = [
 const uiStore = useUiStore()
 const acqStore = useAcquisitionStore()
 const { locale } = useI18n()
+const { exportCsv, exportPng } = useExport()
 
 defineEmits<{ start: []; stop: []; pause: [] }>()
+
+function onExportCsv() { exportCsv() }
+function onExportPng() { exportPng() }
 
 const clock = ref('')
 const dateStr = ref('')
@@ -147,4 +154,9 @@ onUnmounted(() => clearInterval(clockTimer))
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
 
 .lang-btn { font-size: 11px; padding: 4px 10px; }
+.hdr-btn {
+  font-size: 11px; padding: 4px 9px;
+  font-family: var(--font-mono); letter-spacing: 0.04em;
+}
+.hdr-btn:hover { background: rgba(0,217,255,0.1); border-color: var(--cyan); color: var(--cyan); }
 </style>

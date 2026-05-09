@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "fft.js": "^4.0.4",
+    "html-to-image": "^1.11.13",
     "pinia": "^3.0.4",
     "vue": "^3.5.32",
     "vue-i18n": "^11.4.2"

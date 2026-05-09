@@ -13,7 +13,7 @@ export class GLBars {
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
-    const gl = canvas.getContext('webgl2', { antialias: true, premultipliedAlpha: true })
+    const gl = canvas.getContext('webgl2', { antialias: true, premultipliedAlpha: true, preserveDrawingBuffer: true })
     if (!gl) { this.failed = true; return }
     this.gl = gl
 
