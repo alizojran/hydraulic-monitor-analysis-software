@@ -34,7 +34,7 @@
       <div class="y-axis">
         <span v-for="tick in yTicks" :key="tick.v" class="y-tick mono" :style="{ bottom: tick.pct + '%' }">{{ tick.v }}</span>
       </div>
-      <div class="canvas-stack">
+      <div class="canvas-stack" @click="onCanvasClick">
         <GlowCanvas ref="specCanvas" class="spec-canvas" />
         <!-- Bearing fault frequency overlay -->
         <div v-if="dspStore.bearingOverlay && bearingOverlays.length" class="bearing-overlay">
@@ -45,6 +45,15 @@
             :style="{ left: b.pct + '%', borderColor: b.color }"
           >
             <span class="b-label mono" :style="{ color: b.color, background: b.bgColor }">{{ b.label }}</span>
+          </div>
+        </div>
+        <!-- M1 / M2 cursors -->
+        <div class="cursors-overlay">
+          <div v-if="m1Pct !== null" class="cursor m1" :style="{ left: m1Pct + '%' }">
+            <span class="cur-label mono">M1</span>
+          </div>
+          <div v-if="m2Pct !== null" class="cursor m2" :style="{ left: m2Pct + '%' }">
+            <span class="cur-label mono">M2</span>
           </div>
         </div>
       </div>
@@ -60,6 +69,11 @@
       <div v-if="res" class="stat">Crest <span class="mono text-amber">{{ res.crestFactor.toFixed(2) }}</span></div>
       <div v-if="res" class="stat">THD <span class="mono text-1">{{ (res.thd * 100).toFixed(1) }}%</span></div>
       <div v-if="res" class="stat text-dim">Δf {{ res.binHz.toFixed(2) }} Hz/bin</div>
+      <span class="flex-spacer" />
+      <div v-if="m1Hz !== null" class="stat">M1 <span class="mono text-amber">{{ m1Hz.toFixed(1) }} Hz</span><span class="mono text-dim">{{ formatDb(m1Db) }} dB</span></div>
+      <div v-if="m2Hz !== null" class="stat">M2 <span class="mono text-purple">{{ m2Hz.toFixed(1) }} Hz</span><span class="mono text-dim">{{ formatDb(m2Db) }} dB</span></div>
+      <div v-if="m1Hz !== null && m2Hz !== null" class="stat text-cyan">Δ <span class="mono">{{ Math.abs(m2Hz - m1Hz).toFixed(1) }} Hz</span> · <span class="mono">1/Δ {{ (1000 / Math.abs(m2Hz - m1Hz)).toFixed(1) }} ms</span></div>
+      <button v-if="m1Hz !== null || m2Hz !== null" class="clear-cur" @click="clearCursors">×</button>
     </div>
   </div>
 </template>
@@ -110,6 +124,45 @@ const BEARING_COLORS = {
   BSF:  { fg: '#00ff95', bg: 'rgba(0,255,149,0.18)' },
   FTF:  { fg: '#00d9ff', bg: 'rgba(0,217,255,0.18)' },
 } as const
+
+// ─── M1 / M2 cursors ───────────────────────────────────────────────
+const m1Hz = ref<number | null>(null)
+const m2Hz = ref<number | null>(null)
+const m1Pct = computed(() => hzToPct(m1Hz.value))
+const m2Pct = computed(() => hzToPct(m2Hz.value))
+const m1Db = computed(() => dbAt(m1Hz.value))
+const m2Db = computed(() => dbAt(m2Hz.value))
+
+function hzToPct(hz: number | null): number | null {
+  if (hz === null) return null
+  const nyq = dspStore.fftConfig.sampleRate / 2
+  return Math.max(0, Math.min(100, (hz / nyq) * 100))
+}
+function dbAt(hz: number | null): number {
+  if (hz === null) return -120
+  const r = res.value
+  if (!r) return -120
+  const bin = Math.round(hz / r.binHz)
+  if (bin < 0 || bin >= r.magnitudeDb.length) return -120
+  return r.magnitudeDb[bin]
+}
+function formatDb(v: number): string {
+  return Number.isFinite(v) && v > -120 ? v.toFixed(1) : '—'
+}
+
+function onCanvasClick(e: MouseEvent) {
+  const target = e.currentTarget as HTMLElement
+  const rect = target.getBoundingClientRect()
+  const frac = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+  const nyq = dspStore.fftConfig.sampleRate / 2
+  const hz = frac * nyq
+  if (e.shiftKey) m2Hz.value = hz
+  else m1Hz.value = hz
+}
+function clearCursors() {
+  m1Hz.value = null
+  m2Hz.value = null
+}
 
 const bearingOverlays = computed(() => {
   if (!res.value) return []
@@ -210,5 +263,28 @@ function onChChange(e: Event) {
   font-size: 9px; padding: 1px 4px;
   border-radius: 2px; letter-spacing: 0.06em;
   white-space: nowrap;
+}
+
+.canvas-stack { cursor: crosshair; }
+.cursors-overlay { position: absolute; inset: 0; pointer-events: none; }
+.cursor {
+  position: absolute; top: 0; bottom: 0; width: 1px;
+  transform: translateX(-0.5px);
+}
+.cursor.m1 { background: var(--amber); box-shadow: 0 0 4px var(--amber); }
+.cursor.m2 { background: var(--purple); box-shadow: 0 0 4px var(--purple); }
+.cur-label {
+  position: absolute; top: 4px; left: 4px;
+  font-size: 9px; padding: 1px 4px;
+  border-radius: 2px; font-weight: 600;
+}
+.cursor.m1 .cur-label { color: var(--amber); background: rgba(255,170,0,0.15); }
+.cursor.m2 .cur-label { color: var(--purple); background: rgba(179,102,255,0.15); }
+
+.text-purple { color: var(--purple); }
+.clear-cur {
+  font-size: 11px; padding: 0 6px; line-height: 1;
+  background: var(--bg-2); border: 1px solid var(--border); color: var(--text-2);
+  border-radius: 2px; min-height: 18px;
 }
 </style>

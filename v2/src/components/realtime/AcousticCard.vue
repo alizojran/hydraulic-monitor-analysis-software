@@ -32,6 +32,12 @@
           <div class="ac-stat-row"><span class="text-dim">{{ $t('acoustic.peakFreq') }}</span><span class="text-cyan">{{ peakFreq }} kHz</span></div>
           <div class="ac-stat-row"><span class="text-dim">{{ $t('acoustic.bandwidth') }}</span><span>20 kHz</span></div>
         </div>
+
+        <!-- LAeq trend sparkline (last minute) -->
+        <div class="laeq-trend">
+          <span class="lt-label mono text-dim">LAeq · 60s</span>
+          <canvas ref="laeqCanvas" class="lt-canvas" width="220" height="36" />
+        </div>
       </div>
 
       <!-- Right: full-height spectrogram waterfall -->
@@ -44,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useAcquisitionStore } from '@/stores/acquisition'
 import { useGLHeatmap } from '@/composables/useGLHeatmap'
 import { useAnimationLoop } from '@/composables/useAnimationLoop'
@@ -99,6 +105,82 @@ const duration = computed(() => {
 
 const peakFreq = ref('1.92')
 let peakRollTimer = 0
+
+// ─── LAeq 60-second trend sparkline ────────────────────────────────
+const laeqCanvas = ref<HTMLCanvasElement | null>(null)
+const laeqHistory = ref<number[]>([])
+const LAEQ_WINDOW = 60
+let laeqTimer: ReturnType<typeof setInterval> | null = null
+
+function drawLaeqSparkline() {
+  const canvas = laeqCanvas.value
+  if (!canvas) return
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+  const w = canvas.width, h = canvas.height
+  ctx.clearRect(0, 0, w, h)
+
+  const data = laeqHistory.value
+  if (data.length < 2) return
+
+  // Auto-range with padding
+  let mn = Infinity, mx = -Infinity
+  for (const v of data) { if (v < mn) mn = v; if (v > mx) mx = v }
+  const pad = (mx - mn) * 0.15 + 0.5
+  mn -= pad; mx += pad
+
+  const xStep = w / (LAEQ_WINDOW - 1)
+
+  // Fill gradient
+  ctx.beginPath()
+  ctx.moveTo(0, h)
+  for (let i = 0; i < data.length; i++) {
+    const x = i * xStep
+    const y = h - ((data[i] - mn) / (mx - mn)) * h
+    if (i === 0) ctx.lineTo(x, y)
+    else ctx.lineTo(x, y)
+  }
+  ctx.lineTo(w, h)
+  ctx.closePath()
+  ctx.fillStyle = 'rgba(255,230,0,0.15)'
+  ctx.fill()
+
+  // Stroke line
+  ctx.beginPath()
+  for (let i = 0; i < data.length; i++) {
+    const x = i * xStep
+    const y = h - ((data[i] - mn) / (mx - mn)) * h
+    if (i === 0) ctx.moveTo(x, y)
+    else ctx.lineTo(x, y)
+  }
+  ctx.strokeStyle = '#ffe600'
+  ctx.lineWidth = 1.4
+  ctx.shadowColor = '#ffe600'
+  ctx.shadowBlur = 4
+  ctx.stroke()
+  ctx.shadowBlur = 0
+
+  // Min / max labels
+  ctx.fillStyle = 'rgba(154,176,200,0.6)'
+  ctx.font = '8px ui-monospace, monospace'
+  ctx.textAlign = 'left'
+  ctx.fillText(mx.toFixed(0), 2, 9)
+  ctx.fillText(mn.toFixed(0), 2, h - 2)
+}
+
+onMounted(() => {
+  laeqTimer = setInterval(() => {
+    const v = parseFloat(laeq.value)
+    if (Number.isFinite(v)) {
+      laeqHistory.value.push(v)
+      if (laeqHistory.value.length > LAEQ_WINDOW) laeqHistory.value.shift()
+      drawLaeqSparkline()
+    }
+  }, 1000)
+})
+onUnmounted(() => { if (laeqTimer) clearInterval(laeqTimer) })
+
+watch(() => laeqHistory.value.length, () => drawLaeqSparkline())
 
 // Monotonic-total seen by this component instance. On (re-)mount this starts
 // at 0 so the full stored history is replayed in one frame, restoring the
@@ -177,6 +259,17 @@ useAnimationLoop((now) => {
 }
 .ac-stat-row { display: flex; justify-content: space-between; }
 .ac-stat-row .text-dim { letter-spacing: 0.06em; font-size: 10px; }
+
+.laeq-trend {
+  display: flex; flex-direction: column; gap: 2px;
+  margin-top: auto; padding-top: 6px;
+}
+.lt-label { font-size: 9px; letter-spacing: 0.1em; }
+.lt-canvas {
+  width: 100%; height: 36px;
+  background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: 2px;
+}
 
 .ac-right {
   display: flex; flex-direction: column; gap: 2px;
