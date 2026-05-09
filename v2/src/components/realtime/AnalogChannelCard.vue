@@ -27,7 +27,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAcquisitionStore } from '@/stores/acquisition'
 import { useAlarmsStore } from '@/stores/alarms'
 import { CHANNEL_MAP } from '@/config/channels'
@@ -48,10 +48,19 @@ const canvasWrap = ref<InstanceType<typeof GlowCanvas> | null>(null)
 const canvasRef = computed(() => canvasWrap.value?.canvas ?? null)
 const { draw } = useGLPlot(canvasRef)
 
-const displayVal = computed(() => {
-  const v = acqStore.channelValues[props.channelId] ?? ch.base ?? 0
-  return v.toFixed(ch.type === 'temperature' ? 2 : 1)
+// Snapshot the live value at 5 Hz so the big bar number doesn't flicker
+// at the simulator's 1 kHz update rate while the canvas only repaints 5×/s.
+const snapValue = ref(ch.base ?? 0)
+let snapTimer: ReturnType<typeof setInterval> | null = null
+onMounted(() => {
+  snapValue.value = acqStore.channelValues[props.channelId] ?? ch.base ?? 0
+  snapTimer = setInterval(() => {
+    snapValue.value = acqStore.channelValues[props.channelId] ?? ch.base ?? 0
+  }, 200)
 })
+onUnmounted(() => { if (snapTimer) clearInterval(snapTimer) })
+
+const displayVal = computed(() => snapValue.value.toFixed(ch.type === 'temperature' ? 2 : 1))
 
 const buf = computed(() => acqStore.channelBuffers[props.channelId]?.buffer ?? [])
 const minVal = computed(() => buf.value.length ? Math.min(...buf.value).toFixed(1) : '—')

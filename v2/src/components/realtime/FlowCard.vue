@@ -42,7 +42,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAcquisitionStore } from '@/stores/acquisition'
 import { useGLPlot } from '@/composables/useGLPlot'
 import { useAnimationLoop, shouldDraw } from '@/composables/useAnimationLoop'
@@ -57,7 +57,19 @@ const trendRef = computed(() => trendCanvas.value?.canvas ?? null)
 const { draw: drawTrend } = useGLPlot(trendRef)
 
 const maxFlow = 200
-const flow = computed(() => acqStore.channelValues['F01'] ?? 0)
+
+// Snapshot at 5 Hz so the big number / gauge dial don't flicker at 1 kHz.
+const snapFlow = ref(0)
+let snapTimer: ReturnType<typeof setInterval> | null = null
+onMounted(() => {
+  snapFlow.value = acqStore.channelValues['F01'] ?? 0
+  snapTimer = setInterval(() => {
+    snapFlow.value = acqStore.channelValues['F01'] ?? 0
+  }, 200)
+})
+onUnmounted(() => { if (snapTimer) clearInterval(snapTimer) })
+
+const flow = computed(() => snapFlow.value)
 const buf = computed(() => acqStore.channelBuffers['F01']?.buffer ?? [])
 const flowVal = computed(() => flow.value.toFixed(1))
 const avgV = computed(() => buf.value.length ? (buf.value.reduce((a, b) => a + b, 0) / buf.value.length).toFixed(1) : '—')

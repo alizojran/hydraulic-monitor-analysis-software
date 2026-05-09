@@ -41,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAcquisitionStore } from '@/stores/acquisition'
 import { CHANNEL_MAP } from '@/config/channels'
 import { useGLPlot } from '@/composables/useGLPlot'
@@ -56,7 +56,18 @@ const trendCanvas = ref<InstanceType<typeof GlowCanvas> | null>(null)
 const trendRef = computed(() => trendCanvas.value?.canvas ?? null)
 const { draw: drawTrend } = useGLPlot(trendRef)
 
-const rpm = computed(() => acqStore.channelValues['V01'] ?? 1500)
+// Snapshot at 5 Hz so the big RPM number / gauge dial don't flicker at 1 kHz.
+const snapRpm = ref(1500)
+let snapTimer: ReturnType<typeof setInterval> | null = null
+onMounted(() => {
+  snapRpm.value = acqStore.channelValues['V01'] ?? 1500
+  snapTimer = setInterval(() => {
+    snapRpm.value = acqStore.channelValues['V01'] ?? 1500
+  }, 200)
+})
+onUnmounted(() => { if (snapTimer) clearInterval(snapTimer) })
+
+const rpm = computed(() => snapRpm.value)
 const buf = computed(() => acqStore.channelBuffers['V01']?.buffer ?? [])
 const nominal = CHANNEL_MAP.get('V01')?.nominalRpm ?? 1500
 
