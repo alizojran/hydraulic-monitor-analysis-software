@@ -35,7 +35,7 @@ useAnimationLoop(() => {
   }
   lastTotal = total
 
-  if (shouldDraw('waterfall', 15)) draw()
+  if (shouldDraw('waterfall', 60)) draw()
 })
 </script>
 

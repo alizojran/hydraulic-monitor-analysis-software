@@ -33,18 +33,25 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAcquisitionStore } from '@/stores/acquisition'
 import { useI18n } from 'vue-i18n'
 
 const { locale } = useI18n()
 const acqStore = useAcquisitionStore()
 
-// Simulated particle count values that drift slowly
-const baseCode = computed(() => {
-  const t = acqStore.elapsedSec
-  return 16 + Math.sin(t * 0.02) * 2
+// Particle count drifts slowly — sample elapsedSec once per second.
+// Computeds depend only on this tickedT, so they don't repaint at the
+// 1 kHz frame-tick rate that elapsedSec gets updated.
+const tickedT = ref(0)
+let timer: ReturnType<typeof setInterval> | null = null
+onMounted(() => {
+  tickedT.value = acqStore.elapsedSec
+  timer = setInterval(() => { tickedT.value = acqStore.elapsedSec }, 1000)
 })
+onUnmounted(() => { if (timer) clearInterval(timer) })
+
+const baseCode = computed(() => 16 + Math.sin(tickedT.value * 0.02) * 2)
 
 const iso4  = computed(() => Math.round(baseCode.value).toString())
 const iso6  = computed(() => Math.round(baseCode.value - 2).toString())
@@ -62,7 +69,7 @@ const cleanLabel = computed(() => {
 })
 
 const bins = computed(() => {
-  const t = acqStore.elapsedSec
+  const t = tickedT.value
   const c4  = Math.round(2180 + Math.sin(t * 0.05) * 100)
   const c6  = Math.round(540  + Math.sin(t * 0.07) * 30)
   const c14 = Math.round(68   + Math.sin(t * 0.11) * 8)

@@ -57,6 +57,6 @@ export function useAcousticSpectrogram() {
     acqStore.pushAcousticColumn(col)
   }
 
-  onMounted(() => { timer = setInterval(tick, 100) })
+  onMounted(() => { timer = setInterval(tick, 16) })
   onUnmounted(() => { if (timer) clearInterval(timer) })
 }

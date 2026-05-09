@@ -35,7 +35,7 @@ const { draw } = useGLBars(barsRef)
 const ch = computed(() => CHANNEL_MAP.get(dspStore.selectedChannelId))
 
 useAnimationLoop(() => {
-  if (!shouldDraw('octave', 10)) return
+  if (!shouldDraw('octave', 60)) return
   const res = dspStore.fftResult
   if (!res) return
   const bands = computeOctaveBands(res.magnitudeDb, res.frequencies, dspStore.octaveWeighting)

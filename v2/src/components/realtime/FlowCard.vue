@@ -105,7 +105,7 @@ function drawGauge(val: number) {
 
 useAnimationLoop(() => {
   if (shouldDraw('flow-gauge', 10)) drawGauge(flow.value)
-  if (shouldDraw('flow-trend', 20) && buf.value.length >= 2)
+  if (shouldDraw('flow-trend', 10) && buf.value.length >= 2)
     drawTrend(buf.value, '#00d9ff', { min: 0, max: maxFlow, fill: true, fillAlpha: 0.25 })
 })
 </script>

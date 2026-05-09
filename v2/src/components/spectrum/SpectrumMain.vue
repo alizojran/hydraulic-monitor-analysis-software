@@ -84,14 +84,14 @@ const xTicks = computed(() => {
 
 let fftTimer = 0
 useAnimationLoop((now) => {
-  // Request FFT computation at ~10 Hz
-  if (now - fftTimer > 100) {
+  // Request FFT computation at ~60 Hz (worker gates with pendingRequest)
+  if (now - fftTimer > 16) {
     fftTimer = now
     const samples = acqStore.getFftSamples(dspStore.selectedChannelId, dspStore.fftConfig.fftSize)
     dspStore.requestFft(samples, dspStore.selectedChannelId)
   }
 
-  if (shouldDraw('spectrum-main', 20) && res.value) {
+  if (shouldDraw('spectrum-main', 60) && res.value) {
     const { magnitudeDb } = res.value
     // normalize for display: -120..0 dB -> 0..1 for GLPlot
     const disp = new Float32Array(magnitudeDb.length)

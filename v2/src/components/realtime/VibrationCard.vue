@@ -102,7 +102,7 @@ let fftTimer = 0
 let trendTimer = 0
 
 useAnimationLoop((now) => {
-  if (now - fftTimer > 120) {
+  if (now - fftTimer > 16) {
     fftTimer = now
     const raw = acqStore.getFftSamples('V02', VIB_N)
     if (raw.length >= VIB_N) {
@@ -131,7 +131,7 @@ useAnimationLoop((now) => {
     }
   }
 
-  if (shouldDraw('vib-fft', 24) && fftBars) {
+  if (shouldDraw('vib-fft', 60) && fftBars) {
     drawBars(fftBars, vibCh.hex)
   }
 
