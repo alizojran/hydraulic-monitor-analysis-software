@@ -8,11 +8,11 @@
     </div>
 
     <div class="view-area">
-      <RealtimeView v-show="uiStore.activeTab === 'realtime'" />
-      <SpectrumView v-show="uiStore.activeTab === 'spectrum'" />
-      <HistoryView  v-show="uiStore.activeTab === 'history'" />
-      <AlarmsView   v-show="uiStore.activeTab === 'alarms'" />
-      <ConfigView   v-show="uiStore.activeTab === 'config'" />
+      <RealtimeView v-if="uiStore.activeTab === 'realtime'" />
+      <SpectrumView v-if="uiStore.activeTab === 'spectrum'" />
+      <HistoryView  v-if="uiStore.activeTab === 'history'" />
+      <AlarmsView   v-if="uiStore.activeTab === 'alarms'" />
+      <ConfigView   v-if="uiStore.activeTab === 'config'" />
     </div>
 
     <div v-if="uiStore.loadingActive" class="loading-overlay">

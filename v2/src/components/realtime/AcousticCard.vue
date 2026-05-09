@@ -60,15 +60,26 @@ useAnimationLoop((now) => {
     drawWave(buf.value, '#ffe600', { min: 40, max: 120 })
   }
 
-  // push spectro column every 100ms
+  // push spectro column every 100ms — quick magnitude-spectrum approximation
   if (now - spectroTimer > 100) {
     spectroTimer = now
     const b = buf.value
-    if (b.length >= 64) {
+    const N = 128
+    if (b.length >= N) {
       const col = new Float32Array(64)
-      for (let i = 0; i < 64; i++) {
-        const v = Math.abs(b[b.length - 64 + i])
-        col[i] = Math.max(0, Math.min(1, (v - 40) / 80))
+      const start = b.length - N
+      // Goertzel-style sweep: compute magnitude at 64 evenly spaced frequency bins
+      for (let k = 0; k < 64; k++) {
+        const w = (Math.PI * (k + 1)) / 64  // 0..π
+        let sr = 0, si = 0
+        for (let n = 0; n < N; n++) {
+          const v = b[start + n] - 80  // center on mid-dB
+          sr += v * Math.cos(w * n)
+          si += v * Math.sin(w * n)
+        }
+        const mag = Math.sqrt(sr * sr + si * si) / N
+        // log-scale + normalize to [0,1]
+        col[k] = Math.max(0, Math.min(1, Math.log10(1 + mag * 4) * 0.6))
       }
       pushColumn(col)
     }

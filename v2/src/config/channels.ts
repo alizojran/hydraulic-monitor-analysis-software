@@ -7,7 +7,7 @@ export const CHANNEL_DEFS: ChannelDef[] = [
   { id: 'CH01', nameZh: '主泵出口压力', nameEn: 'Main Pump Outlet', short: 'P1', type: 'pressure',     unit: 'bar', min: 0,    max: 300,  hex: '#00ff95', wave: 'pressure', base: 182, vary: 14 },
   { id: 'CH02', nameZh: '系统A压力',    nameEn: 'System A Pressure', short: 'P2', type: 'pressure',    unit: 'bar', min: 0,    max: 300,  hex: '#00ff95', wave: 'pressure', base: 165, vary: 9  },
   { id: 'CH03', nameZh: '系统B压力',    nameEn: 'System B Pressure', short: 'P3', type: 'pressure',    unit: 'bar', min: 0,    max: 250,  hex: '#00ff95', wave: 'square',   base: 142, vary: 22 },
-  { id: 'CH04', nameZh: '回油压力',     nameEn: 'Return Pressure',   short: 'P4', type: 'pressure',    unit: 'bar', min: 0,    max: 50,   hex: '#00ff95', wave: 'noise',    base: 8,   vary: 1.4},
+  { id: 'CH04', nameZh: '回油压力',     nameEn: 'Return Pressure',   short: 'P4', type: 'pressure',    unit: 'bar', min: 0,    max: 50,   hex: '#00ff95', wave: 'noise',    base: 14,  vary: 4.5},
   { id: 'CH05', nameZh: '油箱温度',     nameEn: 'Tank Temperature',  short: 'T1', type: 'temperature', unit: '°C',  min: 0,    max: 100,  hex: '#ffaa00', wave: 'slow',     base: 52,  vary: 0.4},
   { id: 'CH06', nameZh: '冷却回油温度', nameEn: 'Cooler Return Temp',short: 'T2', type: 'temperature', unit: '°C',  min: 0,    max: 100,  hex: '#ffaa00', wave: 'slow',     base: 68,  vary: 0.6},
   { id: 'CH07', nameZh: '1#油缸位移',   nameEn: 'Cylinder 1 Pos',    short: 'X1', type: 'displacement',unit: 'mm',  min: -100, max: 100,  hex: '#b366ff', wave: 'sine',     base: 0,   vary: 55 },
