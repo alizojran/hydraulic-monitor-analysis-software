@@ -144,18 +144,28 @@ export const useAcquisitionStore = defineStore('acquisition', () => {
     }
   }
 
+  // pushFrame is called at simulator rate (1 kHz). We must keep the FFT ring
+  // buffer fully populated (every sample) for the FFT worker, but the
+  // *reactive* channelValues only need to refresh at ~60 Hz — otherwise we
+  // fire 1 kHz × 13 ch = 13 000+ reactive triggers per second, dragging the
+  // browser into constant micro-task / GC churn (visible as continuous
+  // disk + memory activity even though we never write a file).
+  let lastFlushT = 0
+  const FLUSH_MS = 16
   function pushFrame(frame: SampleFrame) {
     const now = frame.timestamp
+    const flushReactive = now - lastFlushT >= FLUSH_MS
+    if (flushReactive) lastFlushT = now
     frame.channels.forEach((value, id) => {
-      channelValues[id] = value
       if (channelBuffers[id]) channelBuffers[id].push(value, now)
       if (fftBuffers[id]) {
         const head = fftBufHead[id]
         fftBuffers[id][head % FFT_BUF_SIZE] = value
         fftBufHead[id] = (head + 1) % FFT_BUF_SIZE
       }
+      if (flushReactive) channelValues[id] = value
     })
-    if (sessionStartTime.value) {
+    if (sessionStartTime.value && flushReactive) {
       elapsedSec.value = (now - sessionStartTime.value) / 1000
     }
   }
