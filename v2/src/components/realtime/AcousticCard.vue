@@ -113,18 +113,18 @@ useAnimationLoop((now) => {
 
   if (now - spectroTimer > 100) {
     spectroTimer = now
-    const b = buf.value
     const N = 128
-    if (b.length >= N) {
+    // Use raw FFT ring buffer (1000 Hz) — always has N samples, unlike the 5-min display buffer
+    const raw = acqStore.getFftSamples('S01', N)
+    if (raw.length >= N) {
       const col = new Float32Array(64)
-      const start = b.length - N
       let mean = 0
-      for (let n = 0; n < N; n++) mean += b[start + n]
+      for (let n = 0; n < N; n++) mean += raw[n]
       mean /= N
       const win = new Float32Array(N)
       for (let n = 0; n < N; n++) {
         const w = 0.5 * (1 - Math.cos((2 * Math.PI * n) / (N - 1)))
-        win[n] = (b[start + n] - mean) * w
+        win[n] = (raw[n] - mean) * w
       }
       for (let k = 0; k < 64; k++) {
         const w = (Math.PI * (k + 1)) / 64

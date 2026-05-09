@@ -81,28 +81,25 @@ let fftTimer = 0
 let trendTimer = 0
 
 useAnimationLoop((now) => {
-  // Compute a 64-bin spectrum from the recent samples
+  // Compute a 64-bin spectrum from the raw FFT ring buffer (full 1000 Hz, always has data)
   if (now - fftTimer > 120) {
     fftTimer = now
-    const b = buf.value
     const N = 256
-    if (b.length >= N) {
+    const raw = acqStore.getFftSamples('V02', N)
+    if (raw.length >= N) {
       const out = new Float32Array(64)
-      const start = b.length - N
       // remove DC + Hann window
       let mean = 0
-      for (let i = 0; i < N; i++) mean += b[start + i]
+      for (let i = 0; i < N; i++) mean += raw[i]
       mean /= N
       const win = new Float32Array(N)
       for (let n = 0; n < N; n++) {
         const w = 0.5 * (1 - Math.cos((2 * Math.PI * n) / (N - 1)))
-        win[n] = (b[start + n] - mean) * w
+        win[n] = (raw[n] - mean) * w
       }
-      // Goertzel sweep — log-distributed bins between 0 and Nyquist (~500 Hz)
-      let maxMag = 0
-      let maxK = 0
+      // Goertzel sweep — log-distributed bins favouring low-frequency harmonics
+      let maxMag = 0, maxK = 0
       for (let k = 0; k < 64; k++) {
-        // log-frequency: weights low end so harmonics near 25/50 Hz are visible
         const f = Math.pow(k / 63, 1.6) * 0.98
         const w = Math.PI * f
         let sr = 0, si = 0
@@ -115,7 +112,6 @@ useAnimationLoop((now) => {
         out[k] = Math.max(0, Math.min(1, Math.log10(1 + mag * 6) * 0.65))
       }
       fftBars = out
-      // Convert peak bin back to Hz (Nyquist 500 Hz, sample buffer is at 1000Hz/2 effectively)
       const peakF = Math.pow(maxK / 63, 1.6) * 500
       peakFreqHz.value = peakF.toFixed(0)
     }
