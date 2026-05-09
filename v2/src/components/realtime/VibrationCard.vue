@@ -3,7 +3,7 @@
     <div class="c-br" /><div class="c-bl" />
     <div class="card-header">
       <span class="ch-id mono">V02</span>
-      <span>{{ locale === 'zh' ? 'vibCh.nameZh' : 'vibCh.nameEn' }}</span>
+      <span>{{ locale === 'zh' ? vibCh.nameZh : vibCh.nameEn }}</span>
       <span class="mono" style="color: var(--red)">{{ rmsVal }} <small>g RMS</small></span>
     </div>
 
