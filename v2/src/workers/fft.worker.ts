@@ -52,6 +52,27 @@ function getWindow(name: string, N: number): Float32Array {
 }
 
 // ─── Iterative radix-2 Cooley-Tukey FFT (in-place on re/im pairs) ──
+// Twiddle factors are computed once per fftSize and cached — cuts the
+// per-call cos/sin work from ~11k calls (for N=2048) to zero on hits.
+const twiddleCache = new Map<number, Float64Array>()
+function getTwiddles(N: number): Float64Array {
+  const cached = twiddleCache.get(N)
+  if (cached) return cached
+  // Total pairs across all stages: 1 + 2 + 4 + ... + N/2 = N - 1
+  const t = new Float64Array(2 * (N - 1))
+  let off = 0
+  for (let len = 2; len <= N; len <<= 1) {
+    const half = len >> 1
+    const angStep = -2 * Math.PI / len
+    for (let k = 0; k < half; k++) {
+      t[off++] = Math.cos(angStep * k)
+      t[off++] = Math.sin(angStep * k)
+    }
+  }
+  twiddleCache.set(N, t)
+  return t
+}
+
 function fftInPlace(re: Float32Array, im: Float32Array): void {
   const N = re.length
   // bit-reversal permutation
@@ -66,13 +87,14 @@ function fftInPlace(re: Float32Array, im: Float32Array): void {
     j += k
   }
   // butterflies
+  const t = getTwiddles(N)
+  let off = 0
   for (let len = 2; len <= N; len <<= 1) {
     const half = len >> 1
-    const angStep = -2 * Math.PI / len
     for (let i = 0; i < N; i += len) {
+      let to = off
       for (let k = 0; k < half; k++) {
-        const ang = angStep * k
-        const wr = Math.cos(ang), wi = Math.sin(ang)
+        const wr = t[to++], wi = t[to++]
         const ix = i + k, jx = ix + half
         const tr = wr * re[jx] - wi * im[jx]
         const ti = wr * im[jx] + wi * re[jx]
@@ -80,6 +102,7 @@ function fftInPlace(re: Float32Array, im: Float32Array): void {
         re[ix] = re[ix] + tr; im[ix] = im[ix] + ti
       }
     }
+    off += half * 2
   }
 }
 

@@ -1,6 +1,24 @@
 import { onMounted, onUnmounted } from 'vue'
 import { useAcquisitionStore } from '@/stores/acquisition'
 
+// ─── Pre-compute the 64 × 128 cos/sin matrix once ─────────────────
+const N = 128         // input window size
+const BINS = 64       // output frequency bins
+const COS = new Float32Array(BINS * N)
+const SIN = new Float32Array(BINS * N)
+const HANN = new Float32Array(N)
+{
+  for (let n = 0; n < N; n++) HANN[n] = 0.5 * (1 - Math.cos((2 * Math.PI * n) / (N - 1)))
+  for (let k = 0; k < BINS; k++) {
+    const w = (Math.PI * (k + 1)) / BINS
+    const base = k * N
+    for (let n = 0; n < N; n++) {
+      COS[base + n] = Math.cos(w * n)
+      SIN[base + n] = Math.sin(w * n)
+    }
+  }
+}
+
 /**
  * App-level ticker that computes the S01 acoustic spectrogram column
  * every 100 ms and stores it in the acquisition store. Runs regardless
@@ -13,28 +31,24 @@ export function useAcousticSpectrogram() {
 
   function tick() {
     if (!acqStore.isRunning || acqStore.isPaused) return
-    const N = 128
     const raw = acqStore.getFftSamples('S01', N)
     if (raw.length < N) return
 
-    const col = new Float32Array(64)
-
-    // remove DC + Hann window
+    // DC removal + Hann window — fused into one pass
     let mean = 0
     for (let n = 0; n < N; n++) mean += raw[n]
     mean /= N
     const win = new Float32Array(N)
-    for (let n = 0; n < N; n++) {
-      const w = 0.5 * (1 - Math.cos((2 * Math.PI * n) / (N - 1)))
-      win[n] = (raw[n] - mean) * w
-    }
+    for (let n = 0; n < N; n++) win[n] = (raw[n] - mean) * HANN[n]
 
-    for (let k = 0; k < 64; k++) {
-      const w = (Math.PI * (k + 1)) / 64
+    const col = new Float32Array(BINS)
+    for (let k = 0; k < BINS; k++) {
+      const base = k * N
       let sr = 0, si = 0
       for (let n = 0; n < N; n++) {
-        sr += win[n] * Math.cos(w * n)
-        si += win[n] * Math.sin(w * n)
+        const v = win[n]
+        sr += v * COS[base + n]
+        si += v * SIN[base + n]
       }
       const mag = Math.sqrt(sr * sr + si * si) / N
       col[k] = Math.max(0, Math.min(1, Math.log10(1 + mag * 12) * 0.7))

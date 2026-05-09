@@ -24,31 +24,43 @@ const C_WEIGHT: Record<number, number> = {
   6300: -2.0, 8000: -3.0, 10000: -4.4, 12500: -6.2, 16000: -8.5, 20000: -11.2,
 }
 
+// Cache bin ranges per band, keyed by binHz. Frequencies are evenly spaced
+// (frequencies[i] = i * binHz), so we can compute start/end indices in O(1).
+const rangeCache = new Map<number, { starts: Int32Array; ends: Int32Array }>()
+function getRanges(binHz: number, fftLen: number) {
+  const key = binHz
+  const cached = rangeCache.get(key)
+  if (cached) return cached
+  const factor = Math.pow(2, 1 / 6)
+  const starts = new Int32Array(THIRD_OCTAVE_CENTERS.length)
+  const ends = new Int32Array(THIRD_OCTAVE_CENTERS.length)
+  for (let bi = 0; bi < THIRD_OCTAVE_CENTERS.length; bi++) {
+    const fc = THIRD_OCTAVE_CENTERS[bi]
+    starts[bi] = Math.max(0, Math.ceil(fc / factor / binHz))
+    ends[bi] = Math.min(fftLen - 1, Math.floor(fc * factor / binHz))
+  }
+  const v = { starts, ends }
+  rangeCache.set(key, v)
+  return v
+}
+
 export function computeOctaveBands(
   magnitudeDb: Float32Array,
   frequencies: Float32Array,
   weighting: 'A' | 'C' | 'none',
 ): Float32Array {
   const result = new Float32Array(THIRD_OCTAVE_CENTERS.length)
-  const factor = Math.pow(2, 1 / 6)
+  const binHz = frequencies.length > 1 ? frequencies[1] - frequencies[0] : 1
+  const { starts, ends } = getRanges(binHz, frequencies.length)
+  const weightMap = weighting === 'A' ? A_WEIGHT : weighting === 'C' ? C_WEIGHT : null
 
   for (let bi = 0; bi < THIRD_OCTAVE_CENTERS.length; bi++) {
-    const fc = THIRD_OCTAVE_CENTERS[bi]
-    const fLow = fc / factor
-    const fHigh = fc * factor
-
+    const s = starts[bi], e = ends[bi]
     let maxDb = -120
-    for (let i = 0; i < frequencies.length; i++) {
-      const f = frequencies[i]
-      if (f >= fLow && f <= fHigh) {
-        if (magnitudeDb[i] > maxDb) maxDb = magnitudeDb[i]
-      }
+    for (let i = s; i <= e; i++) {
+      if (magnitudeDb[i] > maxDb) maxDb = magnitudeDb[i]
     }
-
-    let correction = 0
-    const weightMap = weighting === 'A' ? A_WEIGHT : weighting === 'C' ? C_WEIGHT : null
-    if (weightMap) correction = weightMap[fc] ?? 0
-
+    const correction = weightMap ? (weightMap[THIRD_OCTAVE_CENTERS[bi]] ?? 0) : 0
     result[bi] = maxDb === -120 ? 0 : Math.max(0, (maxDb + correction + 120) / 120)
   }
 

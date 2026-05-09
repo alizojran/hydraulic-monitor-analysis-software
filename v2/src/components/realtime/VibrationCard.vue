@@ -76,44 +76,58 @@ const rmsTrendDelta = ref('+0.000')
 const rmsTrendIcon = ref('→')
 const rmsTrendCls = ref('')
 
+// Pre-computed log-distributed cos/sin matrices + Hann window
+const VIB_N = 256
+const VIB_BINS = 64
+const VIB_HANN = new Float32Array(VIB_N)
+const VIB_COS = new Float32Array(VIB_BINS * VIB_N)
+const VIB_SIN = new Float32Array(VIB_BINS * VIB_N)
+const VIB_FREQS = new Float32Array(VIB_BINS)
+{
+  for (let n = 0; n < VIB_N; n++) VIB_HANN[n] = 0.5 * (1 - Math.cos((2 * Math.PI * n) / (VIB_N - 1)))
+  for (let k = 0; k < VIB_BINS; k++) {
+    const f = Math.pow(k / (VIB_BINS - 1), 1.6) * 0.98
+    const w = Math.PI * f
+    VIB_FREQS[k] = f * 500   // Hz at 1 kHz sample rate (Nyquist = 500)
+    const base = k * VIB_N
+    for (let n = 0; n < VIB_N; n++) {
+      VIB_COS[base + n] = Math.cos(w * n)
+      VIB_SIN[base + n] = Math.sin(w * n)
+    }
+  }
+}
+
 let fftBars: Float32Array | null = null
 let fftTimer = 0
 let trendTimer = 0
 
 useAnimationLoop((now) => {
-  // Compute a 64-bin spectrum from the raw FFT ring buffer (full 1000 Hz, always has data)
   if (now - fftTimer > 120) {
     fftTimer = now
-    const N = 256
-    const raw = acqStore.getFftSamples('V02', N)
-    if (raw.length >= N) {
-      const out = new Float32Array(64)
-      // remove DC + Hann window
+    const raw = acqStore.getFftSamples('V02', VIB_N)
+    if (raw.length >= VIB_N) {
+      const out = new Float32Array(VIB_BINS)
       let mean = 0
-      for (let i = 0; i < N; i++) mean += raw[i]
-      mean /= N
-      const win = new Float32Array(N)
-      for (let n = 0; n < N; n++) {
-        const w = 0.5 * (1 - Math.cos((2 * Math.PI * n) / (N - 1)))
-        win[n] = (raw[n] - mean) * w
-      }
-      // Goertzel sweep — log-distributed bins favouring low-frequency harmonics
+      for (let i = 0; i < VIB_N; i++) mean += raw[i]
+      mean /= VIB_N
+      const win = new Float32Array(VIB_N)
+      for (let n = 0; n < VIB_N; n++) win[n] = (raw[n] - mean) * VIB_HANN[n]
+
       let maxMag = 0, maxK = 0
-      for (let k = 0; k < 64; k++) {
-        const f = Math.pow(k / 63, 1.6) * 0.98
-        const w = Math.PI * f
+      for (let k = 0; k < VIB_BINS; k++) {
+        const base = k * VIB_N
         let sr = 0, si = 0
-        for (let n = 0; n < N; n++) {
-          sr += win[n] * Math.cos(w * n)
-          si += win[n] * Math.sin(w * n)
+        for (let n = 0; n < VIB_N; n++) {
+          const v = win[n]
+          sr += v * VIB_COS[base + n]
+          si += v * VIB_SIN[base + n]
         }
-        const mag = Math.sqrt(sr * sr + si * si) / N
+        const mag = Math.sqrt(sr * sr + si * si) / VIB_N
         if (mag > maxMag) { maxMag = mag; maxK = k }
         out[k] = Math.max(0, Math.min(1, Math.log10(1 + mag * 6) * 0.65))
       }
       fftBars = out
-      const peakF = Math.pow(maxK / 63, 1.6) * 500
-      peakFreqHz.value = peakF.toFixed(0)
+      peakFreqHz.value = VIB_FREQS[maxK].toFixed(0)
     }
   }
 
