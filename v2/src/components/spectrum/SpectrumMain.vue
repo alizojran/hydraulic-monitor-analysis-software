@@ -25,7 +25,20 @@
       <div class="y-axis">
         <span v-for="tick in yTicks" :key="tick.v" class="y-tick mono" :style="{ bottom: tick.pct + '%' }">{{ tick.v }}</span>
       </div>
-      <GlowCanvas ref="specCanvas" class="spec-canvas" />
+      <div class="canvas-stack">
+        <GlowCanvas ref="specCanvas" class="spec-canvas" />
+        <!-- Bearing fault frequency overlay -->
+        <div v-if="dspStore.bearingOverlay && bearingOverlays.length" class="bearing-overlay">
+          <div
+            v-for="b in bearingOverlays"
+            :key="b.label"
+            class="b-marker"
+            :style="{ left: b.pct + '%', borderColor: b.color }"
+          >
+            <span class="b-label mono" :style="{ color: b.color, background: b.bgColor }">{{ b.label }}</span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="x-axis">
@@ -82,6 +95,33 @@ const xTicks = computed(() => {
   }))
 })
 
+const BEARING_COLORS = {
+  BPFI: { fg: '#ff8800', bg: 'rgba(255,136,0,0.18)' },
+  BPFO: { fg: '#ff3355', bg: 'rgba(255,51,85,0.18)' },
+  BSF:  { fg: '#00ff95', bg: 'rgba(0,255,149,0.18)' },
+  FTF:  { fg: '#00d9ff', bg: 'rgba(0,217,255,0.18)' },
+} as const
+
+const bearingOverlays = computed(() => {
+  if (!res.value) return []
+  const nyq = dspStore.fftConfig.sampleRate / 2
+  const f = dspStore.bearingFreqs
+  const items = [
+    { label: 'BPFI', hz: f.bpfi, ...BEARING_COLORS.BPFI },
+    { label: 'BPFO', hz: f.bpfo, ...BEARING_COLORS.BPFO },
+    { label: 'BSF',  hz: f.bsf,  ...BEARING_COLORS.BSF },
+    { label: 'FTF',  hz: f.ftf,  ...BEARING_COLORS.FTF },
+  ]
+  return items
+    .filter(it => it.hz > 0 && it.hz <= nyq)
+    .map(it => ({
+      label: it.label,
+      pct: (it.hz / nyq) * 100,
+      color: it.fg,
+      bgColor: it.bg,
+    }))
+})
+
 let fftTimer = 0
 useAnimationLoop((now) => {
   // Request FFT computation at ~60 Hz (worker gates with pendingRequest)
@@ -133,4 +173,23 @@ function onChChange(e: Event) {
   font-size: 11px; border-top: 1px solid var(--border);
 }
 .stat { display: flex; gap: 4px; align-items: center; }
+
+/* Bearing fault frequency overlay */
+.canvas-stack { flex: 1; position: relative; min-width: 0; }
+.spec-canvas { position: absolute; inset: 0; }
+.bearing-overlay {
+  position: absolute; inset: 0; pointer-events: none;
+  overflow: hidden;
+}
+.b-marker {
+  position: absolute; top: 0; bottom: 0;
+  border-left: 1px dashed; border-color: inherit;
+  transform: translateX(-0.5px);
+}
+.b-label {
+  position: absolute; top: 4px; left: 4px;
+  font-size: 9px; padding: 1px 4px;
+  border-radius: 2px; letter-spacing: 0.06em;
+  white-space: nowrap;
+}
 </style>
