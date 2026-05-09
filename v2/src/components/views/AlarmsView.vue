@@ -33,6 +33,35 @@
         <button @click="alarmsStore.clearResolved()">{{ $t('alarms.clear') }}</button>
       </div>
 
+      <!-- Stats panel -->
+      <div class="stats-panel">
+        <div class="stats-card">
+          <div class="sc-head">
+            <span class="sc-title">{{ locale === 'zh' ? '近 24 小时事件' : 'Last 24 h Events' }}</span>
+            <span class="sc-total mono">{{ stats24h.total }}</span>
+          </div>
+          <canvas ref="histCanvas" class="hist-canvas" width="600" height="80" />
+          <div class="hist-axis mono text-dim">
+            <span>-24h</span><span>-18h</span><span>-12h</span><span>-6h</span><span>now</span>
+          </div>
+        </div>
+        <div class="stats-card donut-card">
+          <div class="sc-head">
+            <span class="sc-title">{{ locale === 'zh' ? '严重度分布' : 'Severity' }}</span>
+          </div>
+          <div class="donut-wrap">
+            <canvas ref="donutCanvas" width="120" height="120" />
+            <div class="donut-legend">
+              <div v-for="s in severityStats" :key="s.key" class="legend-row">
+                <span class="dot" :style="{ background: s.color }" />
+                <span class="lg-label">{{ $t(`alarms.severity.${s.key}`) }}</span>
+                <span class="lg-val mono">{{ s.count }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="event-table-wrap">
         <table class="event-table">
           <thead>
@@ -115,12 +144,131 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, watch, onMounted, nextTick } from 'vue'
 import { useAlarmsStore } from '@/stores/alarms'
 import { CHANNEL_DEFS } from '@/config/channels'
 import type { AlarmRule } from '@/types/alarm'
+import { useI18n } from 'vue-i18n'
 
+const { locale } = useI18n()
 const alarmsStore = useAlarmsStore()
+
+// ─── Stats: 24-h histogram + severity donut ──────────────────────────
+const histCanvas = ref<HTMLCanvasElement | null>(null)
+const donutCanvas = ref<HTMLCanvasElement | null>(null)
+
+const SEVERITY_COLORS: Record<string, string> = {
+  high: '#ff3355', warn: '#ffaa00', low: '#00d9ff', info: '#5a7898',
+}
+
+const stats24h = computed(() => {
+  const buckets = new Array(24).fill(0)
+  const now = Date.now()
+  const cutoff = now - 24 * 3600 * 1000
+  let total = 0
+  for (const ev of alarmsStore.events) {
+    if (ev.timestamp < cutoff) continue
+    const hoursAgo = Math.floor((now - ev.timestamp) / 3600000)
+    const bucket = Math.max(0, Math.min(23, 23 - hoursAgo))
+    buckets[bucket]++
+    total++
+  }
+  return { buckets, total }
+})
+
+const severityStats = computed(() => {
+  const counts: Record<string, number> = { high: 0, warn: 0, low: 0, info: 0 }
+  for (const ev of alarmsStore.events) {
+    counts[ev.severity] = (counts[ev.severity] ?? 0) + 1
+  }
+  return (['high', 'warn', 'low', 'info'] as const).map(k => ({
+    key: k,
+    count: counts[k],
+    color: SEVERITY_COLORS[k],
+  }))
+})
+
+function drawHistogram() {
+  const canvas = histCanvas.value
+  if (!canvas) return
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+  const w = canvas.width, h = canvas.height
+  ctx.clearRect(0, 0, w, h)
+
+  const buckets = stats24h.value.buckets
+  const max = Math.max(1, ...buckets)
+  const barW = w / 24
+  const gap = barW * 0.18
+
+  for (let i = 0; i < 24; i++) {
+    const x = i * barW + gap / 2
+    const bw = barW - gap
+    const bh = (buckets[i] / max) * (h - 4)
+    const y = h - bh
+    // Color hot = red, otherwise cyan
+    const hot = buckets[i] >= max * 0.66
+    ctx.fillStyle = hot ? 'rgba(255,51,85,0.85)' : 'rgba(0,217,255,0.7)'
+    ctx.fillRect(x, y, bw, bh)
+    if (hot) {
+      ctx.shadowColor = '#ff3355'; ctx.shadowBlur = 6
+      ctx.fillRect(x, y, bw, bh)
+      ctx.shadowBlur = 0
+    }
+  }
+}
+
+function drawDonut() {
+  const canvas = donutCanvas.value
+  if (!canvas) return
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+  const w = canvas.width, h = canvas.height
+  ctx.clearRect(0, 0, w, h)
+  const cx = w / 2, cy = h / 2, r = 48, ring = 14
+
+  const stats = severityStats.value
+  const total = stats.reduce((a, b) => a + b.count, 0)
+
+  if (total === 0) {
+    ctx.beginPath()
+    ctx.arc(cx, cy, r, 0, Math.PI * 2)
+    ctx.lineWidth = ring
+    ctx.strokeStyle = 'rgba(90,120,152,0.25)'
+    ctx.stroke()
+  } else {
+    let start = -Math.PI / 2
+    for (const s of stats) {
+      if (!s.count) continue
+      const sweep = (s.count / total) * Math.PI * 2
+      ctx.beginPath()
+      ctx.arc(cx, cy, r, start, start + sweep)
+      ctx.lineWidth = ring
+      ctx.strokeStyle = s.color
+      ctx.stroke()
+      start += sweep
+    }
+  }
+
+  // Total in centre
+  ctx.fillStyle = '#e8f0f8'
+  ctx.font = 'bold 22px ui-monospace, monospace'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(String(total), cx, cy - 4)
+  ctx.fillStyle = '#5a7898'
+  ctx.font = '9px ui-monospace, monospace'
+  ctx.fillText(locale.value === 'zh' ? '总数' : 'Total', cx, cy + 12)
+}
+
+function redrawStats() {
+  drawHistogram()
+  drawDonut()
+}
+
+onMounted(() => nextTick(redrawStats))
+watch(() => alarmsStore.events.length, () => nextTick(redrawStats))
+watch(locale, () => nextTick(redrawStats))
 const showAddRule = ref(false)
 const editingRule = ref<AlarmRule | null>(null)
 
@@ -166,6 +314,33 @@ function saveRule() {
 .center { display: flex; flex-direction: column; overflow: hidden; }
 .toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--border); }
 .spacer { flex: 1; }
+
+.stats-panel {
+  display: grid; grid-template-columns: 1fr 280px; gap: 8px;
+  padding: 8px 12px; border-bottom: 1px solid var(--border);
+  background: var(--bg-1);
+}
+.stats-card {
+  background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 8px 10px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.sc-head { display: flex; justify-content: space-between; align-items: baseline; }
+.sc-title { font-size: 10px; color: var(--text-2); letter-spacing: 0.1em; text-transform: uppercase; }
+.sc-total { font-size: 16px; font-weight: 700; color: var(--text-0); }
+.hist-canvas { width: 100%; height: 80px; display: block; }
+.hist-axis {
+  display: flex; justify-content: space-between;
+  font-size: 9px; padding: 0 2px;
+}
+.donut-card { padding: 8px 12px; }
+.donut-wrap { display: flex; align-items: center; gap: 12px; }
+.donut-legend { flex: 1; display: flex; flex-direction: column; gap: 4px; font-size: 10.5px; }
+.legend-row { display: flex; align-items: center; gap: 6px; }
+.legend-row .dot { width: 7px; height: 7px; border-radius: 50%; }
+.lg-label { flex: 1; color: var(--text-1); }
+.lg-val { color: var(--text-0); font-weight: 600; }
+
 .event-table-wrap { flex: 1; overflow-y: auto; }
 .event-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 th { text-align: left; padding: 6px 12px; font-size: 10px; color: var(--text-2); font-weight: 500; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg-1); }
