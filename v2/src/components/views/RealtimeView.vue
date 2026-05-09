@@ -1,27 +1,54 @@
 <template>
   <div class="realtime-view">
-    <!-- Left sidebar -->
-    <aside class="sidebar">
-      <div class="section-title">{{ $t('realtime.flow') }}</div>
-      <FlowCard />
-      <div class="section-title" style="margin-top:8px">{{ $t('realtime.vibration') }}</div>
-      <RpmCard />
-      <VibrationCard />
+    <!-- Left: acquisition params + channel list -->
+    <aside class="left-sidebar">
+      <AcqParamsPanel />
     </aside>
 
-    <!-- Center: 4x2 analog grid -->
+    <!-- Center: all data cards -->
     <main class="center">
-      <div class="section-title">{{ $t('realtime.analog') }}</div>
+
+      <!-- Analog section -->
+      <div class="section-bar">
+        <span class="sb-title">{{ locale === 'zh' ? '8 通道模拟量采集' : '8-CH ANALOG INPUTS' }}
+          <span class="sb-dot">·</span> ANALOG INPUTS
+        </span>
+        <span class="sb-meta mono">CH01–CH08 · 24-bit · {{ $t('status.window') }}
+          {{ locale === 'zh' ? currentWindow.labelZh : currentWindow.label }}
+        </span>
+      </div>
       <div class="analog-grid">
         <AnalogChannelCard v-for="ch in ANALOG_CHANNELS" :key="ch.id" :channelId="ch.id" />
       </div>
-      <div class="section-title" style="margin-top:8px">{{ $t('realtime.acoustic') }}</div>
+
+      <!-- Flow / vibration section -->
+      <div class="section-bar">
+        <span class="sb-title">{{ locale === 'zh' ? '流量 / 振动专用通道' : 'FLOW / VIBRATION CHANNELS' }}</span>
+        <span class="sb-meta mono">FLOW-2 · VIB-2 · {{ $t('status.window') }}
+          {{ locale === 'zh' ? currentWindow.labelZh : currentWindow.label }}
+        </span>
+      </div>
+      <div class="special-grid">
+        <FlowCard />
+        <ParticleCard />
+        <RpmCard />
+        <VibrationCard />
+      </div>
+
+      <!-- Acoustic section -->
+      <div class="section-bar">
+        <span class="sb-title">{{ locale === 'zh' ? '声学采集通道' : 'ACOUSTIC CHANNEL' }}
+          <span class="sb-dot">·</span> ACOUSTIC
+        </span>
+        <span class="sb-meta mono">S01 · {{ locale === 'zh' ? '麦克风' : 'Mic' }} · 20 Hz – 20 kHz · A {{ locale === 'zh' ? '计权' : 'weighted' }}</span>
+      </div>
       <div class="acoustic-wrap">
         <AcousticCard />
       </div>
+
     </main>
 
-    <!-- Right sidebar: KPI + alarms -->
+    <!-- Right: KPI + alarms + storage + event log -->
     <aside class="right">
       <KpiPanel />
     </aside>
@@ -29,38 +56,76 @@
 </template>
 
 <script setup lang="ts">
-import { ANALOG_CHANNELS } from '@/config/channels'
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useAcquisitionStore } from '@/stores/acquisition'
+import { ANALOG_CHANNELS, TIME_WINDOWS } from '@/config/channels'
+import AcqParamsPanel from '@/components/realtime/AcqParamsPanel.vue'
 import AnalogChannelCard from '@/components/realtime/AnalogChannelCard.vue'
 import FlowCard from '@/components/realtime/FlowCard.vue'
+import ParticleCard from '@/components/realtime/ParticleCard.vue'
 import RpmCard from '@/components/realtime/RpmCard.vue'
 import VibrationCard from '@/components/realtime/VibrationCard.vue'
 import AcousticCard from '@/components/realtime/AcousticCard.vue'
 import KpiPanel from '@/components/realtime/KpiPanel.vue'
+
+const { locale } = useI18n()
+const acqStore = useAcquisitionStore()
+const currentWindow = computed(() =>
+  TIME_WINDOWS.find(w => w.value === acqStore.timeWindowSec) ?? TIME_WINDOWS[1]
+)
 </script>
 
 <style scoped>
 .realtime-view {
   display: grid;
   grid-template-columns: var(--sidebar-w) 1fr var(--right-w);
-  gap: 8px;
   height: 100%;
   overflow: hidden;
-  padding: 8px;
 }
-.sidebar { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
-.center  { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
-.right   { display: flex; flex-direction: column; overflow-y: auto; }
 
-.section-title {
-  font-size: 10px; color: var(--text-2); letter-spacing: 0.1em;
-  text-transform: uppercase; padding: 2px 0;
+.left-sidebar {
+  border-right: 1px solid var(--border);
+  overflow-y: auto; overflow-x: hidden;
+  background: var(--bg-0);
 }
+.center { display: flex; flex-direction: column; overflow-y: auto; gap: 0; }
+.right  { border-left: 1px solid var(--border); overflow-y: auto; }
+
+/* Section bar: V1-style bold header with dashed outline */
+.section-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 5px 12px;
+  background: linear-gradient(180deg, var(--bg-1) 0%, var(--bg-0) 100%);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px dashed var(--border-2);
+  flex-shrink: 0;
+}
+.section-bar:first-child { border-top: none; }
+.sb-title { font-size: 11px; font-weight: 600; color: var(--text-0); letter-spacing: 0.04em; }
+.sb-dot { color: var(--cyan); margin: 0 4px; }
+.sb-meta { font-size: 10px; color: var(--text-2); letter-spacing: 0.04em; }
 
 .analog-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 6px;
-  flex: 1;
+  padding: 6px 8px;
+  flex-shrink: 0;
 }
-.acoustic-wrap { min-height: 220px; flex-shrink: 0; }
+
+.special-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  padding: 6px 8px;
+  flex-shrink: 0;
+}
+
+.acoustic-wrap {
+  flex: 1; min-height: 200px;
+  padding: 6px 8px 6px;
+  display: flex; flex-direction: column;
+}
+.acoustic-wrap > * { flex: 1; min-height: 0; }
 </style>
