@@ -39,6 +39,7 @@ import { useAcquisitionStore } from '@/stores/acquisition'
 import { useSimulator } from '@/composables/useSimulator'
 import { useAcousticSpectrogram } from '@/composables/useAcousticSpectrogram'
 import { usePlayback } from '@/composables/usePlayback'
+import { useSessionStore } from '@/stores/session'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppStatusBar from '@/components/layout/AppStatusBar.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
@@ -56,6 +57,7 @@ const acqStore = useAcquisitionStore()
 const { locale } = useI18n()
 const sim = useSimulator()
 const playback = usePlayback()
+const sessionStore = useSessionStore()
 useAcousticSpectrogram()
 
 const showSourceSwitcher = computed(() =>
@@ -66,10 +68,18 @@ onMounted(() => {
   locale.value = uiStore.locale
   document.documentElement.lang = uiStore.locale === 'zh' ? 'zh-CN' : 'en'
   sim.start()
+  sessionStore.beginSession()
 })
 
-function onStart() { sim.start() }
-function onStop()  { sim.stop(); playback.stop() }
+function onStart() {
+  sim.start()
+  sessionStore.beginSession()
+}
+function onStop() {
+  sim.stop()
+  playback.stop()
+  sessionStore.endSession({ source: acqStore.dataSource, sampleRate: acqStore.sampleRate })
+}
 function onPause() {
   if (acqStore.dataSource === 'simulated') {
     acqStore.isPaused ? sim.resume() : sim.pause()
@@ -78,16 +88,21 @@ function onPause() {
   }
 }
 function onSourceChanged(src: DataSource) {
-  // Stop whichever stream was running
+  // End any active session first, then stop the prior stream
+  sessionStore.endSession({ source: acqStore.dataSource, sampleRate: acqStore.sampleRate })
   sim.stop()
   playback.stop()
-  if (src === 'simulated') sim.start()
-  // For csv/wav we wait for the file to be loaded before starting playback
+  if (src === 'simulated') {
+    sim.start()
+    sessionStore.beginSession()
+  }
+  // For csv/wav we wait for the file to be loaded
 }
 function onFileLoaded() {
   if (acqStore.loadedFrames.length > 0) {
-    acqStore.start()  // mark running
+    acqStore.start()
     playback.play()
+    sessionStore.beginSession()
   }
 }
 </script>

@@ -1,7 +1,12 @@
 <template>
   <div class="history-view">
     <aside class="sidebar">
-      <div class="section-title">{{ $t('history.sessions') }}</div>
+      <div class="sidebar-head">
+        <span class="section-title">{{ $t('history.sessions') }}</span>
+        <button class="ghost mono" style="font-size:10px;padding:2px 6px"
+          v-if="sessionStore.sessions.length"
+          @click="onClearAll">{{ locale === 'zh' ? '清空' : 'Clear' }}</button>
+      </div>
       <div class="search-wrap">
         <input v-model="search" type="text" :placeholder="$t('history.search')" />
       </div>
@@ -23,27 +28,78 @@
           :class="{ active: selectedId === s.id }"
           @click="selectedId = s.id"
         >
-          <div class="si-date mono text-dim">{{ formatDate(s.startTime) }}</div>
-          <div class="si-dur mono">{{ formatDuration(s.durationSec) }}</div>
-          <div class="si-info text-dim">{{ s.sampleCount.toLocaleString() }} pts</div>
+          <div class="si-row">
+            <span class="si-date mono">{{ formatDate(s.startTime) }}</span>
+            <span class="si-dur mono">{{ formatDuration(s.durationSec) }}</span>
+          </div>
+          <div class="si-row si-meta">
+            <span class="si-src mono" :class="`src-${s.source}`">{{ s.source.toUpperCase() }}</span>
+            <span class="text-dim">{{ s.sampleCount.toLocaleString() }} pts</span>
+          </div>
         </div>
       </div>
     </aside>
 
     <main class="center">
-      <div class="placeholder">
-        <template v-if="acqStore.dataSource !== 'simulated'">
-          <div class="loaded-info">
-            <div class="li-title">{{ $t('source.loaded') }}</div>
-            <div class="li-stat">{{ acqStore.loadedFrames.length.toLocaleString() }} frames · {{ acqStore.loadedSampleRate }} Hz</div>
-            <button class="primary" @click="playLoaded">▶ {{ $t('history.playback') }}</button>
+      <!-- Selected session detail -->
+      <template v-if="selected">
+        <div class="detail">
+          <div class="detail-head">
+            <div>
+              <div class="dh-title">{{ selected.label || formatDate(selected.startTime) }}</div>
+              <div class="dh-meta mono text-dim">
+                ID {{ selected.id }} · {{ selected.source.toUpperCase() }} · {{ selected.sampleRate.toLocaleString() }} Hz
+              </div>
+            </div>
+            <button class="danger" @click="onDelete(selected.id)">{{ $t('history.stop') }} / {{ locale === 'zh' ? '删除' : 'Delete' }}</button>
           </div>
-        </template>
-        <template v-else>
+          <div class="detail-grid">
+            <div class="stat-card">
+              <div class="sc-label text-dim">{{ locale === 'zh' ? '开始' : 'Start' }}</div>
+              <div class="sc-val mono">{{ formatDate(selected.startTime) }}</div>
+            </div>
+            <div class="stat-card">
+              <div class="sc-label text-dim">{{ locale === 'zh' ? '结束' : 'End' }}</div>
+              <div class="sc-val mono">{{ formatDate(selected.endTime) }}</div>
+            </div>
+            <div class="stat-card">
+              <div class="sc-label text-dim">{{ $t('history.duration') }}</div>
+              <div class="sc-val mono text-cyan">{{ formatDuration(selected.durationSec) }}</div>
+            </div>
+            <div class="stat-card">
+              <div class="sc-label text-dim">{{ $t('history.channels') }}</div>
+              <div class="sc-val mono">{{ selected.channelIds.length }}</div>
+            </div>
+            <div class="stat-card">
+              <div class="sc-label text-dim">{{ $t('history.samples') }}</div>
+              <div class="sc-val mono">{{ selected.sampleCount.toLocaleString() }}</div>
+            </div>
+            <div class="stat-card">
+              <div class="sc-label text-dim">{{ locale === 'zh' ? '估算大小' : 'Est. Size' }}</div>
+              <div class="sc-val mono">{{ formatBytes(estimateBytes(selected)) }}</div>
+            </div>
+          </div>
+          <div class="ch-pills">
+            <span v-for="id in selected.channelIds" :key="id" class="ch-pill mono">{{ id }}</span>
+          </div>
+          <div class="hint text-dim">
+            {{ locale === 'zh'
+              ? '会话是元数据记录。要回放真实数据，请使用 CSV 数据源加载导出的文件。'
+              : 'Sessions are metadata records. To replay actual data, use the CSV source to load an exported file.' }}
+          </div>
+        </div>
+      </template>
+
+      <template v-else>
+        <div class="placeholder">
           <DataSourceSwitcher @source-changed="onSourceChanged" />
-          <div class="hint text-dim">{{ $t('history.noSessions') }}</div>
-        </template>
-      </div>
+          <div class="hint text-dim">
+            {{ filteredSessions.length
+              ? (locale === 'zh' ? '← 选择左侧会话查看详情' : '← Select a session on the left')
+              : (locale === 'zh' ? '尚无采集记录。开始采集后会自动归档到此处。' : 'No sessions yet. They will be archived here when you start a capture.') }}
+          </div>
+        </div>
+      </template>
     </main>
   </div>
 </template>
@@ -51,24 +107,19 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useAcquisitionStore } from '@/stores/acquisition'
+import { useSessionStore } from '@/stores/session'
 import DataSourceSwitcher from '@/components/common/DataSourceSwitcher.vue'
 import type { DataSource } from '@/stores/acquisition'
+import { useI18n } from 'vue-i18n'
 
+const { locale } = useI18n()
 const acqStore = useAcquisitionStore()
+const sessionStore = useSessionStore()
 const search = ref('')
 const activeFilter = ref('all')
 const selectedId = ref<string | null>(null)
 
 const FILTERS = ['today', 'week', 'month', 'all']
-
-interface SessionMeta {
-  id: string
-  startTime: number
-  durationSec: number
-  sampleCount: number
-}
-
-const sessions = ref<SessionMeta[]>([])
 
 const filteredSessions = computed(() => {
   const now = Date.now()
@@ -78,45 +129,76 @@ const filteredSessions = computed(() => {
     month: now - 30 * 86400e3,
     all: 0,
   }
-  return sessions.value.filter(s => {
-    if (s.startTime < cutoffs[activeFilter.value]) return false
-    if (search.value && !formatDate(s.startTime).includes(search.value)) return false
-    return true
-  })
+  return [...sessionStore.sessions]
+    .filter(s => {
+      if (s.startTime < cutoffs[activeFilter.value]) return false
+      if (search.value) {
+        const text = (s.label ?? '') + ' ' + s.source + ' ' + formatDate(s.startTime)
+        if (!text.toLowerCase().includes(search.value.toLowerCase())) return false
+      }
+      return true
+    })
+    .sort((a, b) => b.startTime - a.startTime)
 })
 
+const selected = computed(() =>
+  selectedId.value ? sessionStore.sessions.find(s => s.id === selectedId.value) ?? null : null
+)
+
 function formatDate(ts: number) {
-  return new Date(ts).toLocaleString('zh-CN', { hour12: false })
+  return new Date(ts).toLocaleString(locale.value === 'zh' ? 'zh-CN' : 'en-US', { hour12: false })
 }
 
 function formatDuration(sec: number) {
-  const m = Math.floor(sec / 60), s = Math.floor(sec % 60)
-  return `${m}:${s.toString().padStart(2, '0')}`
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = Math.floor(sec % 60)
+  return h > 0
+    ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+    : `${m}:${String(s).padStart(2, '0')}`
 }
 
-function playLoaded() {
-  // In a full implementation, this would start playback of loaded frames
-  // feeding them into acquisitionStore at the detected rate
-  console.log('Playback of', acqStore.loadedFrames.length, 'frames')
+function estimateBytes(s: { sampleCount: number; channelIds: string[] }): number {
+  // 4 bytes/sample × channels × sample count (uncompressed Float32)
+  return s.sampleCount * s.channelIds.length * 4
+}
+function formatBytes(b: number): string {
+  if (b < 1024) return `${b} B`
+  if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`
+  if (b < 1024 ** 3) return `${(b / 1024 / 1024).toFixed(1)} MB`
+  return `${(b / 1024 ** 3).toFixed(2)} GB`
 }
 
-function onSourceChanged(src: DataSource) {
-  // handled by DataSourceSwitcher
+function onDelete(id: string) {
+  sessionStore.deleteSession(id)
+  if (selectedId.value === id) selectedId.value = null
+}
+
+function onClearAll() {
+  if (confirm(locale.value === 'zh' ? '确定清空所有会话?' : 'Clear all sessions?')) {
+    sessionStore.clearAll()
+    selectedId.value = null
+  }
+}
+
+function onSourceChanged(_src: DataSource) {
+  // handled by the switcher
 }
 </script>
 
 <style scoped>
 .history-view {
   display: grid;
-  grid-template-columns: var(--sidebar-w) 1fr;
+  grid-template-columns: 240px 1fr;
   height: 100%;
   overflow: hidden;
 }
 .sidebar {
   display: flex; flex-direction: column; gap: 6px;
   border-right: 1px solid var(--border); padding: 8px; overflow-y: auto;
+  background: var(--bg-0);
 }
+.sidebar-head { display: flex; justify-content: space-between; align-items: center; }
 .section-title { font-size: 10px; color: var(--text-2); letter-spacing: 0.1em; text-transform: uppercase; }
+
 .search-wrap input { width: 100%; }
 .filter-row { display: flex; gap: 4px; }
 .filter-btn {
@@ -124,21 +206,50 @@ function onSourceChanged(src: DataSource) {
   background: var(--bg-2); border: 1px solid var(--border);
 }
 .filter-btn.active { background: rgba(0,217,255,0.1); color: var(--cyan); border-color: rgba(0,217,255,0.4); }
+
 .session-list { flex: 1; display: flex; flex-direction: column; gap: 3px; }
 .session-item {
   padding: 6px 8px; background: var(--bg-2); border: 1px solid var(--border);
   border-radius: var(--r); cursor: pointer; font-size: 11px;
+  display: flex; flex-direction: column; gap: 2px;
 }
 .session-item:hover { border-color: var(--border-2); }
 .session-item.active { border-color: var(--cyan); background: rgba(0,217,255,0.08); }
-.si-date { font-size: 10px; }
-.si-dur { font-size: 13px; font-weight: 600; color: var(--text-0); }
+.si-row { display: flex; justify-content: space-between; align-items: center; }
+.si-date { font-size: 10.5px; color: var(--text-1); }
+.si-dur { font-size: 12px; font-weight: 600; color: var(--cyan); }
+.si-meta { font-size: 9.5px; }
+.si-src { padding: 1px 4px; border-radius: 2px; letter-spacing: 0.06em; }
+.src-simulated { background: rgba(0,217,255,0.12); color: var(--cyan); }
+.src-csv { background: rgba(0,255,149,0.12); color: var(--green); }
+.src-wav { background: rgba(255,170,0,0.12); color: var(--amber); }
 .empty { padding: 20px 0; text-align: center; font-size: 11px; }
 
-.center { padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
-.placeholder { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; max-width: 400px; }
-.loaded-info { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.li-title { font-size: 16px; font-weight: 600; color: var(--cyan); }
-.li-stat { color: var(--text-1); font-family: var(--font-mono); font-size: 13px; }
-.hint { font-size: 12px; margin-top: 8px; }
+.center { padding: 24px; overflow-y: auto; }
+.placeholder { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 60px 20px; }
+.hint { font-size: 12px; }
+
+.detail { display: flex; flex-direction: column; gap: 16px; max-width: 720px; }
+.detail-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  padding-bottom: 12px; border-bottom: 1px solid var(--border);
+}
+.dh-title { font-size: 16px; font-weight: 600; color: var(--text-0); }
+.dh-meta { font-size: 11px; margin-top: 4px; }
+
+.detail-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+}
+.stat-card {
+  background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r);
+  padding: 10px 12px; display: flex; flex-direction: column; gap: 4px;
+}
+.sc-label { font-size: 10px; letter-spacing: 0.05em; }
+.sc-val { font-size: 13px; color: var(--text-1); }
+
+.ch-pills { display: flex; flex-wrap: wrap; gap: 4px; }
+.ch-pill {
+  padding: 2px 6px; background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: 2px; font-size: 10px; color: var(--text-2);
+}
 </style>
