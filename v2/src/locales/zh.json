@@ -1,0 +1,193 @@
+{
+  "header": {
+    "brand": "液压监测分析系统",
+    "brandSub": "HMAS v2.0",
+    "tabs": {
+      "realtime": "实时监测",
+      "spectrum": "频谱分析",
+      "history": "历史数据",
+      "alarms": "报警管理",
+      "config": "系统配置"
+    },
+    "rec": "采集中",
+    "start": "开始采集",
+    "stop": "停止",
+    "pause": "暂停",
+    "resume": "继续",
+    "trigger": "软触发"
+  },
+  "status": {
+    "running": "运行中",
+    "stopped": "已停止",
+    "paused": "已暂停",
+    "loading": "加载中",
+    "sampleRate": "采样率",
+    "channels": "通道",
+    "window": "时间窗"
+  },
+  "channel": {
+    "CH01": "主泵出口压力",
+    "CH02": "系统A压力",
+    "CH03": "系统B压力",
+    "CH04": "回油压力",
+    "CH05": "油箱温度",
+    "CH06": "冷却回油温度",
+    "CH07": "1#油缸位移",
+    "CH08": "2#油缸位移",
+    "F01":  "主管路流量",
+    "F02":  "油液颗粒度",
+    "V01":  "电机转速",
+    "V02":  "电机振动 Y",
+    "S01":  "声学采集"
+  },
+  "source": {
+    "title": "数据源",
+    "simulated": "模拟演示",
+    "csv": "CSV 文件",
+    "wav": "WAV 文件",
+    "dropHint": "拖拽文件到此处，或点击选择",
+    "loading": "加载中…",
+    "loaded": "已加载",
+    "loadError": "加载失败"
+  },
+  "realtime": {
+    "analog": "模拟量通道",
+    "flow": "流量与颗粒",
+    "vibration": "振动与转速",
+    "acoustic": "声学监测",
+    "kpi": "关键指标",
+    "alarmFeed": "实时告警",
+    "eventLog": "事件日志",
+    "timeWindow": "时间窗口"
+  },
+  "spectrum": {
+    "title": "频谱分析",
+    "channel": "分析通道",
+    "windowFn": "窗函数",
+    "fftSize": "FFT 点数",
+    "overlap": "重叠率",
+    "averages": "平均次数",
+    "peaks": "峰值",
+    "harmonics": "谐波",
+    "thd": "THD",
+    "rms": "有效值",
+    "peak": "峰值",
+    "crest": "峰值因数",
+    "waterfall": "瀑布图",
+    "octave": "1/3 倍频程",
+    "weighting": "计权",
+    "noWeighting": "无",
+    "cursor": "游标",
+    "binRes": "频率分辨率",
+    "topPeaks": "主要峰值"
+  },
+  "history": {
+    "title": "历史数据",
+    "sessions": "采集记录",
+    "search": "搜索记录…",
+    "filter": {
+      "today": "今日",
+      "week": "本周",
+      "month": "本月",
+      "all": "全部"
+    },
+    "playback": "回放",
+    "play": "播放",
+    "pause": "暂停",
+    "stop": "停止",
+    "speed": "速度",
+    "noSessions": "暂无历史记录",
+    "duration": "时长",
+    "channels": "通道数",
+    "samples": "采样点数"
+  },
+  "alarms": {
+    "title": "报警管理",
+    "severity": {
+      "high": "严重",
+      "warn": "警告",
+      "low": "提示",
+      "info": "信息"
+    },
+    "status": {
+      "active": "激活",
+      "acknowledged": "已确认",
+      "resolved": "已解除"
+    },
+    "acknowledge": "确认",
+    "acknowledgeAll": "全部确认",
+    "clear": "清除已解除",
+    "rules": "告警规则",
+    "addRule": "新增规则",
+    "editRule": "编辑规则",
+    "deleteRule": "删除规则",
+    "noAlarms": "暂无告警",
+    "channel": "通道",
+    "metric": "指标",
+    "operator": "条件",
+    "threshold": "阈值",
+    "time": "时间",
+    "value": "数值",
+    "description": "描述",
+    "enabled": "启用",
+    "metrics": {
+      "value": "瞬时值",
+      "rms": "有效值",
+      "peak": "峰值"
+    }
+  },
+  "config": {
+    "title": "系统配置",
+    "channels": "通道配置",
+    "acquisition": "采集参数",
+    "trigger": "触发设置",
+    "storage": "存储设置",
+    "device": "设备信息",
+    "save": "保存配置",
+    "import": "导入配置",
+    "export": "导出配置",
+    "reset": "重置默认",
+    "saved": "已保存",
+    "profile": "配置方案",
+    "ch": {
+      "id": "通道",
+      "name": "名称",
+      "enabled": "启用",
+      "coupling": "耦合",
+      "range": "量程",
+      "unit": "单位",
+      "filter": "滤波"
+    },
+    "acq": {
+      "sampleRate": "采样率",
+      "trigger": "触发模式",
+      "preTrigger": "预触发",
+      "postTrigger": "后触发"
+    }
+  },
+  "common": {
+    "loading": "加载中…",
+    "error": "错误",
+    "cancel": "取消",
+    "confirm": "确认",
+    "close": "关闭",
+    "export": "导出",
+    "screenshot": "截图",
+    "language": "Language",
+    "fps": "FPS",
+    "gpu": "GPU",
+    "version": "版本"
+  },
+  "units": {
+    "bar": "bar",
+    "celsius": "°C",
+    "mm": "mm",
+    "lpm": "L/min",
+    "rpm": "RPM",
+    "g": "g",
+    "db": "dB",
+    "hz": "Hz",
+    "khz": "kHz",
+    "iso": "ISO 4406"
+  }
+}

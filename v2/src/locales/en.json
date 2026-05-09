@@ -1,0 +1,193 @@
+{
+  "header": {
+    "brand": "Hydraulic Monitor & Analysis",
+    "brandSub": "HMAS v2.0",
+    "tabs": {
+      "realtime": "Realtime",
+      "spectrum": "Spectrum",
+      "history": "History",
+      "alarms": "Alarms",
+      "config": "Config"
+    },
+    "rec": "Recording",
+    "start": "Start",
+    "stop": "Stop",
+    "pause": "Pause",
+    "resume": "Resume",
+    "trigger": "Soft Trigger"
+  },
+  "status": {
+    "running": "Running",
+    "stopped": "Stopped",
+    "paused": "Paused",
+    "loading": "Loading",
+    "sampleRate": "Sample Rate",
+    "channels": "Channels",
+    "window": "Window"
+  },
+  "channel": {
+    "CH01": "Main Pump Outlet",
+    "CH02": "System A Pressure",
+    "CH03": "System B Pressure",
+    "CH04": "Return Pressure",
+    "CH05": "Tank Temperature",
+    "CH06": "Cooler Return Temp",
+    "CH07": "Cylinder 1 Position",
+    "CH08": "Cylinder 2 Position",
+    "F01":  "Main Flow Rate",
+    "F02":  "Particle Count",
+    "V01":  "Motor Speed",
+    "V02":  "Motor Vibration Y",
+    "S01":  "Acoustic Sensor"
+  },
+  "source": {
+    "title": "Data Source",
+    "simulated": "Simulated",
+    "csv": "CSV File",
+    "wav": "WAV File",
+    "dropHint": "Drop file here or click to browse",
+    "loading": "Loading…",
+    "loaded": "Loaded",
+    "loadError": "Load failed"
+  },
+  "realtime": {
+    "analog": "Analog Channels",
+    "flow": "Flow & Particles",
+    "vibration": "Vibration & Speed",
+    "acoustic": "Acoustic",
+    "kpi": "Key Indicators",
+    "alarmFeed": "Live Alarms",
+    "eventLog": "Event Log",
+    "timeWindow": "Time Window"
+  },
+  "spectrum": {
+    "title": "Spectrum Analysis",
+    "channel": "Analysis Channel",
+    "windowFn": "Window",
+    "fftSize": "FFT Size",
+    "overlap": "Overlap",
+    "averages": "Averages",
+    "peaks": "Peaks",
+    "harmonics": "Harmonics",
+    "thd": "THD",
+    "rms": "RMS",
+    "peak": "Peak",
+    "crest": "Crest Factor",
+    "waterfall": "Waterfall",
+    "octave": "1/3 Octave",
+    "weighting": "Weighting",
+    "noWeighting": "None",
+    "cursor": "Cursor",
+    "binRes": "Bin Resolution",
+    "topPeaks": "Top Peaks"
+  },
+  "history": {
+    "title": "History",
+    "sessions": "Sessions",
+    "search": "Search sessions…",
+    "filter": {
+      "today": "Today",
+      "week": "Week",
+      "month": "Month",
+      "all": "All"
+    },
+    "playback": "Playback",
+    "play": "Play",
+    "pause": "Pause",
+    "stop": "Stop",
+    "speed": "Speed",
+    "noSessions": "No sessions recorded",
+    "duration": "Duration",
+    "channels": "Channels",
+    "samples": "Samples"
+  },
+  "alarms": {
+    "title": "Alarm Management",
+    "severity": {
+      "high": "Critical",
+      "warn": "Warning",
+      "low": "Advisory",
+      "info": "Info"
+    },
+    "status": {
+      "active": "Active",
+      "acknowledged": "Acknowledged",
+      "resolved": "Resolved"
+    },
+    "acknowledge": "Ack",
+    "acknowledgeAll": "Ack All",
+    "clear": "Clear Resolved",
+    "rules": "Alarm Rules",
+    "addRule": "Add Rule",
+    "editRule": "Edit Rule",
+    "deleteRule": "Delete Rule",
+    "noAlarms": "No alarms",
+    "channel": "Channel",
+    "metric": "Metric",
+    "operator": "Condition",
+    "threshold": "Threshold",
+    "time": "Time",
+    "value": "Value",
+    "description": "Description",
+    "enabled": "Enabled",
+    "metrics": {
+      "value": "Instant",
+      "rms": "RMS",
+      "peak": "Peak"
+    }
+  },
+  "config": {
+    "title": "System Config",
+    "channels": "Channel Config",
+    "acquisition": "Acquisition",
+    "trigger": "Trigger",
+    "storage": "Storage",
+    "device": "Device Info",
+    "save": "Save",
+    "import": "Import",
+    "export": "Export",
+    "reset": "Reset Defaults",
+    "saved": "Saved",
+    "profile": "Profile",
+    "ch": {
+      "id": "CH",
+      "name": "Name",
+      "enabled": "En",
+      "coupling": "Coupling",
+      "range": "Range",
+      "unit": "Unit",
+      "filter": "Filter"
+    },
+    "acq": {
+      "sampleRate": "Sample Rate",
+      "trigger": "Trigger Mode",
+      "preTrigger": "Pre-Trigger",
+      "postTrigger": "Post-Trigger"
+    }
+  },
+  "common": {
+    "loading": "Loading…",
+    "error": "Error",
+    "cancel": "Cancel",
+    "confirm": "OK",
+    "close": "Close",
+    "export": "Export",
+    "screenshot": "Snapshot",
+    "language": "中文",
+    "fps": "FPS",
+    "gpu": "GPU",
+    "version": "Version"
+  },
+  "units": {
+    "bar": "bar",
+    "celsius": "°C",
+    "mm": "mm",
+    "lpm": "L/min",
+    "rpm": "RPM",
+    "g": "g",
+    "db": "dB",
+    "hz": "Hz",
+    "khz": "kHz",
+    "iso": "ISO 4406"
+  }
+}

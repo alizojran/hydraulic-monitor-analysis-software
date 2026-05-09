@@ -1,0 +1,75 @@
+import { defineStore } from 'pinia'
+import { ref, shallowRef } from 'vue'
+import { DEFAULT_FFT_CONFIG } from '@/config/defaults'
+import type { FftConfig, FftResult, OctaveBandResult } from '@/types/dsp'
+
+export const useDspStore = defineStore('dsp', () => {
+  const fftConfig = ref<FftConfig>({ ...DEFAULT_FFT_CONFIG })
+  const selectedChannelId = ref('V02')
+  const fftResult = shallowRef<FftResult | null>(null)
+  const octaveBands = shallowRef<OctaveBandResult | null>(null)
+  const octaveWeighting = ref<'A' | 'C' | 'none'>('A')
+  const spectrumHistory = shallowRef<Float32Array[]>([])
+  const maxHistoryCols = 360
+
+  let worker: Worker | null = null
+  let requestId = 0
+  let pendingRequest = false
+
+  function initWorker() {
+    if (worker) return
+    worker = new Worker(new URL('../workers/fft.worker.ts', import.meta.url), { type: 'module' })
+    worker.onmessage = (e) => {
+      if (e.data.type === 'result') {
+        pendingRequest = false
+        fftResult.value = e.data.result
+        // push to waterfall history
+        const mag = e.data.result.magnitudeDb as Float32Array
+        // normalize to 0..1 for heatmap
+        const col = new Float32Array(mag.length)
+        for (let i = 0; i < mag.length; i++) col[i] = Math.max(0, Math.min(1, (mag[i] + 120) / 120))
+        const hist = [...spectrumHistory.value, col]
+        if (hist.length > maxHistoryCols) hist.shift()
+        spectrumHistory.value = hist
+      }
+    }
+  }
+
+  function requestFft(samples: Float32Array, channelId: string) {
+    if (pendingRequest) return
+    initWorker()
+    pendingRequest = true
+    const id = ++requestId
+    const copy = samples.slice()
+    worker!.postMessage({ type: 'compute', samples: copy, config: fftConfig.value, channelId, requestId: id }, [copy.buffer])
+  }
+
+  function setFftConfig(partial: Partial<FftConfig>) {
+    fftConfig.value = { ...fftConfig.value, ...partial }
+  }
+
+  function setSelectedChannel(id: string) {
+    selectedChannelId.value = id
+    fftResult.value = null
+    spectrumHistory.value = []
+  }
+
+  function setOctaveBands(result: OctaveBandResult) {
+    octaveBands.value = result
+  }
+
+  function setOctaveWeighting(w: 'A' | 'C' | 'none') {
+    octaveWeighting.value = w
+  }
+
+  function destroyWorker() {
+    worker?.terminate()
+    worker = null
+  }
+
+  return {
+    fftConfig, selectedChannelId, fftResult, octaveBands, octaveWeighting,
+    spectrumHistory, requestFft, setFftConfig, setSelectedChannel,
+    setOctaveBands, setOctaveWeighting, destroyWorker,
+  }
+})
