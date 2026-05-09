@@ -4,8 +4,10 @@
     <AppStatusBar />
 
     <div v-if="showSourceSwitcher" class="source-bar">
-      <DataSourceSwitcher @source-changed="onSourceChanged" />
+      <DataSourceSwitcher @source-changed="onSourceChanged" @file-loaded="onFileLoaded" />
     </div>
+
+    <PlaybackControls v-if="showSourceSwitcher && acqStore.dataSource !== 'simulated'" />
 
     <div class="view-area">
       <RealtimeView v-if="uiStore.activeTab === 'realtime'" />
@@ -36,10 +38,12 @@ import { useUiStore } from '@/stores/ui'
 import { useAcquisitionStore } from '@/stores/acquisition'
 import { useSimulator } from '@/composables/useSimulator'
 import { useAcousticSpectrogram } from '@/composables/useAcousticSpectrogram'
+import { usePlayback } from '@/composables/usePlayback'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppStatusBar from '@/components/layout/AppStatusBar.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import DataSourceSwitcher from '@/components/common/DataSourceSwitcher.vue'
+import PlaybackControls from '@/components/common/PlaybackControls.vue'
 import RealtimeView from '@/components/views/RealtimeView.vue'
 import SpectrumView from '@/components/views/SpectrumView.vue'
 import HistoryView  from '@/components/views/HistoryView.vue'
@@ -51,6 +55,7 @@ const uiStore = useUiStore()
 const acqStore = useAcquisitionStore()
 const { locale } = useI18n()
 const sim = useSimulator()
+const playback = usePlayback()
 useAcousticSpectrogram()
 
 const showSourceSwitcher = computed(() =>
@@ -64,11 +69,26 @@ onMounted(() => {
 })
 
 function onStart() { sim.start() }
-function onStop()  { sim.stop() }
-function onPause() { acqStore.isPaused ? sim.resume() : sim.pause() }
+function onStop()  { sim.stop(); playback.stop() }
+function onPause() {
+  if (acqStore.dataSource === 'simulated') {
+    acqStore.isPaused ? sim.resume() : sim.pause()
+  } else {
+    playback.togglePause()
+  }
+}
 function onSourceChanged(src: DataSource) {
-  if (src !== 'simulated' && acqStore.isRunning) sim.stop()
-  else if (src === 'simulated' && !acqStore.isRunning) sim.start()
+  // Stop whichever stream was running
+  sim.stop()
+  playback.stop()
+  if (src === 'simulated') sim.start()
+  // For csv/wav we wait for the file to be loaded before starting playback
+}
+function onFileLoaded() {
+  if (acqStore.loadedFrames.length > 0) {
+    acqStore.start()  // mark running
+    playback.play()
+  }
 }
 </script>
 

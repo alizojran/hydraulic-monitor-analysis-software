@@ -63,8 +63,9 @@ export function useFileLoader() {
 
       const rawChannels = Array.from({ length: channelCount }, (_, i) => audioBuffer.getChannelData(i))
 
-      // Build frames at 1ms intervals (downsample if needed)
-      const stride = Math.max(1, Math.floor(sampleRate / 1000))
+      // Build frames targeting ~10 kHz playback rate (downsample if higher)
+      const targetRate = 10000
+      const stride = Math.max(1, Math.floor(sampleRate / targetRate))
       const frames: SampleFrame[] = []
       const startTs = Date.now() - (length / sampleRate) * 1000
 
@@ -76,7 +77,7 @@ export function useFileLoader() {
           if (def) chMap.set(def.id, ch[i])
         })
         frames.push({ timestamp: ts, channels: chMap })
-        if (i % 10000 === 0) uiStore.setLoading(true, Math.round(i / length * 100), file.name)
+        if (i % 50000 === 0) uiStore.setLoading(true, Math.round(i / length * 100), file.name)
       }
 
       acqStore.setDataSource('wav')

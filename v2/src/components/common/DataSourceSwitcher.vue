@@ -35,7 +35,10 @@ const fileInput = ref<HTMLInputElement | null>(null)
 const showDrop = computed(() => acqStore.dataSource === 'csv' || acqStore.dataSource === 'wav')
 const accept = computed(() => acqStore.dataSource === 'csv' ? '.csv,.tsv,.txt' : '.wav')
 
-const emit = defineEmits<{ sourceChanged: [source: DataSource] }>()
+const emit = defineEmits<{
+  sourceChanged: [source: DataSource]
+  fileLoaded: []
+}>()
 
 function onSelect(src: DataSource) {
   acqStore.setDataSource(src)
@@ -45,8 +48,13 @@ function onSelect(src: DataSource) {
 function openFile() { fileInput.value?.click() }
 
 async function handleFile(file: File) {
-  if (acqStore.dataSource === 'csv') await loadCsv(file)
-  else await loadWav(file)
+  try {
+    if (acqStore.dataSource === 'csv') await loadCsv(file)
+    else await loadWav(file)
+    emit('fileLoaded')
+  } catch (err) {
+    console.error('[file] load failed:', err)
+  }
 }
 
 function onDrop(e: DragEvent) {
