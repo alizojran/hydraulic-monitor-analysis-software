@@ -100,42 +100,29 @@ const duration = computed(() => {
 const peakFreq = ref('1.92')
 let peakRollTimer = 0
 
-let spectroTimer = 0
+// Monotonic-total seen by this component instance. On (re-)mount this starts
+// at 0 so the full stored history is replayed in one frame, restoring the
+// waterfall instantly after a tab switch.
+let lastTotal = 0
 
 useAnimationLoop((now) => {
-  if (now - spectroTimer > 100) {
-    spectroTimer = now
-    const N = 128
-    // Use raw FFT ring buffer (1000 Hz) — always has N samples, unlike the 5-min display buffer
-    const raw = acqStore.getFftSamples('S01', N)
-    if (raw.length >= N) {
-      const col = new Float32Array(64)
-      let mean = 0
-      for (let n = 0; n < N; n++) mean += raw[n]
-      mean /= N
-      const win = new Float32Array(N)
-      for (let n = 0; n < N; n++) {
-        const w = 0.5 * (1 - Math.cos((2 * Math.PI * n) / (N - 1)))
-        win[n] = (raw[n] - mean) * w
-      }
-      for (let k = 0; k < 64; k++) {
-        const w = (Math.PI * (k + 1)) / 64
-        let sr = 0, si = 0
-        for (let n = 0; n < N; n++) {
-          sr += win[n] * Math.cos(w * n)
-          si += win[n] * Math.sin(w * n)
-        }
-        const mag = Math.sqrt(sr * sr + si * si) / N
-        col[k] = Math.max(0, Math.min(1, Math.log10(1 + mag * 12) * 0.7))
-      }
-      pushColumn(col)
-    }
+  const hist = acqStore.acousticSpectrogram
+  const total = acqStore.acousticSpectrogramTotal
+
+  if (lastTotal === 0) {
+    // First tick after (re-)mount: replay everything we still have in store
+    for (let i = 0; i < hist.length; i++) pushColumn(hist[i])
+  } else if (total > lastTotal) {
+    const newCount = total - lastTotal
+    const start = Math.max(0, hist.length - newCount)
+    for (let i = start; i < hist.length; i++) pushColumn(hist[i])
   }
+  lastTotal = total
+
   drawSpectro()
 
   if (now - peakRollTimer > 1500) {
     peakRollTimer = now
-    // simulated peak frequency drift around motor harmonic
     peakFreq.value = (1.85 + Math.random() * 0.2).toFixed(2)
   }
 })

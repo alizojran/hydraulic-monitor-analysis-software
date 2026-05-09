@@ -100,6 +100,23 @@ export const useAcquisitionStore = defineStore('acquisition', () => {
   const loadedSampleRate = ref(1000)
   const playbackPosition = ref(0)
 
+  // Acoustic spectrogram column history (persists across tab switches)
+  const ACOUSTIC_SPEC_DEPTH = 240
+  const acousticSpectrogram = ref<Float32Array[]>([])
+  // Monotonic count of columns ever pushed — lets consumers detect new
+  // columns even after the array starts ring-buffering at the cap.
+  const acousticSpectrogramTotal = ref(0)
+  function pushAcousticColumn(col: Float32Array) {
+    const arr = acousticSpectrogram.value
+    arr.push(col)
+    if (arr.length > ACOUSTIC_SPEC_DEPTH) arr.shift()
+    acousticSpectrogramTotal.value++
+  }
+  function clearAcousticSpectrogram() {
+    acousticSpectrogram.value = []
+    acousticSpectrogramTotal.value = 0
+  }
+
   const pointIntervalMs = computed(() => (timeWindowSec.value * 1000) / DISPLAY_POINTS)
 
   function start() {
@@ -168,6 +185,7 @@ export const useAcquisitionStore = defineStore('acquisition', () => {
     dataSource, isRunning, isPaused, timeWindowSec, sampleRate,
     sessionStartTime, elapsedSec, channelBuffers, channelValues,
     loadedFrames, loadedSampleRate, playbackPosition, pointIntervalMs,
+    acousticSpectrogram, acousticSpectrogramTotal, pushAcousticColumn, clearAcousticSpectrogram,
     start, stop, pause, resume, setTimeWindow, pushFrame, setDataSource, loadFrames, getFftSamples,
   }
 })

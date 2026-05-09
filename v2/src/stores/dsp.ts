@@ -10,6 +10,7 @@ export const useDspStore = defineStore('dsp', () => {
   const octaveBands = shallowRef<OctaveBandResult | null>(null)
   const octaveWeighting = ref<'A' | 'C' | 'none'>('A')
   const spectrumHistory = shallowRef<Float32Array[]>([])
+  const spectrumHistoryTotal = ref(0)
   const maxHistoryCols = 360
 
   let worker: Worker | null = null
@@ -31,6 +32,7 @@ export const useDspStore = defineStore('dsp', () => {
         const hist = [...spectrumHistory.value, col]
         if (hist.length > maxHistoryCols) hist.shift()
         spectrumHistory.value = hist
+        spectrumHistoryTotal.value++
       }
     }
   }
@@ -52,6 +54,7 @@ export const useDspStore = defineStore('dsp', () => {
     selectedChannelId.value = id
     fftResult.value = null
     spectrumHistory.value = []
+    spectrumHistoryTotal.value = 0
   }
 
   function setOctaveBands(result: OctaveBandResult) {
@@ -69,7 +72,7 @@ export const useDspStore = defineStore('dsp', () => {
 
   return {
     fftConfig, selectedChannelId, fftResult, octaveBands, octaveWeighting,
-    spectrumHistory, requestFft, setFftConfig, setSelectedChannel,
+    spectrumHistory, spectrumHistoryTotal, requestFft, setFftConfig, setSelectedChannel,
     setOctaveBands, setOctaveWeighting, destroyWorker,
   }
 })

@@ -35,6 +35,7 @@ import { useI18n } from 'vue-i18n'
 import { useUiStore } from '@/stores/ui'
 import { useAcquisitionStore } from '@/stores/acquisition'
 import { useSimulator } from '@/composables/useSimulator'
+import { useAcousticSpectrogram } from '@/composables/useAcousticSpectrogram'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppStatusBar from '@/components/layout/AppStatusBar.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
@@ -50,6 +51,7 @@ const uiStore = useUiStore()
 const acqStore = useAcquisitionStore()
 const { locale } = useI18n()
 const sim = useSimulator()
+useAcousticSpectrogram()
 
 const showSourceSwitcher = computed(() =>
   uiStore.activeTab === 'realtime' || uiStore.activeTab === 'history'

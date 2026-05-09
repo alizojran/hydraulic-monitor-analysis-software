@@ -18,16 +18,23 @@ const wfCanvas = ref<InstanceType<typeof GlowCanvas> | null>(null)
 const wfRef = computed(() => wfCanvas.value?.canvas ?? null)
 const { pushColumn, draw } = useGLHeatmap(wfRef, 128, 360)
 
-let lastHistLen = 0
+// Monotonic counter — works correctly even after the store starts ring-buffering
+let lastTotal = 0
 
 useAnimationLoop(() => {
   const hist = dspStore.spectrumHistory
-  if (hist.length > lastHistLen) {
-    for (let i = lastHistLen; i < hist.length; i++) {
-      pushColumn(hist[i])
-    }
-    lastHistLen = hist.length
+  const total = dspStore.spectrumHistoryTotal
+
+  if (lastTotal === 0) {
+    // (Re-)mount: replay all stored columns so the waterfall is restored
+    for (let i = 0; i < hist.length; i++) pushColumn(hist[i])
+  } else if (total > lastTotal) {
+    const newCount = total - lastTotal
+    const start = Math.max(0, hist.length - newCount)
+    for (let i = start; i < hist.length; i++) pushColumn(hist[i])
   }
+  lastTotal = total
+
   if (shouldDraw('waterfall', 15)) draw()
 })
 </script>
