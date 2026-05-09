@@ -8,8 +8,8 @@ export const CHANNEL_DEFS: ChannelDef[] = [
   { id: 'CH02', nameZh: '系统A压力',    nameEn: 'System A Pressure', short: 'P2', type: 'pressure',    unit: 'bar', min: 0,    max: 300,  hex: '#00ff95', wave: 'pressure', base: 165, vary: 9  },
   { id: 'CH03', nameZh: '系统B压力',    nameEn: 'System B Pressure', short: 'P3', type: 'pressure',    unit: 'bar', min: 0,    max: 250,  hex: '#00ff95', wave: 'square',   base: 142, vary: 22 },
   { id: 'CH04', nameZh: '回油压力',     nameEn: 'Return Pressure',   short: 'P4', type: 'pressure',    unit: 'bar', min: 0,    max: 50,   hex: '#00ff95', wave: 'noise',    base: 14,  vary: 4.5},
-  { id: 'CH05', nameZh: '油箱温度',     nameEn: 'Tank Temperature',  short: 'T1', type: 'temperature', unit: '°C',  min: 0,    max: 100,  hex: '#ffaa00', wave: 'slow',     base: 52,  vary: 0.4},
-  { id: 'CH06', nameZh: '冷却回油温度', nameEn: 'Cooler Return Temp',short: 'T2', type: 'temperature', unit: '°C',  min: 0,    max: 100,  hex: '#ffaa00', wave: 'slow',     base: 68,  vary: 0.6},
+  { id: 'CH05', nameZh: '油箱温度',     nameEn: 'Tank Temperature',  short: 'T1', type: 'temperature', unit: '°C',  min: 30,   max: 80,   hex: '#ffaa00', wave: 'slow',     base: 52,  vary: 2.5},
+  { id: 'CH06', nameZh: '冷却回油温度', nameEn: 'Cooler Return Temp',short: 'T2', type: 'temperature', unit: '°C',  min: 40,   max: 90,   hex: '#ffaa00', wave: 'slow',     base: 68,  vary: 3.0},
   { id: 'CH07', nameZh: '1#油缸位移',   nameEn: 'Cylinder 1 Pos',    short: 'X1', type: 'displacement',unit: 'mm',  min: -100, max: 100,  hex: '#b366ff', wave: 'sine',     base: 0,   vary: 55 },
   { id: 'CH08', nameZh: '2#油缸位移',   nameEn: 'Cylinder 2 Pos',    short: 'X2', type: 'displacement',unit: 'mm',  min: -25,  max: 25,   hex: '#b366ff', wave: 'sine',     base: 0,   vary: 18 },
   // Flow
@@ -19,7 +19,7 @@ export const CHANNEL_DEFS: ChannelDef[] = [
   // RPM tachometer
   { id: 'V01',  nameZh: '电机转速',     nameEn: 'Motor Speed',       short: 'N',  type: 'rpm',         unit: 'RPM',  min: 0,   max: 2400, hex: '#00d9ff', wave: 'rpm',      base: 1500,vary: 30, nominalRpm: 1500 },
   // Vibration (acceleration)
-  { id: 'V02',  nameZh: '电机振动 Y',   nameEn: 'Motor Vibration Y', short: 'Vy', type: 'vibration',   unit: 'g',    min: -3,  max: 3,    hex: '#ff3355', wave: 'vibration', base: 0, vary: 0.8, freqs: [25, 50, 100, 200, 400] },
+  { id: 'V02',  nameZh: '电机振动 Y',   nameEn: 'Motor Vibration Y', short: 'Vy', type: 'vibration',   unit: 'g',    min: -3,  max: 3,    hex: '#ff3355', wave: 'vibration', base: 0, vary: 1.8, freqs: [25, 50, 100, 200, 400] },
   // Acoustic
   { id: 'S01',  nameZh: '声学采集',     nameEn: 'Acoustic',          short: 'dB', type: 'acoustic',    unit: 'dBSPL',min: 40,  max: 120,  hex: '#ffe600', wave: 'acoustic',  base: 72, vary: 5  },
 ]

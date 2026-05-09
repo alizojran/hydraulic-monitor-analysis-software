@@ -68,18 +68,26 @@ useAnimationLoop((now) => {
     if (b.length >= N) {
       const col = new Float32Array(64)
       const start = b.length - N
-      // Goertzel-style sweep: compute magnitude at 64 evenly spaced frequency bins
+      // Subtract DC: spectrogram should show variation, not the 70 dB baseline
+      let mean = 0
+      for (let n = 0; n < N; n++) mean += b[start + n]
+      mean /= N
+      const win = new Float32Array(N)
+      for (let n = 0; n < N; n++) {
+        // Hann window + DC removal
+        const w = 0.5 * (1 - Math.cos((2 * Math.PI * n) / (N - 1)))
+        win[n] = (b[start + n] - mean) * w
+      }
+      // Goertzel-style sweep over 64 bins
       for (let k = 0; k < 64; k++) {
-        const w = (Math.PI * (k + 1)) / 64  // 0..π
+        const w = (Math.PI * (k + 1)) / 64
         let sr = 0, si = 0
         for (let n = 0; n < N; n++) {
-          const v = b[start + n] - 80  // center on mid-dB
-          sr += v * Math.cos(w * n)
-          si += v * Math.sin(w * n)
+          sr += win[n] * Math.cos(w * n)
+          si += win[n] * Math.sin(w * n)
         }
         const mag = Math.sqrt(sr * sr + si * si) / N
-        // log-scale + normalize to [0,1]
-        col[k] = Math.max(0, Math.min(1, Math.log10(1 + mag * 4) * 0.6))
+        col[k] = Math.max(0, Math.min(1, Math.log10(1 + mag * 12) * 0.7))
       }
       pushColumn(col)
     }

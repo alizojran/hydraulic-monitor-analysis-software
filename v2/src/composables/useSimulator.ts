@@ -29,10 +29,13 @@ function genSample(id: string, T: number, rpm: number): number {
     }
     case 'sine': {
       const phase = id === 'CH08' ? Math.PI / 3 : 0
-      return vary * Math.sin(2 * Math.PI * 1.2 * T + phase) + (Math.random() - 0.5) * vary * 0.05
+      const f = id === 'CH08' ? 0.07 : 0.05
+      return vary * Math.sin(2 * Math.PI * f * T + phase) + (Math.random() - 0.5) * vary * 0.04
     }
     case 'slow': {
-      return base + Math.sin(2 * Math.PI * 0.003 * T) * vary + (Math.random() - 0.5) * vary * 0.1
+      const drift = Math.sin(2 * Math.PI * 0.003 * T) * vary
+      const breath = Math.sin(2 * Math.PI * 0.05 * T) * vary * 0.25
+      return base + drift + breath + (Math.random() - 0.5) * vary * 0.08
     }
     case 'noise': {
       return base + (Math.random() - 0.5) * vary * 2
