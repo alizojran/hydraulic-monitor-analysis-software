@@ -2,20 +2,27 @@
   <div class="cfg-section">
     <div class="sec-title">{{ $t('config.diagnostics.title') }}</div>
 
-    <!-- Bearing -->
-    <div class="sub-card">
+    <!-- One sub-card per bearing -->
+    <div v-for="(bearing, idx) in dsp.bearings" :key="bearing.id" class="sub-card" :style="idx > 0 ? 'margin-top:8px' : ''">
       <div class="sub-head">
+        <input class="name-input"
+          :value="bearing.name"
+          @change="dsp.setBearingName(($event.target as HTMLInputElement).value, idx)" />
         <span class="sub-label">{{ $t('config.diagnostics.bearing') }}</span>
+        <div class="spacer" />
+        <button v-if="dsp.bearings.length > 1" class="danger-sm" style="padding:1px 6px;margin-right:4px"
+          @click="dsp.removeBearing(idx)">×</button>
         <div class="toggle-group">
-          <button :class="{ active: dsp.bearingOverlay }" @click="!dsp.bearingOverlay && dsp.toggleBearingOverlay()">ON</button>
-          <button :class="{ active: !dsp.bearingOverlay }" @click="dsp.bearingOverlay && dsp.toggleBearingOverlay()">OFF</button>
+          <button :class="{ active: bearing.overlay }" @click="!bearing.overlay && dsp.toggleBearingOverlay(idx)">ON</button>
+          <button :class="{ active: !bearing.overlay }" @click="bearing.overlay && dsp.toggleBearingOverlay(idx)">OFF</button>
         </div>
       </div>
 
       <div class="cfg-grid">
         <div class="cfg-row">
           <label>{{ $t('config.diagnostics.preset') }}</label>
-          <select :value="dsp.bearingPreset" @change="onPresetChange">
+          <select :value="bearing.preset"
+            @change="dsp.setBearingPreset(($event.target as HTMLSelectElement).value, idx)">
             <option v-for="p in BEARING_PRESETS" :key="p.name" :value="p.name">{{ p.name }}</option>
             <option value="Custom">Custom</option>
           </select>
@@ -24,16 +31,16 @@
         <div class="cfg-row">
           <label>{{ $t('config.diagnostics.ballCount') }}</label>
           <div class="num-row">
-            <input type="number" :value="dsp.bearingParams.ballCount" min="3" max="40" step="1"
-              @input="onParam('ballCount', $event)" />
+            <input type="number" :value="bearing.params.ballCount" min="3" max="40" step="1"
+              @input="dsp.updateBearingParams({ ballCount: parseFloat(($event.target as HTMLInputElement).value) || 9 }, idx)" />
           </div>
         </div>
 
         <div class="cfg-row">
           <label>{{ $t('config.diagnostics.pitchDiam') }}</label>
           <div class="num-row">
-            <input type="number" :value="dsp.bearingParams.pitchDiamMm" min="5" max="500" step="0.1"
-              @input="onParam('pitchDiamMm', $event)" />
+            <input type="number" :value="bearing.params.pitchDiamMm" min="5" max="500" step="0.1"
+              @input="dsp.updateBearingParams({ pitchDiamMm: parseFloat(($event.target as HTMLInputElement).value) || 39 }, idx)" />
             <span class="unit">mm</span>
           </div>
         </div>
@@ -41,8 +48,8 @@
         <div class="cfg-row">
           <label>{{ $t('config.diagnostics.ballDiam') }}</label>
           <div class="num-row">
-            <input type="number" :value="dsp.bearingParams.ballDiamMm" min="1" max="50" step="0.01"
-              @input="onParam('ballDiamMm', $event)" />
+            <input type="number" :value="bearing.params.ballDiamMm" min="1" max="50" step="0.01"
+              @input="dsp.updateBearingParams({ ballDiamMm: parseFloat(($event.target as HTMLInputElement).value) || 7 }, idx)" />
             <span class="unit">mm</span>
           </div>
         </div>
@@ -50,25 +57,31 @@
         <div class="cfg-row">
           <label>{{ $t('config.diagnostics.contactAngle') }}</label>
           <div class="num-row">
-            <input type="number" :value="dsp.bearingParams.contactAngleDeg" min="0" max="45" step="0.5"
-              @input="onParam('contactAngleDeg', $event)" />
+            <input type="number" :value="bearing.params.contactAngleDeg" min="0" max="45" step="0.5"
+              @input="dsp.updateBearingParams({ contactAngleDeg: parseFloat(($event.target as HTMLInputElement).value) || 0 }, idx)" />
             <span class="unit">°</span>
           </div>
         </div>
       </div>
 
-      <!-- Computed freq preview -->
-      <div class="freq-preview">
-        <span v-for="f in freqPreview" :key="f.label" class="freq-chip" :style="{ color: f.color }">
+      <!-- Frequency preview chips -->
+      <div class="freq-preview" v-if="dsp.allBearingFreqs[idx]">
+        <span v-for="f in freqsFor(idx)" :key="f.label" class="freq-chip" :style="{ color: f.color }">
           {{ f.label }} {{ f.hz.toFixed(1) }} Hz
         </span>
       </div>
     </div>
 
+    <!-- Add bearing button -->
+    <button class="add-btn" @click="dsp.addBearing()">
+      + {{ $t('config.diagnostics.addBearing') }}
+    </button>
+
     <!-- Gear -->
     <div class="sub-card" style="margin-top: 10px;">
       <div class="sub-head">
         <span class="sub-label">{{ $t('config.diagnostics.gear') }}</span>
+        <div class="spacer" />
         <div class="toggle-group">
           <button :class="{ active: dsp.gearOverlay }" :disabled="dsp.gearTeeth <= 0"
             @click="!dsp.gearOverlay && dsp.toggleGearOverlay()">ON</button>
@@ -98,34 +111,20 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useDspStore, BEARING_PRESETS } from '@/stores/dsp'
+import { useDspStore, BEARING_PRESETS, getBearingColorSet } from '@/stores/dsp'
 
 const dsp = useDspStore()
 
-const COLORS: Record<string, string> = { BPFI: '#ff8800', BPFO: '#ff3355', BSF: '#00ff95', FTF: '#00d9ff' }
-
-const freqPreview = computed(() => {
-  const f = dsp.bearingFreqs
+function freqsFor(idx: number) {
+  const b = dsp.allBearingFreqs[idx]
+  if (!b) return []
+  const cs = getBearingColorSet(idx)
   return [
-    { label: 'BPFI', hz: f.bpfi, color: COLORS.BPFI },
-    { label: 'BPFO', hz: f.bpfo, color: COLORS.BPFO },
-    { label: 'BSF',  hz: f.bsf,  color: COLORS.BSF },
-    { label: 'FTF',  hz: f.ftf,  color: COLORS.FTF },
+    { label: 'BPFI', hz: b.freqs.bpfi, color: cs.BPFI },
+    { label: 'BPFO', hz: b.freqs.bpfo, color: cs.BPFO },
+    { label: 'BSF',  hz: b.freqs.bsf,  color: cs.BSF },
+    { label: 'FTF',  hz: b.freqs.ftf,  color: cs.FTF },
   ]
-})
-
-function onPresetChange(e: Event) {
-  const name = (e.target as HTMLSelectElement).value
-  if (name === 'Custom') {
-    dsp.bearingPreset = 'Custom'
-  } else {
-    dsp.setBearingPreset(name)
-  }
-}
-
-function onParam(key: 'ballCount' | 'pitchDiamMm' | 'ballDiamMm' | 'contactAngleDeg', e: Event) {
-  const v = parseFloat((e.target as HTMLInputElement).value)
-  if (!Number.isNaN(v)) dsp.updateBearingParams({ [key]: v })
 }
 </script>
 
@@ -134,8 +133,16 @@ function onParam(key: 'ballCount' | 'pitchDiamMm' | 'ballDiamMm' | 'contactAngle
 .sec-title { font-size: 10px; color: var(--text-2); letter-spacing: 0.1em; text-transform: uppercase; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
 
 .sub-card { background: var(--bg-1); border: 1px solid var(--border); border-radius: 3px; padding: 10px 12px; }
-.sub-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.sub-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 6px; }
 .sub-label { font-size: 10px; color: var(--text-2); letter-spacing: 0.1em; text-transform: uppercase; }
+.spacer { flex: 1; }
+
+.name-input {
+  font-size: 11px; font-weight: 600; color: var(--cyan); font-family: var(--font-mono);
+  background: transparent; border: none; border-bottom: 1px dashed var(--border);
+  outline: none; width: 40px;
+}
+.name-input:focus { border-bottom-color: var(--cyan); }
 
 .cfg-grid { display: flex; flex-direction: column; gap: 5px; }
 .cfg-row {
@@ -143,6 +150,7 @@ function onParam(key: 'ballCount' | 'pitchDiamMm' | 'ballDiamMm' | 'contactAngle
   font-size: 12px; padding: 2px 0;
 }
 .cfg-row label { color: var(--text-2); font-size: 11px; }
+.cfg-row select { font-size: 12px; padding: 3px 6px; height: 26px; min-width: 120px; max-width: 200px; }
 
 .num-row { display: flex; align-items: center; gap: 5px; }
 .num-row input {
@@ -162,10 +170,21 @@ function onParam(key: 'ballCount' | 'pitchDiamMm' | 'ballDiamMm' | 'contactAngle
 .toggle-group button.active { background: rgba(0,217,255,0.12); border-color: var(--cyan); color: var(--cyan); }
 .toggle-group button:disabled { opacity: 0.35; cursor: not-allowed; }
 
-.freq-preview {
-  display: flex; flex-wrap: wrap; gap: 8px;
-  margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);
-}
+.freq-preview { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
 .freq-chip { font-family: var(--font-mono); font-size: 10.5px; }
+
+.add-btn {
+  font-size: 11px; padding: 5px 14px;
+  background: rgba(0,217,255,0.06); border: 1px dashed rgba(0,217,255,0.4);
+  border-radius: 2px; color: var(--cyan); cursor: pointer; text-align: center;
+}
+.add-btn:hover { background: rgba(0,217,255,0.12); }
+
+.danger-sm {
+  font-size: 11px; padding: 2px 8px;
+  background: rgba(255,51,85,0.08); border: 1px solid rgba(255,51,85,0.35);
+  border-radius: 2px; color: var(--red);
+}
+
 .mono { font-family: var(--font-mono); font-size: 12px; }
 </style>

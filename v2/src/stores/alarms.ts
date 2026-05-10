@@ -42,6 +42,8 @@ export const useAlarmsStore = defineStore('alarms', () => {
   function acknowledgeAll() { events.value.forEach(e => { if (e.status === 'active') e.status = 'acknowledged' }); saveEvents() }
   function clearResolved() { events.value = events.value.filter(e => e.status !== 'resolved'); saveEvents() }
 
+  function setRules(newRules: AlarmRule[]) { rules.value = newRules; saveRules() }
+
   function evaluateFrame(frame: SampleFrame, channelRms: Record<string, number>, channelPeak: Record<string, number>) {
     const ts = frame.timestamp
     for (const rule of rules.value) {
@@ -83,7 +85,7 @@ export const useAlarmsStore = defineStore('alarms', () => {
 
   return {
     rules, events, activeEvents, activeSeverity,
-    addRule, updateRule, deleteRule, toggleRule,
+    addRule, updateRule, deleteRule, toggleRule, setRules,
     acknowledge, acknowledgeAll, clearResolved, evaluateFrame,
   }
 })

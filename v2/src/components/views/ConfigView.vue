@@ -12,6 +12,9 @@
       <span v-if="saved" class="saved-badge text-green">✓ {{ $t('config.saved') }}</span>
     </div>
 
+    <!-- Profile switcher bar -->
+    <ProfileSwitcher />
+
     <!-- Tab bar -->
     <div class="tab-bar">
       <button v-for="tab in TABS" :key="tab.id"
@@ -156,6 +159,7 @@ import SpectrumConfigSection from '@/components/config/SpectrumConfigSection.vue
 import DiagnosticsConfigSection from '@/components/config/DiagnosticsConfigSection.vue'
 import SystemConfigSection from '@/components/config/SystemConfigSection.vue'
 import AlarmRulesInline from '@/components/config/AlarmRulesInline.vue'
+import ProfileSwitcher from '@/components/config/ProfileSwitcher.vue'
 
 const configStore = useConfigStore()
 const importInput = ref<HTMLInputElement | null>(null)

@@ -44,11 +44,11 @@
       </div>
       <div class="canvas-stack" @click="onCanvasClick">
         <GlowCanvas ref="specCanvas" class="spec-canvas" />
-        <!-- Bearing fault frequency overlay -->
-        <div v-if="dspStore.bearingOverlay && bearingOverlays.length" class="bearing-overlay">
+        <!-- Bearing fault frequency overlay (all bearings with overlay enabled) -->
+        <div v-if="bearingOverlays.length" class="bearing-overlay">
           <div
             v-for="b in bearingOverlays"
-            :key="b.label"
+            :key="b.key"
             class="b-marker"
             :style="{ left: b.pct + '%', borderColor: b.color }"
           >
@@ -149,12 +149,6 @@ const xTicks = computed(() => {
   }))
 })
 
-const BEARING_COLORS = {
-  BPFI: { fg: '#ff8800', bg: 'rgba(255,136,0,0.18)' },
-  BPFO: { fg: '#ff3355', bg: 'rgba(255,51,85,0.18)' },
-  BSF:  { fg: '#00ff95', bg: 'rgba(0,255,149,0.18)' },
-  FTF:  { fg: '#00d9ff', bg: 'rgba(0,217,255,0.18)' },
-} as const
 
 // ─── M1 / M2 cursors ───────────────────────────────────────────────
 const m1Hz = ref<number | null>(null)
@@ -206,21 +200,25 @@ function clearCursors() {
 const bearingOverlays = computed(() => {
   if (!res.value) return []
   const nyq = dspStore.fftConfig.sampleRate / 2
-  const f = dspStore.bearingFreqs
-  const items = [
-    { label: 'BPFI', hz: f.bpfi, ...BEARING_COLORS.BPFI },
-    { label: 'BPFO', hz: f.bpfo, ...BEARING_COLORS.BPFO },
-    { label: 'BSF',  hz: f.bsf,  ...BEARING_COLORS.BSF },
-    { label: 'FTF',  hz: f.ftf,  ...BEARING_COLORS.FTF },
-  ]
-  return items
-    .filter(it => it.hz > 0 && it.hz <= nyq)
-    .map(it => ({
-      label: it.label,
-      pct: (it.hz / nyq) * 100,
-      color: it.fg,
-      bgColor: it.bg,
-    }))
+  const result: { key: string; label: string; pct: number; color: string; bgColor: string }[] = []
+
+  for (const b of dspStore.allBearingFreqs) {
+    if (!b.overlay) continue
+    const cs = b.colorSet
+    const prefix = dspStore.bearings.length > 1 ? `${b.name}·` : ''
+    const items = [
+      { tag: 'BPFI', hz: b.freqs.bpfi, fg: cs.BPFI, bg: `${cs.BPFI}22` },
+      { tag: 'BPFO', hz: b.freqs.bpfo, fg: cs.BPFO, bg: `${cs.BPFO}22` },
+      { tag: 'BSF',  hz: b.freqs.bsf,  fg: cs.BSF,  bg: `${cs.BSF}22` },
+      { tag: 'FTF',  hz: b.freqs.ftf,  fg: cs.FTF,  bg: `${cs.FTF}22` },
+    ]
+    for (const it of items) {
+      if (it.hz > 0 && it.hz <= nyq) {
+        result.push({ key: `${b.id}-${it.tag}`, label: `${prefix}${it.tag}`, pct: (it.hz / nyq) * 100, color: it.fg, bgColor: it.bg })
+      }
+    }
+  }
+  return result
 })
 
 const gearOverlays = computed(() => {

@@ -202,6 +202,7 @@
       "ballDiam": "球径 Bd",
       "contactAngle": "接触角 α",
       "overlay": "叠加到频谱",
+      "addBearing": "添加轴承",
       "gear": "齿轮",
       "gearTeeth": "齿数 Z (0=禁用)",
       "gearOverlay": "叠加到频谱"
@@ -217,7 +218,14 @@
       "title": "关于",
       "version": "版本",
       "build": "构建时间"
-    }
+    },
+    "profileSave": "保存配置",
+    "profileNew": "新建",
+    "profileClone": "复制",
+    "profileExport": "导出",
+    "profileImport": "导入",
+    "profileDelete": "删除",
+    "profileNamePlaceholder": "输入配置名称…"
   },
   "acoustic": {
     "spl": "声压 SPL",

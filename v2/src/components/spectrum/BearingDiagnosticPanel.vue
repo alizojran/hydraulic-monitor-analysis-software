@@ -1,60 +1,76 @@
 <template>
   <div class="bd-panel">
-    <div class="bd-head">
-      <span class="title">{{ locale === 'zh' ? '轴承诊断' : 'BEARING' }}</span>
-      <button class="toggle" :class="{ on: dspStore.bearingOverlay }" @click="dspStore.toggleBearingOverlay">
-        {{ dspStore.bearingOverlay ? 'ON' : 'OFF' }}
-      </button>
-    </div>
+    <!-- One section per bearing -->
+    <div v-for="(bearing, idx) in dspStore.bearings" :key="bearing.id" class="bearing-section">
+      <div class="bd-head">
+        <input class="bearing-name-input" :value="bearing.name"
+          @change="dspStore.setBearingName(($event.target as HTMLInputElement).value, idx)" />
+        <span class="sub-label">{{ locale === 'zh' ? '轴承' : 'BEARING' }}</span>
+        <div class="spacer" />
+        <button v-if="dspStore.bearings.length > 1" class="remove-btn" @click="dspStore.removeBearing(idx)" title="Remove">×</button>
+        <button class="toggle" :class="{ on: bearing.overlay }" @click="dspStore.toggleBearingOverlay(idx)">
+          {{ bearing.overlay ? 'ON' : 'OFF' }}
+        </button>
+      </div>
 
-    <!-- Preset / source RPM -->
-    <div class="row">
-      <span class="lbl">{{ locale === 'zh' ? '型号' : 'Model' }}</span>
-      <select class="sel" :value="dspStore.bearingPreset" @change="onPresetChange">
-        <option v-for="p in BEARING_PRESETS" :key="p.name" :value="p.name">{{ p.name }}</option>
-        <option value="Custom">Custom</option>
-      </select>
-    </div>
-    <div class="row">
-      <span class="lbl">{{ locale === 'zh' ? '转速' : 'Shaft' }}</span>
-      <span class="val mono text-cyan">{{ Math.round(dspStore.bearingShaftRpm) }} RPM</span>
-    </div>
+      <!-- Preset / source RPM -->
+      <div class="row">
+        <span class="lbl">{{ locale === 'zh' ? '型号' : 'Model' }}</span>
+        <select class="sel" :value="bearing.preset" @change="dspStore.setBearingPreset(($event.target as HTMLSelectElement).value, idx)">
+          <option v-for="p in BEARING_PRESETS" :key="p.name" :value="p.name">{{ p.name }}</option>
+          <option value="Custom">Custom</option>
+        </select>
+      </div>
+      <div v-if="idx === 0" class="row">
+        <span class="lbl">{{ locale === 'zh' ? '转速' : 'Shaft' }}</span>
+        <span class="val mono text-cyan">{{ Math.round(dspStore.bearingShaftRpm) }} RPM</span>
+      </div>
 
-    <!-- Geometry inputs -->
-    <div class="geom-grid">
-      <label class="g-cell">
-        <span class="lbl">Z</span>
-        <input type="number" :value="dspStore.bearingParams.ballCount" min="3" max="40" @input="onParam('ballCount', $event)" />
-      </label>
-      <label class="g-cell">
-        <span class="lbl">Pd</span>
-        <input type="number" :value="dspStore.bearingParams.pitchDiamMm" step="0.1" min="5" max="500" @input="onParam('pitchDiamMm', $event)" />
-      </label>
-      <label class="g-cell">
-        <span class="lbl">Bd</span>
-        <input type="number" :value="dspStore.bearingParams.ballDiamMm" step="0.01" min="1" max="50" @input="onParam('ballDiamMm', $event)" />
-      </label>
-      <label class="g-cell">
-        <span class="lbl">α°</span>
-        <input type="number" :value="dspStore.bearingParams.contactAngleDeg" step="0.5" min="0" max="45" @input="onParam('contactAngleDeg', $event)" />
-      </label>
-    </div>
+      <!-- Geometry inputs -->
+      <div class="geom-grid">
+        <label class="g-cell">
+          <span class="lbl">Z</span>
+          <input type="number" :value="bearing.params.ballCount" min="3" max="40"
+            @input="dspStore.updateBearingParams({ ballCount: parseFloat(($event.target as HTMLInputElement).value) || 9 }, idx)" />
+        </label>
+        <label class="g-cell">
+          <span class="lbl">Pd</span>
+          <input type="number" :value="bearing.params.pitchDiamMm" step="0.1" min="5" max="500"
+            @input="dspStore.updateBearingParams({ pitchDiamMm: parseFloat(($event.target as HTMLInputElement).value) || 39 }, idx)" />
+        </label>
+        <label class="g-cell">
+          <span class="lbl">Bd</span>
+          <input type="number" :value="bearing.params.ballDiamMm" step="0.01" min="1" max="50"
+            @input="dspStore.updateBearingParams({ ballDiamMm: parseFloat(($event.target as HTMLInputElement).value) || 7 }, idx)" />
+        </label>
+        <label class="g-cell">
+          <span class="lbl">α°</span>
+          <input type="number" :value="bearing.params.contactAngleDeg" step="0.5" min="0" max="45"
+            @input="dspStore.updateBearingParams({ contactAngleDeg: parseFloat(($event.target as HTMLInputElement).value) || 0 }, idx)" />
+        </label>
+      </div>
 
-    <!-- Computed fault frequencies + spectrum amplitude readout -->
-    <div class="freq-list">
-      <div v-for="f in faultFreqs" :key="f.label" class="freq-row" :class="{ alarm: f.amplitude > -25 }">
-        <span class="dot" :style="{ background: f.color }" />
-        <span class="freq-name mono">{{ f.label }}</span>
-        <span class="freq-hz mono">{{ f.hz.toFixed(1) }} Hz</span>
-        <span class="freq-amp mono" :style="{ color: f.color }">{{ formatDb(f.amplitude) }} dB</span>
+      <!-- Computed fault frequencies + spectrum amplitude readout -->
+      <div class="freq-list" v-if="dspStore.allBearingFreqs[idx]">
+        <div v-for="f in faultFreqsFor(idx)" :key="f.label" class="freq-row" :class="{ alarm: f.amplitude > -25 }">
+          <span class="dot" :style="{ background: f.color }" />
+          <span class="freq-name mono">{{ f.label }}</span>
+          <span class="freq-hz mono">{{ f.hz.toFixed(1) }} Hz</span>
+          <span class="freq-amp mono" :style="{ color: f.color }">{{ formatDb(f.amplitude) }} dB</span>
+        </div>
+      </div>
+
+      <!-- Diagnosis hint -->
+      <div class="diag" :class="diagnosisFor(idx).cls">
+        <span class="diag-icon">{{ diagnosisFor(idx).icon }}</span>
+        <span class="diag-text">{{ diagnosisFor(idx).text }}</span>
       </div>
     </div>
 
-    <!-- Diagnosis hint -->
-    <div class="diag" :class="diagnosis.cls">
-      <span class="diag-icon">{{ diagnosis.icon }}</span>
-      <span class="diag-text">{{ diagnosis.text }}</span>
-    </div>
+    <!-- Add bearing button -->
+    <button class="add-bearing-btn" @click="dspStore.addBearing()">
+      + {{ locale === 'zh' ? '添加轴承' : 'Add Bearing' }}
+    </button>
 
     <!-- Gear sub-section -->
     <div class="bd-head" style="margin-top:6px;border-top:1px dashed var(--border);padding-top:6px">
@@ -84,7 +100,7 @@
 
 <script setup lang="ts">
 import { computed, watchEffect } from 'vue'
-import { useDspStore, BEARING_PRESETS } from '@/stores/dsp'
+import { useDspStore, BEARING_PRESETS, getBearingColorSet } from '@/stores/dsp'
 import { useAcquisitionStore } from '@/stores/acquisition'
 import { useI18n } from 'vue-i18n'
 
@@ -98,22 +114,17 @@ watchEffect(() => {
   dspStore.setBearingShaftRpm(rpm)
 })
 
-const COLORS = {
-  BPFI: '#ff8800',
-  BPFO: '#ff3355',
-  BSF:  '#00ff95',
-  FTF:  '#00d9ff',
-} as const
-
-const faultFreqs = computed(() => {
-  const f = dspStore.bearingFreqs
+function faultFreqsFor(idx: number) {
+  const b = dspStore.allBearingFreqs[idx]
+  if (!b) return []
+  const cs = getBearingColorSet(idx)
   return [
-    { label: 'BPFI', hz: f.bpfi, amplitude: amplitudeAt(f.bpfi), color: COLORS.BPFI, fault: locale.value === 'zh' ? '内圈' : 'Inner race' },
-    { label: 'BPFO', hz: f.bpfo, amplitude: amplitudeAt(f.bpfo), color: COLORS.BPFO, fault: locale.value === 'zh' ? '外圈' : 'Outer race' },
-    { label: 'BSF',  hz: f.bsf,  amplitude: amplitudeAt(f.bsf),  color: COLORS.BSF,  fault: locale.value === 'zh' ? '滚动体' : 'Rolling element' },
-    { label: 'FTF',  hz: f.ftf,  amplitude: amplitudeAt(f.ftf),  color: COLORS.FTF,  fault: locale.value === 'zh' ? '保持架' : 'Cage' },
+    { label: 'BPFI', hz: b.freqs.bpfi, amplitude: amplitudeAt(b.freqs.bpfi), color: cs.BPFI },
+    { label: 'BPFO', hz: b.freqs.bpfo, amplitude: amplitudeAt(b.freqs.bpfo), color: cs.BPFO },
+    { label: 'BSF',  hz: b.freqs.bsf,  amplitude: amplitudeAt(b.freqs.bsf),  color: cs.BSF },
+    { label: 'FTF',  hz: b.freqs.ftf,  amplitude: amplitudeAt(b.freqs.ftf),  color: cs.FTF },
   ]
-})
+}
 
 function amplitudeAt(hz: number): number {
   const res = dspStore.fftResult
@@ -128,40 +139,20 @@ function formatDb(v: number): string {
   return v.toFixed(1)
 }
 
-const diagnosis = computed(() => {
-  const f = faultFreqs.value
-  // Find dominant fault component (above -30 dB threshold)
-  const elevated = f.filter(x => x.amplitude > -30).sort((a, b) => b.amplitude - a.amplitude)
+function diagnosisFor(idx: number) {
+  const freqs = faultFreqsFor(idx)
+  const elevated = freqs.filter(x => x.amplitude > -30).sort((a, b) => b.amplitude - a.amplitude)
   if (elevated.length === 0) {
-    return {
-      icon: '✓',
-      cls: 'ok',
-      text: locale.value === 'zh' ? '无明显故障特征' : 'No fault signature detected',
-    }
+    return { icon: '✓', cls: 'ok', text: locale.value === 'zh' ? '无明显故障特征' : 'No fault signature detected' }
   }
   const top = elevated[0]
   return {
     icon: '⚠',
     cls: top.amplitude > -20 ? 'high' : 'warn',
     text: locale.value === 'zh'
-      ? `${top.fault}故障特征 · ${top.label} ${top.amplitude.toFixed(0)} dB`
-      : `${top.fault} fault signature · ${top.label} ${top.amplitude.toFixed(0)} dB`,
+      ? `${top.label} 故障特征 · ${top.amplitude.toFixed(0)} dB`
+      : `${top.label} fault signature · ${top.amplitude.toFixed(0)} dB`,
   }
-})
-
-function onPresetChange(e: Event) {
-  const name = (e.target as HTMLSelectElement).value
-  if (name === 'Custom') {
-    dspStore.bearingPreset = 'Custom'
-  } else {
-    dspStore.setBearingPreset(name)
-  }
-}
-
-function onParam(key: 'ballCount' | 'pitchDiamMm' | 'ballDiamMm' | 'contactAngleDeg', e: Event) {
-  const v = parseFloat((e.target as HTMLInputElement).value)
-  if (Number.isNaN(v)) return
-  dspStore.updateBearingParams({ [key]: v })
 }
 </script>
 
@@ -171,12 +162,25 @@ function onParam(key: 'ballCount' | 'pitchDiamMm' | 'ballDiamMm' | 'contactAngle
   padding: 8px; font-size: 11px;
   border-top: 1px solid var(--border);
 }
+.bearing-section { display: flex; flex-direction: column; gap: 5px; }
+.bearing-section + .bearing-section { border-top: 1px dashed var(--border); padding-top: 6px; }
+
 .bd-head {
   display: flex; justify-content: space-between; align-items: center;
-  padding-bottom: 4px;
+  padding-bottom: 3px; gap: 5px;
 }
-.title {
-  font-size: 10px; color: var(--text-2); letter-spacing: 0.12em; text-transform: uppercase;
+.bearing-name-input {
+  font-size: 10px; color: var(--cyan); font-family: var(--font-mono); font-weight: 600;
+  background: transparent; border: none; outline: none; width: 40px;
+  border-bottom: 1px dashed var(--border);
+}
+.bearing-name-input:focus { border-bottom-color: var(--cyan); }
+.sub-label { font-size: 10px; color: var(--text-2); letter-spacing: 0.1em; text-transform: uppercase; }
+.spacer { flex: 1; }
+.title { font-size: 10px; color: var(--text-2); letter-spacing: 0.12em; text-transform: uppercase; }
+.remove-btn {
+  font-size: 10px; padding: 1px 4px; background: transparent;
+  border: 1px solid rgba(255,51,85,0.3); border-radius: 2px; color: var(--red);
 }
 .toggle {
   font-family: var(--font-mono); font-size: 9px;
@@ -202,15 +206,11 @@ function onParam(key: 'ballCount' | 'pitchDiamMm' | 'ballDiamMm' | 'contactAngle
   font-family: var(--font-mono); font-size: 10.5px; padding: 0; outline: none;
 }
 
-.freq-list { display: flex; flex-direction: column; gap: 2px; padding-top: 4px; }
+.freq-list { display: flex; flex-direction: column; gap: 2px; padding-top: 2px; }
 .freq-row {
-  display: grid;
-  grid-template-columns: 8px 36px 1fr auto;
-  align-items: center; gap: 4px;
-  padding: 3px 4px;
-  background: var(--bg-2); border: 1px solid var(--border);
-  border-radius: 2px;
-  font-size: 10px;
+  display: grid; grid-template-columns: 8px 36px 1fr auto;
+  align-items: center; gap: 4px; padding: 3px 4px;
+  background: var(--bg-2); border: 1px solid var(--border); border-radius: 2px; font-size: 10px;
 }
 .freq-row.alarm { background: rgba(255,51,85,0.06); border-color: rgba(255,51,85,0.4); }
 .dot { width: 6px; height: 6px; border-radius: 50%; }
@@ -219,16 +219,21 @@ function onParam(key: 'ballCount' | 'pitchDiamMm' | 'ballDiamMm' | 'contactAngle
 .freq-amp { font-weight: 600; }
 
 .diag {
-  display: flex; align-items: center; gap: 6px;
-  padding: 5px 8px; border-radius: 2px;
-  font-size: 10.5px;
-  background: var(--bg-2); border: 1px solid var(--border);
+  display: flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 2px;
+  font-size: 10.5px; background: var(--bg-2); border: 1px solid var(--border);
 }
-.diag.ok { color: var(--green); border-color: rgba(0,255,149,0.3); background: rgba(0,255,149,0.05); }
-.diag.warn { color: var(--amber); border-color: rgba(255,170,0,0.4); background: rgba(255,170,0,0.06); }
-.diag.high { color: var(--red); border-color: rgba(255,51,85,0.5); background: rgba(255,51,85,0.08); }
+.diag.ok   { color: var(--green);  border-color: rgba(0,255,149,0.3);  background: rgba(0,255,149,0.05); }
+.diag.warn { color: var(--amber);  border-color: rgba(255,170,0,0.4);  background: rgba(255,170,0,0.06); }
+.diag.high { color: var(--red);    border-color: rgba(255,51,85,0.5);  background: rgba(255,51,85,0.08); }
 .diag-icon { font-weight: 600; }
 .diag-text { line-height: 1.3; }
+
+.add-bearing-btn {
+  font-size: 10px; padding: 3px 10px; margin-top: 2px;
+  background: rgba(0,217,255,0.06); border: 1px dashed rgba(0,217,255,0.4);
+  border-radius: 2px; color: var(--cyan); cursor: pointer;
+}
+.add-bearing-btn:hover { background: rgba(0,217,255,0.12); }
 
 .text-purple { color: var(--purple); }
 .inline-num {

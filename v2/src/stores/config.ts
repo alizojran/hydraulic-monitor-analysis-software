@@ -69,6 +69,11 @@ export const useConfigStore = defineStore('config', () => {
     saveChannels()
   }
 
+  function setChannels(ch: Record<string, ChannelConfig>) {
+    channels.value = ch
+    saveChannels()
+  }
+
   function exportConfig(): string {
     return JSON.stringify({ channels: channels.value, acquisition: acquisition.value }, null, 2)
   }
@@ -79,5 +84,5 @@ export const useConfigStore = defineStore('config', () => {
     if (data.acquisition) { acquisition.value = data.acquisition; saveAcq() }
   }
 
-  return { channels, acquisition, updateChannel, updateAcq, resetDefaults, exportConfig, importConfig }
+  return { channels, acquisition, updateChannel, updateAcq, resetDefaults, setChannels, exportConfig, importConfig }
 })

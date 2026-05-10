@@ -1,17 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref, shallowRef, computed, watch } from 'vue'
 import { DEFAULT_FFT_CONFIG } from '@/config/defaults'
-import type { FftConfig, FftResult, OctaveBandResult, BearingParams } from '@/types/dsp'
+import type { FftConfig, FftResult, OctaveBandResult } from '@/types/dsp'
 import { computeBearingFrequencies } from '@/dsp/bearing'
 
 const DSP_STORAGE_KEY = 'daq-dsp-config'
-
-function loadDspConfig() {
-  try {
-    const v = localStorage.getItem(DSP_STORAGE_KEY)
-    return v ? JSON.parse(v) : {}
-  } catch { return {} }
-}
 
 export interface BearingPreset {
   name: string
@@ -21,14 +14,51 @@ export interface BearingPreset {
   contactAngleDeg: number
 }
 
+export interface BearingState {
+  id: string
+  name: string
+  preset: string
+  params: { ballCount: number; pitchDiamMm: number; ballDiamMm: number; contactAngleDeg: number }
+  overlay: boolean
+}
+
 export const BEARING_PRESETS: BearingPreset[] = [
-  { name: 'SKF 6205',  ballCount: 9, pitchDiamMm: 39.04, ballDiamMm: 7.94,  contactAngleDeg: 0 },
-  { name: 'SKF 6206',  ballCount: 9, pitchDiamMm: 46.4,  ballDiamMm: 9.53,  contactAngleDeg: 0 },
-  { name: 'SKF 6308',  ballCount: 8, pitchDiamMm: 65.0,  ballDiamMm: 15.08, contactAngleDeg: 0 },
-  { name: 'SKF 6310',  ballCount: 8, pitchDiamMm: 80.0,  ballDiamMm: 19.05, contactAngleDeg: 0 },
-  { name: 'NSK 6204',  ballCount: 8, pitchDiamMm: 33.5,  ballDiamMm: 7.14,  contactAngleDeg: 0 },
-  { name: 'FAG 22320', ballCount: 14,pitchDiamMm: 145.0, ballDiamMm: 28.0,  contactAngleDeg: 12 },
+  { name: 'SKF 6205',  ballCount: 9,  pitchDiamMm: 39.04, ballDiamMm: 7.94,  contactAngleDeg: 0 },
+  { name: 'SKF 6206',  ballCount: 9,  pitchDiamMm: 46.4,  ballDiamMm: 9.53,  contactAngleDeg: 0 },
+  { name: 'SKF 6308',  ballCount: 8,  pitchDiamMm: 65.0,  ballDiamMm: 15.08, contactAngleDeg: 0 },
+  { name: 'SKF 6310',  ballCount: 8,  pitchDiamMm: 80.0,  ballDiamMm: 19.05, contactAngleDeg: 0 },
+  { name: 'NSK 6204',  ballCount: 8,  pitchDiamMm: 33.5,  ballDiamMm: 7.14,  contactAngleDeg: 0 },
+  { name: 'FAG 22320', ballCount: 14, pitchDiamMm: 145.0, ballDiamMm: 28.0,  contactAngleDeg: 12 },
 ]
+
+const DEFAULT_BEARING_PARAMS = { ballCount: 9, pitchDiamMm: 39.04, ballDiamMm: 7.94, contactAngleDeg: 0 }
+
+// Per-bearing color sets (two distinct palettes for DE / NDE)
+const BEARING_COLOR_SETS = [
+  { BPFI: '#ff8800', BPFO: '#ff3355', BSF: '#00ff95', FTF: '#00d9ff' },
+  { BPFI: '#ffcc00', BPFO: '#ff66aa', BSF: '#66ffbb', FTF: '#66eeff' },
+]
+export function getBearingColorSet(idx: number) {
+  return BEARING_COLOR_SETS[idx % BEARING_COLOR_SETS.length]
+}
+
+function loadDspConfig() {
+  try {
+    const v = localStorage.getItem(DSP_STORAGE_KEY)
+    if (!v) return {}
+    const data = JSON.parse(v)
+    // Migrate old single-bearing format to bearings array
+    if (!data.bearings && (data.bearingPreset !== undefined || data.bearingParams !== undefined)) {
+      data.bearings = [{
+        id: 'b0', name: 'DE',
+        preset: data.bearingPreset ?? 'SKF 6205',
+        params: { ...DEFAULT_BEARING_PARAMS, ...(data.bearingParams ?? {}) },
+        overlay: data.bearingOverlay ?? true,
+      }]
+    }
+    return data
+  } catch { return {} }
+}
 
 export const useDspStore = defineStore('dsp', () => {
   const _saved = loadDspConfig()
@@ -42,58 +72,94 @@ export const useDspStore = defineStore('dsp', () => {
   const spectrumHistoryTotal = ref(0)
   const maxHistoryCols = 360
 
-  // Envelope demodulation toggle (Hilbert → |·| → FFT)
+  // Envelope demodulation
   const envelopeMode = ref<boolean>(_saved.envelopeMode ?? false)
   function toggleEnvelopeMode() { envelopeMode.value = !envelopeMode.value }
+  function setEnvelopeMode(v: boolean) { envelopeMode.value = v }
 
-  // X-axis mode: 'hz' or 'order' (multiples of shaft Hz)
+  // X-axis mode
   const xAxisMode = ref<'hz' | 'order'>(_saved.xAxisMode ?? 'hz')
-  function toggleXAxisMode() {
-    xAxisMode.value = xAxisMode.value === 'hz' ? 'order' : 'hz'
-  }
+  function toggleXAxisMode() { xAxisMode.value = xAxisMode.value === 'hz' ? 'order' : 'hz' }
+  function setXAxisMode(m: 'hz' | 'order') { xAxisMode.value = m }
 
-  // Bearing diagnostic state
-  const bearingPreset = ref<string>(_saved.bearingPreset ?? 'SKF 6205')
-  const bearingParams = ref<Omit<BearingParams, 'rpmHz'>>({
-    ballCount: 9,
-    pitchDiamMm: 39.04,
-    ballDiamMm: 7.94,
-    contactAngleDeg: 0,
-    ...(_saved.bearingParams ?? {}),
-  })
+  // ─── Multi-bearing state ─────────────────────────────────────────────────
+  const bearings = ref<BearingState[]>(_saved.bearings ?? [{
+    id: 'b0', name: 'DE', preset: 'SKF 6205',
+    params: { ...DEFAULT_BEARING_PARAMS },
+    overlay: true,
+  }])
+
   const bearingShaftRpm = ref(1500)   // updated externally from V01
-  const bearingOverlay = ref<boolean>(_saved.bearingOverlay ?? true)
 
-  const bearingFreqs = computed(() =>
-    computeBearingFrequencies({
-      rpmHz: bearingShaftRpm.value / 60,
-      ...bearingParams.value,
-    })
+  // All bearing fault frequencies (for overlay and diagnostics panel)
+  const allBearingFreqs = computed(() =>
+    bearings.value.map((b, idx) => ({
+      id: b.id,
+      name: b.name,
+      overlay: b.overlay,
+      colorSet: getBearingColorSet(idx),
+      freqs: computeBearingFrequencies({ rpmHz: bearingShaftRpm.value / 60, ...b.params }),
+    }))
   )
 
-  function setBearingPreset(name: string) {
-    bearingPreset.value = name
-    const p = BEARING_PRESETS.find(b => b.name === name)
-    if (p) {
-      bearingParams.value = {
-        ballCount: p.ballCount,
-        pitchDiamMm: p.pitchDiamMm,
-        ballDiamMm: p.ballDiamMm,
-        contactAngleDeg: p.contactAngleDeg,
+  // Backward-compat single-bearing accessors (point to bearings[0])
+  const bearingPreset = computed(() => bearings.value[0]?.preset ?? 'SKF 6205')
+  const bearingParams = computed(() => bearings.value[0]?.params ?? DEFAULT_BEARING_PARAMS)
+  const bearingOverlay = computed(() => bearings.value[0]?.overlay ?? true)
+  const bearingFreqs = computed(() => allBearingFreqs.value[0]?.freqs ?? { bpfi: 0, bpfo: 0, bsf: 0, ftf: 0 })
+
+  function setBearingPreset(name: string, idx = 0) {
+    if (!bearings.value[idx]) return
+    bearings.value[idx].preset = name
+    if (name !== 'Custom') {
+      const p = BEARING_PRESETS.find(b => b.name === name)
+      if (p) {
+        bearings.value[idx].params = {
+          ballCount: p.ballCount,
+          pitchDiamMm: p.pitchDiamMm,
+          ballDiamMm: p.ballDiamMm,
+          contactAngleDeg: p.contactAngleDeg,
+        }
       }
     }
   }
 
-  function updateBearingParams(partial: Partial<typeof bearingParams.value>) {
-    bearingParams.value = { ...bearingParams.value, ...partial }
-    bearingPreset.value = 'Custom'
+  function updateBearingParams(partial: Partial<BearingState['params']>, idx = 0) {
+    if (!bearings.value[idx]) return
+    bearings.value[idx].params = { ...bearings.value[idx].params, ...partial }
+    bearings.value[idx].preset = 'Custom'
   }
 
   function setBearingShaftRpm(rpm: number) { bearingShaftRpm.value = rpm }
-  function toggleBearingOverlay() { bearingOverlay.value = !bearingOverlay.value }
 
-  // Gear mesh / sidebands
-  const gearTeeth = ref<number>(_saved.gearTeeth ?? 0)              // 0 = disabled
+  function toggleBearingOverlay(idx = 0) {
+    if (!bearings.value[idx]) return
+    bearings.value[idx].overlay = !bearings.value[idx].overlay
+  }
+
+  function setBearingName(name: string, idx = 0) {
+    if (!bearings.value[idx]) return
+    bearings.value[idx].name = name
+  }
+
+  function addBearing() {
+    const idx = bearings.value.length
+    bearings.value.push({
+      id: `b${Date.now()}`,
+      name: idx === 1 ? 'NDE' : `BRG${idx + 1}`,
+      preset: 'SKF 6205',
+      params: { ...DEFAULT_BEARING_PARAMS },
+      overlay: true,
+    })
+  }
+
+  function removeBearing(idx: number) {
+    if (bearings.value.length <= 1) return
+    bearings.value.splice(idx, 1)
+  }
+
+  // ─── Gear mesh / sidebands ───────────────────────────────────────────────
+  const gearTeeth = ref<number>(_saved.gearTeeth ?? 0)
   const gearOverlay = ref<boolean>(_saved.gearOverlay ?? false)
   const gearFreqs = computed(() => {
     if (gearTeeth.value <= 0) return { mesh: 0, sb1: 0, sb2: 0 }
@@ -104,7 +170,7 @@ export const useDspStore = defineStore('dsp', () => {
   function setGearTeeth(z: number) { gearTeeth.value = Math.max(0, Math.floor(z)) }
   function toggleGearOverlay() { gearOverlay.value = !gearOverlay.value }
 
-  // Debounced persistence — write all diagnostic/spectrum state to localStorage
+  // ─── Debounced persistence ───────────────────────────────────────────────
   let _saveTimer: ReturnType<typeof setTimeout> | null = null
   function _scheduleSave() {
     if (_saveTimer) clearTimeout(_saveTimer)
@@ -116,9 +182,7 @@ export const useDspStore = defineStore('dsp', () => {
           octaveWeighting: octaveWeighting.value,
           envelopeMode: envelopeMode.value,
           xAxisMode: xAxisMode.value,
-          bearingPreset: bearingPreset.value,
-          bearingParams: bearingParams.value,
-          bearingOverlay: bearingOverlay.value,
+          bearings: bearings.value,
           gearTeeth: gearTeeth.value,
           gearOverlay: gearOverlay.value,
         }))
@@ -126,10 +190,13 @@ export const useDspStore = defineStore('dsp', () => {
     }, 300)
   }
 
-  watch([fftConfig, octaveWeighting, envelopeMode, xAxisMode,
-    bearingPreset, bearingParams, bearingOverlay,
-    gearTeeth, gearOverlay, selectedChannelId], _scheduleSave, { deep: true })
+  watch(
+    [fftConfig, octaveWeighting, envelopeMode, xAxisMode, bearings, gearTeeth, gearOverlay, selectedChannelId],
+    _scheduleSave,
+    { deep: true }
+  )
 
+  // ─── FFT worker ──────────────────────────────────────────────────────────
   let worker: Worker | null = null
   let requestId = 0
   let pendingRequest = false
@@ -181,14 +248,7 @@ export const useDspStore = defineStore('dsp', () => {
     const id = ++requestId
     const copy = samples.slice()
     const cfg = { ...fftConfig.value }
-    worker.postMessage({
-      type: 'compute',
-      samples: copy,
-      config: cfg,
-      channelId,
-      requestId: id,
-      envelope: envelopeMode.value,
-    }, [copy.buffer])
+    worker.postMessage({ type: 'compute', samples: copy, config: cfg, channelId, requestId: id, envelope: envelopeMode.value }, [copy.buffer])
   }
 
   function setFftConfig(partial: Partial<FftConfig>) {
@@ -202,13 +262,8 @@ export const useDspStore = defineStore('dsp', () => {
     spectrumHistoryTotal.value = 0
   }
 
-  function setOctaveBands(result: OctaveBandResult) {
-    octaveBands.value = result
-  }
-
-  function setOctaveWeighting(w: 'A' | 'C' | 'none') {
-    octaveWeighting.value = w
-  }
+  function setOctaveBands(result: OctaveBandResult) { octaveBands.value = result }
+  function setOctaveWeighting(w: 'A' | 'C' | 'none') { octaveWeighting.value = w }
 
   function destroyWorker() {
     worker?.terminate()
@@ -216,13 +271,20 @@ export const useDspStore = defineStore('dsp', () => {
   }
 
   return {
+    // FFT / spectrum
     fftConfig, selectedChannelId, fftResult, octaveBands, octaveWeighting,
-    spectrumHistory, spectrumHistoryTotal, requestFft, setFftConfig, setSelectedChannel,
-    setOctaveBands, setOctaveWeighting, destroyWorker,
-    bearingPreset, bearingParams, bearingShaftRpm, bearingOverlay, bearingFreqs,
-    setBearingPreset, updateBearingParams, setBearingShaftRpm, toggleBearingOverlay,
-    envelopeMode, toggleEnvelopeMode,
-    xAxisMode, toggleXAxisMode,
+    spectrumHistory, spectrumHistoryTotal,
+    requestFft, setFftConfig, setSelectedChannel, setOctaveBands, setOctaveWeighting, destroyWorker,
+    // Envelope / axis
+    envelopeMode, toggleEnvelopeMode, setEnvelopeMode,
+    xAxisMode, toggleXAxisMode, setXAxisMode,
+    // Multi-bearing
+    bearings, allBearingFreqs, addBearing, removeBearing, setBearingName,
+    bearingShaftRpm, setBearingShaftRpm,
+    // Backward-compat single-bearing
+    bearingPreset, bearingParams, bearingOverlay, bearingFreqs,
+    setBearingPreset, updateBearingParams, toggleBearingOverlay,
+    // Gear
     gearTeeth, gearOverlay, gearFreqs, setGearTeeth, toggleGearOverlay,
   }
 })
