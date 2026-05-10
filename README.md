@@ -197,17 +197,22 @@ v2/src/
 - 7-Tab 配置页（频谱 / 诊断 / 告警 / 系统 / 关于）
 - 命名 Profile 系统（保存 / 切换 / 克隆 / 导入导出）
 - 中英双语
+- **P3** Vitest 单元测试 30 条（FFT / 轴承公式 / 倍频程 / 包络）
+- **P3** ESLint 9 (flat config) + Prettier + husky pre-commit + lint-staged
+- **P4** WebSerial composable（STM32 / Arduino 硬件 DAQ）
+- **P4** WebSocket composable（实时流 / Modbus 代理）
+- **P5** 规则引擎故障分类器（faultClassifier — 轴承 BPFI/BPFO/BSF/FTF 自动诊断）
+- **P5** PDF 巡检报告生成（useReport + html-to-image）
+- **P5** FaultSummaryPanel 故障摘要面板
 
 ### ⏳ 规划中
 
 | 优先级 | 任务 |
 |---|---|
-| P3 | Vitest 单元测试（FFT / 轴承公式 / 倍频程）|
-| P3 | ESLint + Prettier + husky pre-commit |
-| P4 | WebSerial 接入硬件 DAQ（STM32 / Arduino）|
-| P4 | WebSocket 实时流 |
-| P5 | AI 辅助故障识别 |
-| P5 | PDF 巡检报告生成 |
+| P4 | Tauri 桌面壳 + Rust Modbus 代理（离线部署）|
+| P5 | GitHub Actions CI（test + lint + build）|
+| P6 | AI 辅助故障识别（LLM 集成）|
+| P6 | OPC-UA 接入 |
 
 ---
 
