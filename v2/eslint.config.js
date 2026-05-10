@@ -21,7 +21,7 @@ export default tseslint.config(
         'warn',
         {
           selector:
-            "Literal[value=/[\\u4e00-\\u9fff\\u3400-\\u4dbf]/]" +
+            'Literal[value=/[\\u4e00-\\u9fff\\u3400-\\u4dbf]/]' +
             ":not(CallExpression[callee.name='lng'] > .arguments)" +
             ":not(CallExpression[callee.name='t'] > .arguments)",
           message:

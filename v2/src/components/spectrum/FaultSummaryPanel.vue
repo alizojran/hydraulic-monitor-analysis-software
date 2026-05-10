@@ -3,11 +3,7 @@
     <div class="fsp-head">
       <span class="fsp-title mono">{{ $t('spectrum.faultDiagnosis') }}</span>
       <span class="overall-badge" :class="`sev-${overallSev}`">{{ overallSev.toUpperCase() }}</span>
-      <button
-        class="report-btn"
-        :title="$t('spectrum.exportReport')"
-        @click="exportReport"
-      >
+      <button class="report-btn" :title="$t('spectrum.exportReport')" @click="exportReport">
         ⤓ {{ $t('spectrum.report') }}
       </button>
     </div>

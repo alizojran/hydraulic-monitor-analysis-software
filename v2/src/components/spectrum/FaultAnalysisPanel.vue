@@ -14,7 +14,9 @@
           <span class="dot" :style="{ background: f.color }" />
           <span class="freq-name mono">{{ f.label }}</span>
           <span class="freq-hz mono">{{ f.hz.toFixed(1) }} Hz</span>
-          <span class="freq-amp mono" :style="{ color: f.color }">{{ formatDb(f.amplitude) }} dB</span>
+          <span class="freq-amp mono" :style="{ color: f.color }"
+            >{{ formatDb(f.amplitude) }} dB</span
+          >
         </div>
       </div>
 
@@ -58,7 +60,8 @@
       <div v-if="dspStore.gearTeeth > 0" class="row">
         <span class="lbl mono text-dim">±SB</span>
         <span class="val mono text-dim"
-          >{{ dspStore.gearFreqs.sb1.toFixed(1) }} / {{ dspStore.gearFreqs.sb2.toFixed(1) }} Hz</span
+          >{{ dspStore.gearFreqs.sb1.toFixed(1) }} /
+          {{ dspStore.gearFreqs.sb2.toFixed(1) }} Hz</span
         >
       </div>
     </div>
@@ -113,7 +116,10 @@ function diagnosisFor(idx: number) {
   return {
     icon: '⚠',
     cls: top.amplitude > -20 ? 'high' : 'warn',
-    text: localDescription({ descriptionZh: `${top.label} 故障特征 · ${top.amplitude.toFixed(0)} dB`, description: `${top.label} fault signature · ${top.amplitude.toFixed(0)} dB` }),
+    text: localDescription({
+      descriptionZh: `${top.label} 故障特征 · ${top.amplitude.toFixed(0)} dB`,
+      description: `${top.label} fault signature · ${top.amplitude.toFixed(0)} dB`,
+    }),
   }
 }
 </script>

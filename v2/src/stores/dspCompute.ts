@@ -131,13 +131,16 @@ export const useDspComputeStore = defineStore('dspCompute', () => {
   function _scheduleSave() {
     if (_saveTimer) clearTimeout(_saveTimer)
     _saveTimer = setTimeout(() => {
-      savePersisted<ComputePersistedData>({ key: COMPUTE_KEY, version: COMPUTE_VERSION }, {
-        fftConfig: fftConfig.value,
-        selectedChannelId: selectedChannelId.value,
-        octaveWeighting: octaveWeighting.value,
-        envelopeMode: envelopeMode.value,
-        xAxisMode: xAxisMode.value,
-      })
+      savePersisted<ComputePersistedData>(
+        { key: COMPUTE_KEY, version: COMPUTE_VERSION },
+        {
+          fftConfig: fftConfig.value,
+          selectedChannelId: selectedChannelId.value,
+          octaveWeighting: octaveWeighting.value,
+          envelopeMode: envelopeMode.value,
+          xAxisMode: xAxisMode.value,
+        },
+      )
     }, 300)
   }
 

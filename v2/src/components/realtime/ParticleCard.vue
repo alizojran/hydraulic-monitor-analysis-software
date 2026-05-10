@@ -5,9 +5,7 @@
     <div class="card-header">
       <span class="mono text-dim">F02</span>
       <span class="ch-name">{{ $t('channel.F02') }}</span>
-      <span class="header-meta mono text-dim"
-        >ISO 4406 · {{ lng('在线监测', 'Online') }}</span
-      >
+      <span class="header-meta mono text-dim">ISO 4406 · {{ lng('在线监测', 'Online') }}</span>
     </div>
 
     <div class="iso-code">

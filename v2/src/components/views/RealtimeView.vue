@@ -10,8 +10,7 @@
       <!-- Analog section -->
       <div class="section-bar">
         <span class="sb-title"
-          >{{ $t('realtime.analogInputs') }}
-          <span class="sb-dot">·</span> ANALOG INPUTS
+          >{{ $t('realtime.analogInputs') }} <span class="sb-dot">·</span> ANALOG INPUTS
         </span>
         <span class="sb-meta mono"
           >CH01–CH08 · 24-bit · {{ $t('status.window') }}
@@ -40,12 +39,10 @@
       <!-- Acoustic section -->
       <div class="section-bar">
         <span class="sb-title"
-          >{{ $t('realtime.acousticChannel') }}
-          <span class="sb-dot">·</span> ACOUSTIC
+          >{{ $t('realtime.acousticChannel') }} <span class="sb-dot">·</span> ACOUSTIC
         </span>
         <span class="sb-meta mono"
-          >S01 · {{ $t('realtime.mic') }} · 20 Hz – 20 kHz · A
-          {{ $t('realtime.weighted') }}</span
+          >S01 · {{ $t('realtime.mic') }} · 20 Hz – 20 kHz · A {{ $t('realtime.weighted') }}</span
         >
       </div>
       <div class="acoustic-wrap">

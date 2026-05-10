@@ -37,9 +37,7 @@
     <!-- Web Serial inline controls -->
     <template v-if="acqStore.dataSource === 'webserial'">
       <template v-if="!serial.isSupported">
-        <span class="ds-warn">{{
-          $t('source.needsBrowser')
-        }}</span>
+        <span class="ds-warn">{{ $t('source.needsBrowser') }}</span>
       </template>
       <template v-else-if="serial.status.value !== 'connected'">
         <select v-model="baudRate" class="ds-select">

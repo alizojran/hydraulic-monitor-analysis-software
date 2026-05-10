@@ -12,11 +12,7 @@
             })
           "
         >
-          <option
-            v-for="r in [100, 1000, 5000, 10000, 25000, 50000, 100000]"
-            :key="r"
-            :value="r"
-          >
+          <option v-for="r in [100, 1000, 5000, 10000, 25000, 50000, 100000]" :key="r" :value="r">
             {{ r.toLocaleString() }} Hz
           </option>
         </select>

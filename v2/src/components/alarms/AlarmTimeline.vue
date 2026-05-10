@@ -67,7 +67,10 @@ function draw() {
 }
 
 onMounted(() => nextTick(draw))
-watch(() => alarmsStore.events.length, () => nextTick(draw))
+watch(
+  () => alarmsStore.events.length,
+  () => nextTick(draw),
+)
 watch(locale, () => nextTick(draw))
 </script>
 

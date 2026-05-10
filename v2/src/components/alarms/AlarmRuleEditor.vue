@@ -2,11 +2,7 @@
   <aside class="sidebar">
     <div class="sidebar-header">
       <span class="section-title">{{ $t('alarms.rules') }}</span>
-      <button
-        class="primary"
-        style="font-size: 11px; padding: 3px 8px"
-        @click="openAdd"
-      >
+      <button class="primary" style="font-size: 11px; padding: 3px 8px" @click="openAdd">
         + {{ $t('alarms.addRule') }}
       </button>
     </div>

@@ -58,10 +58,7 @@ function migrateFromLegacyDspConfig(): BearingPersistedData {
     if (!raw) return {}
     const parsed = JSON.parse(raw) as unknown
     const data =
-      typeof parsed === 'object' &&
-      parsed !== null &&
-      '_version' in parsed &&
-      'data' in parsed
+      typeof parsed === 'object' && parsed !== null && '_version' in parsed && 'data' in parsed
         ? (parsed as { data: unknown }).data
         : parsed
     if (typeof data !== 'object' || data === null) return {}
@@ -195,11 +192,14 @@ export const useBearingModelStore = defineStore('bearingModel', () => {
   function _scheduleSave() {
     if (_saveTimer) clearTimeout(_saveTimer)
     _saveTimer = setTimeout(() => {
-      savePersisted<BearingPersistedData>({ key: BEARING_KEY, version: BEARING_VERSION }, {
-        bearings: bearings.value,
-        gearTeeth: gearTeeth.value,
-        gearOverlay: gearOverlay.value,
-      })
+      savePersisted<BearingPersistedData>(
+        { key: BEARING_KEY, version: BEARING_VERSION },
+        {
+          bearings: bearings.value,
+          gearTeeth: gearTeeth.value,
+          gearOverlay: gearOverlay.value,
+        },
+      )
     }, 300)
   }
 

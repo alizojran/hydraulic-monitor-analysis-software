@@ -47,11 +47,7 @@
           <td class="mono text-dim">{{ ch.min }} – {{ ch.max }}</td>
           <td class="mono text-dim">{{ ch.unit }}</td>
           <td>
-            <input
-              v-model="configStore.channels[ch.id].filter"
-              type="text"
-              style="width: 90px"
-            />
+            <input v-model="configStore.channels[ch.id].filter" type="text" style="width: 90px" />
           </td>
         </tr>
       </tbody>
