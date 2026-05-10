@@ -159,6 +159,15 @@
     "reset": "Reset Defaults",
     "saved": "Saved",
     "profile": "Profile",
+    "tabs": {
+      "channel": "Channel",
+      "acquisition": "Acquisition",
+      "spectrum": "Spectrum",
+      "diagnostics": "Diagnostics",
+      "alarms": "Alarms",
+      "system": "System",
+      "about": "About"
+    },
     "ch": {
       "id": "CH",
       "name": "Name",
@@ -173,6 +182,41 @@
       "trigger": "Trigger Mode",
       "preTrigger": "Pre-Trigger",
       "postTrigger": "Post-Trigger"
+    },
+    "spectrum": {
+      "title": "Spectrum Defaults",
+      "fftSize": "FFT Size",
+      "window": "Window Function",
+      "averages": "Averages",
+      "overlap": "Overlap",
+      "xAxisMode": "X-Axis Mode",
+      "envelopeDefault": "Envelope Default",
+      "octaveWeighting": "Octave Weighting"
+    },
+    "diagnostics": {
+      "title": "Diagnostics",
+      "bearing": "Bearing",
+      "preset": "Model Preset",
+      "ballCount": "Ball Count Z",
+      "pitchDiam": "Pitch Dia Pd",
+      "ballDiam": "Ball Dia Bd",
+      "contactAngle": "Contact Angle α",
+      "overlay": "Spectrum Overlay",
+      "gear": "Gear",
+      "gearTeeth": "Teeth Z (0=off)",
+      "gearOverlay": "Spectrum Overlay"
+    },
+    "system": {
+      "title": "System Settings",
+      "language": "Interface Language",
+      "timeWindow": "Default Time Window",
+      "storage": "Local Storage Used",
+      "clearStorage": "Clear & Reset"
+    },
+    "about": {
+      "title": "About",
+      "version": "Version",
+      "build": "Build Date"
     }
   },
   "acoustic": {

@@ -159,6 +159,15 @@
     "reset": "重置默认",
     "saved": "已保存",
     "profile": "配置方案",
+    "tabs": {
+      "channel": "通道",
+      "acquisition": "采集",
+      "spectrum": "频谱",
+      "diagnostics": "诊断",
+      "alarms": "告警",
+      "system": "系统",
+      "about": "关于"
+    },
     "ch": {
       "id": "通道",
       "name": "名称",
@@ -173,6 +182,41 @@
       "trigger": "触发模式",
       "preTrigger": "预触发",
       "postTrigger": "后触发"
+    },
+    "spectrum": {
+      "title": "频谱默认参数",
+      "fftSize": "FFT 点数",
+      "window": "窗函数",
+      "averages": "平均次数",
+      "overlap": "重叠率",
+      "xAxisMode": "X 轴模式",
+      "envelopeDefault": "默认包络模式",
+      "octaveWeighting": "倍频程计权"
+    },
+    "diagnostics": {
+      "title": "诊断参数",
+      "bearing": "轴承",
+      "preset": "型号预设",
+      "ballCount": "滚动体数 Z",
+      "pitchDiam": "节径 Pd",
+      "ballDiam": "球径 Bd",
+      "contactAngle": "接触角 α",
+      "overlay": "叠加到频谱",
+      "gear": "齿轮",
+      "gearTeeth": "齿数 Z (0=禁用)",
+      "gearOverlay": "叠加到频谱"
+    },
+    "system": {
+      "title": "系统设置",
+      "language": "界面语言",
+      "timeWindow": "默认时间窗",
+      "storage": "本地存储用量",
+      "clearStorage": "清除并重置"
+    },
+    "about": {
+      "title": "关于",
+      "version": "版本",
+      "build": "构建时间"
     }
   },
   "acoustic": {

@@ -1,8 +1,17 @@
 import { defineStore } from 'pinia'
-import { ref, shallowRef, computed } from 'vue'
+import { ref, shallowRef, computed, watch } from 'vue'
 import { DEFAULT_FFT_CONFIG } from '@/config/defaults'
 import type { FftConfig, FftResult, OctaveBandResult, BearingParams } from '@/types/dsp'
 import { computeBearingFrequencies } from '@/dsp/bearing'
+
+const DSP_STORAGE_KEY = 'daq-dsp-config'
+
+function loadDspConfig() {
+  try {
+    const v = localStorage.getItem(DSP_STORAGE_KEY)
+    return v ? JSON.parse(v) : {}
+  } catch { return {} }
+}
 
 export interface BearingPreset {
   name: string
@@ -22,35 +31,38 @@ export const BEARING_PRESETS: BearingPreset[] = [
 ]
 
 export const useDspStore = defineStore('dsp', () => {
-  const fftConfig = ref<FftConfig>({ ...DEFAULT_FFT_CONFIG })
-  const selectedChannelId = ref('V02')
+  const _saved = loadDspConfig()
+
+  const fftConfig = ref<FftConfig>({ ...DEFAULT_FFT_CONFIG, ...(_saved.fftConfig ?? {}) })
+  const selectedChannelId = ref<string>(_saved.selectedChannelId ?? 'V02')
   const fftResult = shallowRef<FftResult | null>(null)
   const octaveBands = shallowRef<OctaveBandResult | null>(null)
-  const octaveWeighting = ref<'A' | 'C' | 'none'>('A')
+  const octaveWeighting = ref<'A' | 'C' | 'none'>(_saved.octaveWeighting ?? 'A')
   const spectrumHistory = shallowRef<Float32Array[]>([])
   const spectrumHistoryTotal = ref(0)
   const maxHistoryCols = 360
 
   // Envelope demodulation toggle (Hilbert → |·| → FFT)
-  const envelopeMode = ref(false)
+  const envelopeMode = ref<boolean>(_saved.envelopeMode ?? false)
   function toggleEnvelopeMode() { envelopeMode.value = !envelopeMode.value }
 
   // X-axis mode: 'hz' or 'order' (multiples of shaft Hz)
-  const xAxisMode = ref<'hz' | 'order'>('hz')
+  const xAxisMode = ref<'hz' | 'order'>(_saved.xAxisMode ?? 'hz')
   function toggleXAxisMode() {
     xAxisMode.value = xAxisMode.value === 'hz' ? 'order' : 'hz'
   }
 
   // Bearing diagnostic state
-  const bearingPreset = ref<string>('SKF 6205')
+  const bearingPreset = ref<string>(_saved.bearingPreset ?? 'SKF 6205')
   const bearingParams = ref<Omit<BearingParams, 'rpmHz'>>({
     ballCount: 9,
     pitchDiamMm: 39.04,
     ballDiamMm: 7.94,
     contactAngleDeg: 0,
+    ...(_saved.bearingParams ?? {}),
   })
   const bearingShaftRpm = ref(1500)   // updated externally from V01
-  const bearingOverlay = ref(true)
+  const bearingOverlay = ref<boolean>(_saved.bearingOverlay ?? true)
 
   const bearingFreqs = computed(() =>
     computeBearingFrequencies({
@@ -81,8 +93,8 @@ export const useDspStore = defineStore('dsp', () => {
   function toggleBearingOverlay() { bearingOverlay.value = !bearingOverlay.value }
 
   // Gear mesh / sidebands
-  const gearTeeth = ref(0)              // 0 = disabled
-  const gearOverlay = ref(false)
+  const gearTeeth = ref<number>(_saved.gearTeeth ?? 0)              // 0 = disabled
+  const gearOverlay = ref<boolean>(_saved.gearOverlay ?? false)
   const gearFreqs = computed(() => {
     if (gearTeeth.value <= 0) return { mesh: 0, sb1: 0, sb2: 0 }
     const shaftHz = bearingShaftRpm.value / 60
@@ -91,6 +103,32 @@ export const useDspStore = defineStore('dsp', () => {
   })
   function setGearTeeth(z: number) { gearTeeth.value = Math.max(0, Math.floor(z)) }
   function toggleGearOverlay() { gearOverlay.value = !gearOverlay.value }
+
+  // Debounced persistence — write all diagnostic/spectrum state to localStorage
+  let _saveTimer: ReturnType<typeof setTimeout> | null = null
+  function _scheduleSave() {
+    if (_saveTimer) clearTimeout(_saveTimer)
+    _saveTimer = setTimeout(() => {
+      try {
+        localStorage.setItem(DSP_STORAGE_KEY, JSON.stringify({
+          fftConfig: fftConfig.value,
+          selectedChannelId: selectedChannelId.value,
+          octaveWeighting: octaveWeighting.value,
+          envelopeMode: envelopeMode.value,
+          xAxisMode: xAxisMode.value,
+          bearingPreset: bearingPreset.value,
+          bearingParams: bearingParams.value,
+          bearingOverlay: bearingOverlay.value,
+          gearTeeth: gearTeeth.value,
+          gearOverlay: gearOverlay.value,
+        }))
+      } catch { /* storage full */ }
+    }, 300)
+  }
+
+  watch([fftConfig, octaveWeighting, envelopeMode, xAxisMode,
+    bearingPreset, bearingParams, bearingOverlay,
+    gearTeeth, gearOverlay, selectedChannelId], _scheduleSave, { deep: true })
 
   let worker: Worker | null = null
   let requestId = 0
