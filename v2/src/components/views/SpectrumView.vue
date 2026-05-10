@@ -5,6 +5,8 @@
       <div class="divider" />
       <BearingDiagnosticPanel />
       <div class="divider" />
+      <FaultSummaryPanel />
+      <div class="divider" />
       <OctaveBandChart />
     </div>
     <main class="center">
@@ -22,6 +24,7 @@ import WaterfallChart from '@/components/spectrum/WaterfallChart.vue'
 import OctaveBandChart from '@/components/spectrum/OctaveBandChart.vue'
 import PeakList from '@/components/spectrum/PeakList.vue'
 import BearingDiagnosticPanel from '@/components/spectrum/BearingDiagnosticPanel.vue'
+import FaultSummaryPanel from '@/components/spectrum/FaultSummaryPanel.vue'
 </script>
 
 <style scoped>

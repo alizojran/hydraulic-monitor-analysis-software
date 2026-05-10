@@ -3,7 +3,7 @@ import { ref, reactive, computed } from 'vue'
 import { DISPLAY_POINTS, CHANNEL_DEFS, TIME_WINDOWS } from '@/config/channels'
 import type { SampleFrame } from '@/types/channel'
 
-export type DataSource = 'simulated' | 'csv' | 'wav'
+export type DataSource = 'simulated' | 'csv' | 'wav' | 'webserial' | 'websocket' | 'modbus'
 
 class TimeWindowBuffer {
   points: number[]

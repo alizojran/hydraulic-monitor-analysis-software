@@ -9,7 +9,7 @@ export interface SessionMeta {
   durationSec: number
   sampleCount: number
   sampleRate: number
-  source: 'simulated' | 'csv' | 'wav'
+  source: string
   channelIds: string[]
   label?: string
 }
