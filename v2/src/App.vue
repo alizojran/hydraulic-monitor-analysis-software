@@ -32,7 +32,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUiStore } from '@/stores/ui'
 import { useAcquisitionStore } from '@/stores/acquisition'
@@ -40,6 +40,8 @@ import { useSimulator } from '@/composables/useSimulator'
 import { useAcousticSpectrogram } from '@/composables/useAcousticSpectrogram'
 import { usePlayback } from '@/composables/usePlayback'
 import { useSessionStore } from '@/stores/session'
+import { compressHistory } from '@/composables/useAIDiagnosis'
+import type { CompressLogEventDetail } from '@/types/diagnostic'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppStatusBar from '@/components/layout/AppStatusBar.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
@@ -64,11 +66,22 @@ const showSourceSwitcher = computed(
   () => uiStore.activeTab === 'realtime' || uiStore.activeTab === 'history',
 )
 
+function onCompressLog(ev: Event) {
+  const detail = (ev as CustomEvent<CompressLogEventDetail>).detail
+  if (!detail) return
+  void compressHistory(detail.events, detail.previousSummary)
+}
+
 onMounted(() => {
   locale.value = uiStore.locale
   document.documentElement.lang = uiStore.locale === 'zh' ? 'zh-CN' : 'en'
   sim.start()
   sessionStore.beginSession()
+  window.addEventListener('hmas-compress-log', onCompressLog)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('hmas-compress-log', onCompressLog)
 })
 
 function onStart() {

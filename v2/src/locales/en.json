@@ -128,7 +128,27 @@
     "shaft": "Shaft",
     "addBearing": "Add Bearing",
     "envelope": "Envelope",
-    "envelopeTitle": "Hilbert envelope demodulation"
+    "envelopeTitle": "Hilbert envelope demodulation",
+    "aiAnalysis": {
+      "title": "AI Analysis",
+      "reanalyze": "Re-analyze",
+      "starting": "Preparing…",
+      "logEvent": "Log event",
+      "feedback": "Feedback",
+      "noConfig": "Set API Key and enable AI in Device Profile > AI Config",
+      "waiting": "Waiting for spectrum data…",
+      "stopMachineWarning": "AI recommends stopping the machine — manual confirmation required",
+      "errorRetry": "Retry",
+      "evidence": "Evidence",
+      "recommendation": "Recommendation",
+      "showPrompt": "Show prompt",
+      "recheckIn": "Re-check in {d} days",
+      "confidence": {
+        "high": "high confidence",
+        "medium": "medium confidence",
+        "low": "low confidence"
+      }
+    }
   },
   "history": {
     "title": "History",
@@ -218,7 +238,8 @@
       "diagnostics": "Diagnostics",
       "alarms": "Alarms",
       "system": "System",
-      "about": "About"
+      "about": "About",
+      "deviceProfile": "Device Profile"
     },
     "ch": {
       "id": "CH",
@@ -277,7 +298,50 @@
     "profileExport": "Export",
     "profileImport": "Import",
     "profileDelete": "Delete",
-    "profileNamePlaceholder": "Profile name…"
+    "profileNamePlaceholder": "Profile name…",
+    "deviceProfile": {
+      "staticTitle": "Static Metadata",
+      "baselineTitle": "Condition Baseline Library",
+      "aiTitle": "AI Configuration",
+      "deviceId": "Device ID",
+      "brand": "Brand",
+      "model": "Model",
+      "installedAt": "Installed",
+      "ratedRpm": "Rated RPM",
+      "ratedFlow": "Rated Flow (L/min)",
+      "ratedPressure": "Max Pressure (bar)",
+      "oilTemp": "Oil Temp Range",
+      "mounting": "Mounting",
+      "environment": "Environment",
+      "notes": "Notes",
+      "bearings": "Bearings",
+      "bearingPosition": "Position",
+      "bearingModel": "Model",
+      "addBearing": "+ Add bearing",
+      "noBearings": "No bearings configured. Click above to add.",
+      "exportProfile": "Export profile",
+      "importProfile": "Import profile",
+      "currentCondition": "Current condition",
+      "conditionUnknown": "Unknown (RPM or pressure is 0)",
+      "condition": "Condition",
+      "capturedAt": "Captured",
+      "actions": "Actions",
+      "baselineCaptureBtn": "Capture baseline",
+      "baselineRebuildBtn": "Rebuild",
+      "baselineDeleteBtn": "Delete",
+      "baselineCapturing": "Capturing…",
+      "baselineStaleWarning": "Baseline > 2 years old, rebuild recommended",
+      "baselineNoBuildHint": "Capture baselines while the device is healthy. Rebuild after part replacement.",
+      "aiProvider": "AI Provider",
+      "apiKey": "API Key",
+      "aiModel": "Model",
+      "monthlyBudget": "Monthly Budget (USD)",
+      "currentSpend": "Spent this month",
+      "enableAI": "Enable AI analysis",
+      "autoTrigger": "Auto-trigger on high alarm",
+      "testConnection": "Test connection",
+      "apiKeyWarning": "Enter the API key only on a trusted device. It is encrypted in local storage."
+    }
   },
   "acoustic": {
     "spl": "Sound Pressure",
@@ -309,7 +373,9 @@
     "language": "中文",
     "fps": "FPS",
     "gpu": "GPU",
-    "version": "Version"
+    "version": "Version",
+    "on": "On",
+    "off": "Off"
   },
   "units": {
     "bar": "bar",
@@ -322,5 +388,32 @@
     "hz": "Hz",
     "khz": "kHz",
     "iso": "ISO 4406"
+  },
+  "diagnosticLog": {
+    "feedbackTitle": "Maintenance / Inspection Result",
+    "inspectionDate": "Inspection date",
+    "actualFinding": "Actual finding",
+    "aiAccuracy": "AI diagnosis accuracy",
+    "accuracy": {
+      "correct": "Correct",
+      "incorrect": "Wrong",
+      "unchecked": "Not checked"
+    },
+    "actionTaken": "Action taken",
+    "partsReplaced": "Parts replaced",
+    "postActionRms": "Post-action RMS (g)",
+    "updateBaseline": "Rebuild baseline",
+    "baselineWillRebuild": "Will auto-rebuild the current-condition baseline on save",
+    "baselineNoRebuild": "Do not rebuild",
+    "feedbackNotes": "Notes",
+    "saveFeedback": "Save",
+    "pendingFeedback": "Awaiting feedback",
+    "alarmColumnHeader": "AI Diagnosis",
+    "actions": {
+      "replaceBearing": "Replace bearing",
+      "monitor": "Continue monitoring",
+      "replaceSeal": "Replace seal",
+      "other": "Other"
+    }
   }
 }

@@ -7,6 +7,8 @@
       <div class="divider" />
       <FaultSummaryPanel />
       <div class="divider" />
+      <AIDiagnosisCard />
+      <div class="divider" />
       <OctaveBandChart />
     </div>
     <main class="center">
@@ -25,6 +27,7 @@ import OctaveBandChart from '@/components/spectrum/OctaveBandChart.vue'
 import PeakList from '@/components/spectrum/PeakList.vue'
 import BearingDiagnosticPanel from '@/components/spectrum/BearingDiagnosticPanel.vue'
 import FaultSummaryPanel from '@/components/spectrum/FaultSummaryPanel.vue'
+import AIDiagnosisCard from '@/components/spectrum/AIDiagnosisCard.vue'
 </script>
 
 <style scoped>

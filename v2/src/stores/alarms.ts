@@ -4,6 +4,8 @@ import { DEFAULT_ALARM_RULES } from '@/config/defaults'
 import type { AlarmRule, AlarmEvent, AlarmSeverity } from '@/types/alarm'
 import type { SampleFrame } from '@/types/channel'
 import { loadPersisted, savePersisted } from '@/utils/persistedStore'
+import { useDeviceProfileStore } from '@/stores/deviceProfile'
+import { triggerOnAlarm } from '@/composables/useAIDiagnosis'
 
 const SEV_ORDER: Record<AlarmSeverity, number> = { high: 4, warn: 3, low: 2, info: 1 }
 const ALARM_RULES_VERSION = 2
@@ -121,6 +123,14 @@ export const useAlarmsStore = defineStore('alarms', () => {
         events.value.push(event)
         if (events.value.length > 2000) events.value.shift()
         saveEvents()
+
+        // AI auto-trigger on high-severity rising edge (fire-and-forget)
+        if (rule.severity === 'high') {
+          const profile = useDeviceProfileStore()
+          if (profile.aiConfig.enabled && profile.aiConfig.autoTriggerOnHighAlarm) {
+            triggerOnAlarm(event.id)
+          }
+        }
       } else if (!triggered && wasTriggered) {
         // falling edge: resolve
         const activeEv = [...events.value]

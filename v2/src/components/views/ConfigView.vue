@@ -55,6 +55,13 @@
       <div v-show="activeTab === 'system'" class="tab-pane">
         <SystemConfigSection />
       </div>
+      <div v-show="activeTab === 'device-profile'" class="tab-pane">
+        <DeviceProfileSection />
+        <div class="section-divider" />
+        <BaselineManager />
+        <div class="section-divider" />
+        <AIConfigSection />
+      </div>
       <div v-show="activeTab === 'about'" class="tab-pane">
         <AboutSection />
       </div>
@@ -73,6 +80,9 @@ import SystemConfigSection from '@/components/config/SystemConfigSection.vue'
 import AlarmRulesInline from '@/components/config/AlarmRulesInline.vue'
 import ProfileSwitcher from '@/components/config/ProfileSwitcher.vue'
 import AboutSection from '@/components/config/AboutSection.vue'
+import DeviceProfileSection from '@/components/config/DeviceProfileSection.vue'
+import BaselineManager from '@/components/config/BaselineManager.vue'
+import AIConfigSection from '@/components/config/AIConfigSection.vue'
 
 const configStore = useConfigStore()
 const importInput = ref<HTMLInputElement | null>(null)
@@ -86,6 +96,7 @@ const TABS = [
   { id: 'diagnostics', labelKey: 'config.tabs.diagnostics' },
   { id: 'alarms', labelKey: 'config.tabs.alarms' },
   { id: 'system', labelKey: 'config.tabs.system' },
+  { id: 'device-profile', labelKey: 'config.tabs.deviceProfile' },
   { id: 'about', labelKey: 'config.tabs.about' },
 ]
 
@@ -187,6 +198,11 @@ async function importConfig(e: Event) {
 }
 .tab-pane {
   padding: 16px;
+}
+.section-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 16px 0;
 }
 .section-label {
   font-size: 10px;

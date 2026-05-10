@@ -128,7 +128,27 @@
     "shaft": "转速",
     "addBearing": "添加轴承",
     "envelope": "包络",
-    "envelopeTitle": "希尔伯特包络解调"
+    "envelopeTitle": "希尔伯特包络解调",
+    "aiAnalysis": {
+      "title": "AI 分析",
+      "reanalyze": "重新分析",
+      "starting": "正在准备…",
+      "logEvent": "记录到日志",
+      "feedback": "反馈结果",
+      "noConfig": "请在 设备档案 > AI 配置 中设置 API Key 并启用 AI",
+      "waiting": "等待频谱数据…",
+      "stopMachineWarning": "AI 建议停机 — 需要人工确认",
+      "errorRetry": "重试",
+      "evidence": "证据",
+      "recommendation": "建议",
+      "showPrompt": "查看提示词",
+      "recheckIn": "{d} 天后复查",
+      "confidence": {
+        "high": "高置信",
+        "medium": "中置信",
+        "low": "低置信"
+      }
+    }
   },
   "history": {
     "title": "历史数据",
@@ -218,7 +238,8 @@
       "diagnostics": "诊断",
       "alarms": "告警",
       "system": "系统",
-      "about": "关于"
+      "about": "关于",
+      "deviceProfile": "设备档案"
     },
     "ch": {
       "id": "通道",
@@ -277,7 +298,50 @@
     "profileExport": "导出",
     "profileImport": "导入",
     "profileDelete": "删除",
-    "profileNamePlaceholder": "输入配置名称…"
+    "profileNamePlaceholder": "输入配置名称…",
+    "deviceProfile": {
+      "staticTitle": "基本信息",
+      "baselineTitle": "工况基线库",
+      "aiTitle": "AI 配置",
+      "deviceId": "设备编号",
+      "brand": "品牌",
+      "model": "型号",
+      "installedAt": "安装日期",
+      "ratedRpm": "额定转速 (rpm)",
+      "ratedFlow": "额定流量 (L/min)",
+      "ratedPressure": "最高压力 (bar)",
+      "oilTemp": "工作油温",
+      "mounting": "安装方式",
+      "environment": "安装环境",
+      "notes": "备注",
+      "bearings": "轴承配置",
+      "bearingPosition": "位置",
+      "bearingModel": "型号",
+      "addBearing": "+ 添加轴承",
+      "noBearings": "尚未添加轴承,点击上方按钮添加",
+      "exportProfile": "导出档案",
+      "importProfile": "导入档案",
+      "currentCondition": "当前工况",
+      "conditionUnknown": "未知 (转速或压力为 0)",
+      "condition": "工况",
+      "capturedAt": "建立时间",
+      "actions": "操作",
+      "baselineCaptureBtn": "建立基线",
+      "baselineRebuildBtn": "重建",
+      "baselineDeleteBtn": "删除",
+      "baselineCapturing": "采集中…",
+      "baselineStaleWarning": "基线已超过 2 年, 建议重建",
+      "baselineNoBuildHint": "设备健康时建立基线; 换件后应重建对应工况的基线",
+      "aiProvider": "AI 服务商",
+      "apiKey": "API Key",
+      "aiModel": "模型",
+      "monthlyBudget": "月度预算 (USD)",
+      "currentSpend": "本月已用",
+      "enableAI": "启用 AI 分析",
+      "autoTrigger": "高严重度告警自动触发",
+      "testConnection": "测试连接",
+      "apiKeyWarning": "API Key 仅在可信设备上输入; 加密存储在本地浏览器"
+    }
   },
   "acoustic": {
     "spl": "声压 SPL",
@@ -309,7 +373,9 @@
     "language": "Language",
     "fps": "FPS",
     "gpu": "GPU",
-    "version": "版本"
+    "version": "版本",
+    "on": "开",
+    "off": "关"
   },
   "units": {
     "bar": "bar",
@@ -322,5 +388,32 @@
     "hz": "Hz",
     "khz": "kHz",
     "iso": "ISO 4406"
+  },
+  "diagnosticLog": {
+    "feedbackTitle": "维修/检查结果记录",
+    "inspectionDate": "检查日期",
+    "actualFinding": "实际发现",
+    "aiAccuracy": "AI 诊断正确",
+    "accuracy": {
+      "correct": "是",
+      "incorrect": "否",
+      "unchecked": "未检查"
+    },
+    "actionTaken": "采取措施",
+    "partsReplaced": "更换部件型号",
+    "postActionRms": "维修后 RMS (g)",
+    "updateBaseline": "重建基线",
+    "baselineWillRebuild": "保存后将自动重建当前工况基线",
+    "baselineNoRebuild": "不重建",
+    "feedbackNotes": "备注",
+    "saveFeedback": "保存结果",
+    "pendingFeedback": "待反馈",
+    "alarmColumnHeader": "AI 诊断",
+    "actions": {
+      "replaceBearing": "换轴承",
+      "monitor": "继续观察",
+      "replaceSeal": "换密封件",
+      "other": "其他"
+    }
   }
 }
