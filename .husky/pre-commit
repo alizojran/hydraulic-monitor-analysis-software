@@ -1,0 +1,2 @@
+#!/usr/bin/env sh
+cd "$(dirname "$0")/../v2" && npx lint-staged
