@@ -1,0 +1,71 @@
+// ==========================================================================
+//  FUNCTION_BLOCK  FB_Base64Encoder
+// ==========================================================================
+//  RFC 4648 standard base64 encoder. Takes a raw byte buffer and produces
+//  a null-terminated STRING result. Used for Sec-WebSocket-Accept header.
+//
+//  Output length = ceil(udiLen / 3) * 4 + 1
+//  For SHA-1 (20 bytes) → 28-char base64 string ("xxx...=").
+// ==========================================================================
+FUNCTION_BLOCK FB_Base64Encoder
+VAR_INPUT
+    pbyData : POINTER TO BYTE;
+    udiLen  : UDINT;
+END_VAR
+VAR_OUTPUT
+    sResult : STRING(80);
+END_VAR
+VAR CONSTANT
+    ALPHABET : STRING(64) :=
+        'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+END_VAR
+VAR
+    i, j        : UDINT;
+    b1, b2, b3  : BYTE;
+    pAlph       : POINTER TO BYTE;
+    pSrc        : POINTER TO BYTE;
+    pDst        : POINTER TO BYTE;
+END_VAR
+// --------------------------------------------------------------------------
+
+pAlph := ADR(ALPHABET);
+pSrc  := pbyData;
+pDst  := ADR(sResult);
+i := 0;
+j := 0;
+
+// Process complete 3-byte groups → 4 base64 chars
+WHILE (i + 3) <= udiLen DO
+    b1 := pSrc[i];
+    b2 := pSrc[i + 1];
+    b3 := pSrc[i + 2];
+
+    pDst[j    ] := pAlph[ SHR(b1, 2) ];
+    pDst[j + 1] := pAlph[ SHL(b1 AND 16#03, 4) OR SHR(b2, 4) ];
+    pDst[j + 2] := pAlph[ SHL(b2 AND 16#0F, 2) OR SHR(b3, 6) ];
+    pDst[j + 3] := pAlph[ b3 AND 16#3F ];
+
+    i := i + 3;
+    j := j + 4;
+END_WHILE
+
+// Tail: 1 or 2 leftover bytes → padded with '='
+IF (udiLen - i) = 1 THEN
+    b1 := pSrc[i];
+    pDst[j    ] := pAlph[ SHR(b1, 2) ];
+    pDst[j + 1] := pAlph[ SHL(b1 AND 16#03, 4) ];
+    pDst[j + 2] := 16#3D;   // '='
+    pDst[j + 3] := 16#3D;
+    j := j + 4;
+ELSIF (udiLen - i) = 2 THEN
+    b1 := pSrc[i];
+    b2 := pSrc[i + 1];
+    pDst[j    ] := pAlph[ SHR(b1, 2) ];
+    pDst[j + 1] := pAlph[ SHL(b1 AND 16#03, 4) OR SHR(b2, 4) ];
+    pDst[j + 2] := pAlph[ SHL(b2 AND 16#0F, 2) ];
+    pDst[j + 3] := 16#3D;
+    j := j + 4;
+END_IF
+
+pDst[j] := 0;   // null-terminate STRING
+END_FUNCTION_BLOCK

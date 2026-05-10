@@ -1,0 +1,35 @@
+// ==========================================================================
+//  GVL  GVL_HmasChannels
+// ==========================================================================
+//  Live channel values shared between the IO scan and the WebSocket sender.
+//  Map physical inputs to these globals (e.g. via %I addresses or in a
+//  dedicated I/O mapping POU). All units are engineering units.
+//
+//  Channel IDs match the HMAS dashboard config (v2/src/config/channels.ts).
+// ==========================================================================
+
+VAR_GLOBAL
+    // ---- 8 generic analog channels (pressure / temperature / displacement) ----
+    rCH01 : REAL := 0.0;     // e.g. main pump outlet pressure (bar)
+    rCH02 : REAL := 0.0;     // e.g. tank temperature (°C)
+    rCH03 : REAL := 0.0;
+    rCH04 : REAL := 0.0;
+    rCH05 : REAL := 0.0;
+    rCH06 : REAL := 0.0;
+    rCH07 : REAL := 0.0;
+    rCH08 : REAL := 0.0;
+
+    // ---- Flow channels ----
+    rF01 : REAL := 0.0;      // Main flow rate (L/min)
+    rF02 : REAL := 0.0;      // Oil particle count (ISO 4406, encoded as code)
+
+    // ---- Vibration / motor ----
+    rV01 : REAL := 0.0;      // Motor RPM
+    rV02 : REAL := 0.0;      // Motor vibration broadband (g)
+
+    // ---- Acoustic ----
+    rS01 : REAL := 0.0;      // Sound pressure level (dB SPL)
+
+    // ---- Liveness flag — set TRUE when at least one IO scan has completed ----
+    xChannelsValid : BOOL := FALSE;
+END_VAR

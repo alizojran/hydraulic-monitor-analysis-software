@@ -1,0 +1,299 @@
+// ==========================================================================
+//  FUNCTION_BLOCK  FB_HmasWebSocketServer
+// ==========================================================================
+//  Single-client WebSocket server that streams HMAS sensor frames at a
+//  configurable rate. Implements RFC 6455 sufficient for the HMAS dashboard:
+//
+//    - HTTP Upgrade handshake (parses Sec-WebSocket-Key,
+//      computes Sec-WebSocket-Accept = base64(sha1(key + GUID)))
+//    - Server → client text frames (FIN=1, opcode=0x1, no mask)
+//    - Length encoding 7-bit / 16-bit (single frames up to 65 535 bytes)
+//
+//  Dependencies:
+//    - CAA Net Base Services (NBS)  — TCP_Server / Connection / Read / Write / Close
+//    - FB_Sha1, FB_Base64Encoder, FB_HmasFrameBuilder
+// ==========================================================================
+FUNCTION_BLOCK FB_HmasWebSocketServer
+VAR_INPUT
+    xEnable           : BOOL;
+    udiPort           : UDINT := 8765;
+    sLocalAddr        : STRING := '0.0.0.0';
+    udiSendIntervalMs : UDINT := 100;            // 100 ms = 10 Hz
+END_VAR
+VAR_OUTPUT
+    eState            : E_WsState;
+    xClientConnected  : BOOL;
+    nFramesSent       : UDINT;
+    nBytesSent        : ULINT;
+    sLastError        : STRING(255);
+END_VAR
+VAR
+    // ---- NBS sub-FBs ----
+    fbServer          : NBS.TCP_Server;
+    fbAcceptConn      : NBS.TCP_Connection;
+    fbRead            : NBS.TCP_Read;
+    fbWrite           : NBS.TCP_Write;
+    fbClose           : NBS.TCP_Close;
+    hServer           : NBS.CAA.HANDLE;
+    hClient           : NBS.CAA.HANDLE;
+
+    // ---- Helpers ----
+    fbSha1            : FB_Sha1;
+    fbBase64          : FB_Base64Encoder;
+    fbFrameBuilder    : FB_HmasFrameBuilder;
+
+    // ---- Buffers ----
+    abyRxBuf          : ARRAY[0..2047] OF BYTE;     // request from browser
+    udiRxLen          : UDINT;
+    abyTxBuf          : ARRAY[0..4095] OF BYTE;     // outgoing frame buffer
+    abyJsonBuf        : ARRAY[0..1535] OF BYTE;     // JSON payload only
+    udiJsonLen        : UDINT;
+    abyHashInput      : ARRAY[0..127] OF BYTE;      // secKey + GUID
+    udiHashInputLen   : UDINT;
+
+    // ---- Handshake parsing ----
+    sRxText           : STRING(2047);
+    sSecKey           : STRING(80);
+    sAcceptKey        : STRING(80);
+    sResponse         : STRING(512);
+    udiHeaderEnd      : UDINT;
+
+    // ---- Timing ----
+    tonSendTick       : TON;
+    tonHandshakeTimeout : TON;
+    tStart            : TIME;
+
+    // ---- Misc ----
+    i                 : UDINT;
+    udiPayloadLen     : UDINT;
+    udiTxLen          : UDINT;
+    udiTimestampMs    : ULINT;
+    pSrc              : POINTER TO BYTE;
+    pDst              : POINTER TO BYTE;
+
+    // GUID magic value defined by RFC 6455 §1.3
+    GUID_MAGIC        : STRING(40) := '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
+END_VAR
+// ==========================================================================
+
+IF NOT xEnable THEN
+    IF eState <> E_WsState.IDLE THEN
+        // Tear everything down
+        fbClose(xExecute := TRUE, hHandle := hClient);
+        fbClose(xExecute := TRUE, hHandle := hServer);
+        hServer := 0;
+        hClient := 0;
+        xClientConnected := FALSE;
+        eState := E_WsState.IDLE;
+    END_IF
+    RETURN;
+END_IF
+
+CASE eState OF
+
+// --------------------------------------------------------------------------
+E_WsState.IDLE:
+    // Bring up listening socket
+    fbServer(
+        xEnable    := TRUE,
+        ipAddr     := sLocalAddr,
+        uiPort     := TO_UINT(udiPort),
+        udiTimeOut := 0,
+        hServer    => hServer
+    );
+    IF fbServer.xError THEN
+        sLastError := CONCAT('TCP_Server error: ', UDINT_TO_STRING(fbServer.eError));
+        eState := E_WsState.ERROR_STATE;
+    ELSIF fbServer.xActive AND hServer <> 0 THEN
+        eState := E_WsState.LISTENING;
+    END_IF
+
+// --------------------------------------------------------------------------
+E_WsState.LISTENING:
+    // Wait for a browser to connect
+    fbAcceptConn(
+        xEnable    := TRUE,
+        hServer    := hServer,
+        udiTimeOut := 0,
+        hConnection => hClient
+    );
+    IF fbAcceptConn.xReady AND hClient <> 0 THEN
+        fbAcceptConn(xEnable := FALSE);
+        udiRxLen := 0;
+        sRxText := '';
+        tonHandshakeTimeout(IN := FALSE);
+        tonHandshakeTimeout(IN := TRUE, PT := T#3S);
+        eState := E_WsState.READING_HANDSHAKE;
+    END_IF
+
+// --------------------------------------------------------------------------
+E_WsState.READING_HANDSHAKE:
+    // Accumulate bytes until we see "\r\n\r\n" — the end of HTTP headers
+    fbRead(
+        xExecute     := TRUE,
+        hConnection  := hClient,
+        szSize       := SIZEOF(abyRxBuf) - udiRxLen - 1,
+        pData        := ADR(abyRxBuf) + udiRxLen,
+        udiTimeOut   := 0
+    );
+    IF fbRead.xDone AND fbRead.szCount > 0 THEN
+        udiRxLen := udiRxLen + fbRead.szCount;
+        abyRxBuf[udiRxLen] := 0;          // terminate for STRING use
+        SysMem.SysMemCpy(ADR(sRxText), ADR(abyRxBuf), MIN(udiRxLen, 2047));
+        sRxText[MIN(udiRxLen, 2047)] := 0;
+
+        // Did we see the end-of-headers marker?
+        udiHeaderEnd := FIND(sRxText, '$R$N$R$N');   // \r\n\r\n
+        IF udiHeaderEnd > 0 THEN
+            // Extract Sec-WebSocket-Key value
+            i := FIND(sRxText, 'Sec-WebSocket-Key:');
+            IF i = 0 THEN
+                i := FIND(sRxText, 'sec-websocket-key:');
+            END_IF
+            IF i > 0 THEN
+                sSecKey := MID(sRxText, 80, i + 18);   // 18 = length of header name+colon
+                sSecKey := DELETE(sSecKey, FIND(sSecKey, '$R'), 1);
+                // Trim leading space + CR/LF tail
+                IF LEFT(sSecKey, 1) = ' ' THEN
+                    sSecKey := DELETE(sSecKey, 1, 1);
+                END_IF
+                eState := E_WsState.SENDING_RESPONSE;
+            ELSE
+                sLastError := 'No Sec-WebSocket-Key in request';
+                eState := E_WsState.CLOSING;
+            END_IF
+        END_IF
+    END_IF
+    fbRead(xExecute := FALSE);
+
+    tonHandshakeTimeout(IN := TRUE);
+    IF tonHandshakeTimeout.Q THEN
+        sLastError := 'Handshake timeout';
+        eState := E_WsState.CLOSING;
+    END_IF
+
+// --------------------------------------------------------------------------
+E_WsState.SENDING_RESPONSE:
+    // Build accept key: base64(sha1(secKey + GUID))
+    udiHashInputLen := LEN(sSecKey) + LEN(GUID_MAGIC);
+    pSrc := ADR(sSecKey);
+    FOR i := 0 TO LEN(sSecKey) - 1 DO
+        abyHashInput[i] := pSrc[i];
+    END_FOR
+    pSrc := ADR(GUID_MAGIC);
+    FOR i := 0 TO LEN(GUID_MAGIC) - 1 DO
+        abyHashInput[LEN(sSecKey) + i] := pSrc[i];
+    END_FOR
+
+    fbSha1(xExecute := TRUE,
+           pbyData  := ADR(abyHashInput),
+           udiLen   := udiHashInputLen);
+
+    fbBase64(pbyData := ADR(fbSha1.abyHash),
+             udiLen  := 20);
+    sAcceptKey := fbBase64.sResult;
+
+    // Compose HTTP response
+    sResponse := 'HTTP/1.1 101 Switching Protocols$R$N';
+    sResponse := CONCAT(sResponse, 'Upgrade: websocket$R$N');
+    sResponse := CONCAT(sResponse, 'Connection: Upgrade$R$N');
+    sResponse := CONCAT(sResponse, 'Sec-WebSocket-Accept: ');
+    sResponse := CONCAT(sResponse, sAcceptKey);
+    sResponse := CONCAT(sResponse, '$R$N$R$N');
+
+    fbWrite(xExecute    := TRUE,
+            hConnection := hClient,
+            szSize      := LEN(sResponse),
+            pData       := ADR(sResponse));
+    IF fbWrite.xDone THEN
+        fbWrite(xExecute := FALSE);
+        xClientConnected := TRUE;
+        nFramesSent := 0;
+        nBytesSent := 0;
+        tonSendTick(IN := FALSE);
+        eState := E_WsState.CONNECTED;
+    ELSIF fbWrite.xError THEN
+        sLastError := CONCAT('Write handshake failed: ', UDINT_TO_STRING(fbWrite.eError));
+        eState := E_WsState.CLOSING;
+    END_IF
+
+// --------------------------------------------------------------------------
+E_WsState.CONNECTED:
+    // Periodic frame send
+    tonSendTick(IN := NOT tonSendTick.Q, PT := UDINT_TO_TIME(udiSendIntervalMs));
+    IF tonSendTick.Q THEN
+        // Build JSON payload
+        udiTimestampMs := SystemTimeMs();
+        fbFrameBuilder(udiTimestampMs := udiTimestampMs,
+                       pbyOutBuf      := ADR(abyJsonBuf),
+                       udiOutBufSize  := SIZEOF(abyJsonBuf));
+        udiJsonLen := fbFrameBuilder.udiOutLen;
+
+        // ---- Wrap in WebSocket frame ----
+        // Byte 0: 0x81 = FIN(1) + opcode 0x1 (text)
+        abyTxBuf[0] := 16#81;
+        IF udiJsonLen <= 125 THEN
+            abyTxBuf[1] := TO_BYTE(udiJsonLen);
+            udiTxLen := 2;
+        ELSE
+            // 16-bit extended length (network byte order)
+            abyTxBuf[1] := 126;
+            abyTxBuf[2] := TO_BYTE(SHR(udiJsonLen, 8) AND 16#FF);
+            abyTxBuf[3] := TO_BYTE(udiJsonLen AND 16#FF);
+            udiTxLen := 4;
+        END_IF
+
+        // Append payload (no mask — server→client must not mask)
+        FOR i := 0 TO udiJsonLen - 1 DO
+            abyTxBuf[udiTxLen + i] := abyJsonBuf[i];
+        END_FOR
+        udiTxLen := udiTxLen + udiJsonLen;
+
+        fbWrite(xExecute    := TRUE,
+                hConnection := hClient,
+                szSize      := udiTxLen,
+                pData       := ADR(abyTxBuf));
+        IF fbWrite.xDone THEN
+            fbWrite(xExecute := FALSE);
+            nFramesSent := nFramesSent + 1;
+            nBytesSent  := nBytesSent + TO_ULINT(udiTxLen);
+        ELSIF fbWrite.xError THEN
+            sLastError := CONCAT('Write frame failed: ', UDINT_TO_STRING(fbWrite.eError));
+            eState := E_WsState.CLOSING;
+        END_IF
+    END_IF
+
+// --------------------------------------------------------------------------
+E_WsState.CLOSING:
+    fbClose(xExecute := TRUE, hHandle := hClient);
+    IF fbClose.xDone OR fbClose.xError THEN
+        fbClose(xExecute := FALSE);
+        hClient := 0;
+        xClientConnected := FALSE;
+        eState := E_WsState.LISTENING;     // ready for next browser
+    END_IF
+
+// --------------------------------------------------------------------------
+E_WsState.ERROR_STATE:
+    // Caller must xEnable := FALSE then TRUE to recover
+    ;
+
+END_CASE
+END_FUNCTION_BLOCK
+
+
+// ==========================================================================
+//  Helper — current Unix time in milliseconds.
+//  Replace with the appropriate call for your runtime:
+//    - SysTimeRtcGet   (CmpSysTimeRtc)
+//    - DTU.GetSysTime  (Util library)
+// ==========================================================================
+FUNCTION SystemTimeMs : ULINT
+VAR
+    dt        : DATE_AND_TIME;
+    udiSecs   : UDINT;
+END_VAR
+    dt := SysTimeRtcGetGeneric();
+    udiSecs := DT_TO_UDINT(dt);              // seconds since 1970-01-01
+    SystemTimeMs := TO_ULINT(udiSecs) * 1000;
+END_FUNCTION

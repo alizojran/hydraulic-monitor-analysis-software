@@ -1,0 +1,67 @@
+// ==========================================================================
+//  PROGRAM  PLC_PRG
+// ==========================================================================
+//  Top-level cyclic program. Wire your IO acquisition logic into the
+//  GVL_HmasChannels variables, then let fbServer push them out at 10 Hz.
+//
+//  Recommended task config:
+//    - Cyclic, 10 ms period, priority 1
+// ==========================================================================
+PROGRAM PLC_PRG
+VAR
+    fbServer        : FB_HmasWebSocketServer;
+
+    // Demo signal generator — replace with real IO mapping
+    xUseSimulator   : BOOL := TRUE;
+    rPhase          : REAL := 0.0;
+    tonDemoTick     : TON;
+END_VAR
+// --------------------------------------------------------------------------
+
+// ---- (1) Acquire / produce channel values --------------------------------
+IF xUseSimulator THEN
+    // Drive a few channels with a synthetic 1 Hz signal so the dashboard
+    // shows life immediately. Remove this block in production.
+    tonDemoTick(IN := NOT tonDemoTick.Q, PT := T#10MS);
+    IF tonDemoTick.Q THEN
+        rPhase := rPhase + 0.0628;        // 2π / 100 ticks
+        IF rPhase > 6.2832 THEN
+            rPhase := rPhase - 6.2832;
+        END_IF
+        GVL_HmasChannels.rCH01 := 250.0 + 30.0 * SIN(rPhase);          // bar
+        GVL_HmasChannels.rCH02 := 65.0 + 5.0 * SIN(rPhase * 0.3);      // °C
+        GVL_HmasChannels.rCH03 := 0.42 + 0.05 * SIN(rPhase * 0.7);
+        GVL_HmasChannels.rCH04 := 12.0;
+        GVL_HmasChannels.rCH05 := 0.0;
+        GVL_HmasChannels.rCH06 := 0.0;
+        GVL_HmasChannels.rCH07 := 0.0;
+        GVL_HmasChannels.rCH08 := 0.0;
+        GVL_HmasChannels.rF01  := 180.0 + 20.0 * SIN(rPhase * 0.5);
+        GVL_HmasChannels.rF02  := 18.0;
+        GVL_HmasChannels.rV01  := 1450.0 + 40.0 * SIN(rPhase * 0.2);
+        GVL_HmasChannels.rV02  := 1.2 + 0.3 * SIN(rPhase * 4.7);
+        GVL_HmasChannels.rS01  := 78.0 + 4.0 * SIN(rPhase * 0.9);
+        GVL_HmasChannels.xChannelsValid := TRUE;
+    END_IF
+ELSE
+    // Production: insert your IO scan / sensor scaling here, then set:
+    //   GVL_HmasChannels.xChannelsValid := TRUE;
+    ;
+END_IF
+
+// ---- (2) Run the WebSocket server ----------------------------------------
+fbServer(
+    xEnable           := GVL_HmasChannels.xChannelsValid,
+    udiPort           := 8765,
+    sLocalAddr        := '0.0.0.0',
+    udiSendIntervalMs := 100               // 10 Hz
+);
+
+// ---- (3) Optional: surface diagnostics to HMI ----------------------------
+// You can bind these to a CODESYS WebVisu screen or a separate HMI:
+//   fbServer.eState
+//   fbServer.xClientConnected
+//   fbServer.nFramesSent
+//   fbServer.nBytesSent
+//   fbServer.sLastError
+END_PROGRAM
