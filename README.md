@@ -1,4 +1,4 @@
-# 液压监测分析系统 · HMAS v2.0
+# 液压监测分析系统 · HMAS v3.0
 
 > Hydraulic Monitor & Analysis System — 13-channel real-time DAQ analysis platform  
 > 10 kHz / 16-bit acquisition · FFT spectrum · bearing diagnostics · gear mesh analysis ·  
@@ -116,11 +116,19 @@ v2/src/
 │   └── defaults.ts      FFT / 告警默认值
 ├── stores/
 │   ├── acquisition.ts   数据源 · 运行状态 · TimeWindowBuffer · 频谱历史
-│   ├── dsp.ts           FFT worker 编排 · bearings[] · allBearingFreqs · 持久化
-│   ├── alarms.ts        规则 + 事件 · evaluateFrame · localStorage
-│   ├── config.ts        通道配置 · 采集参数 · localStorage
+│   ├── dsp.ts           聚合 facade（v3 拆分后保留向下兼容）
+│   ├── dspCompute.ts    FFT worker 编排 · fftConfig · 通道选择
+│   ├── bearingModel.ts  bearings[] 几何 · allBearingFreqs · GMF
+│   ├── spectrumHistory.ts  瀑布列历史（运行时数据）
+│   ├── alarms.ts        规则 + 事件 · evaluateFrame · 版本化 localStorage
+│   ├── config.ts        通道配置 · 采集参数 · 版本化 localStorage
 │   ├── profiles.ts      ProfileSnapshot CRUD · capture/apply · JSON 导入导出
 │   └── session.ts       历史会话元数据
+├── utils/
+│   └── persistedStore.ts  通用 localStorage 版本化 + 迁移框架
+├── types/
+│   ├── validators.ts    边界 schema 校验（WebSocket / WebSerial / 持久化）
+│   └── tauri.d.ts       Tauri API 可选导入类型桩
 ├── workers/
 │   ├── fft.worker.ts    内联 radix-2 FFT，支持 envelope 分支
 │   └── csv-parser.worker.ts
@@ -131,17 +139,24 @@ v2/src/
 │   ├── useAcousticSpectrogram.ts  App 级 Goertzel 64 bin，60 Hz
 │   ├── usePlayback.ts   CSV/WAV 文件回放（速度 + Seek）
 │   ├── useExport.ts     CSV 导出 / PNG 截图
-│   └── useAnimationLoop.ts  共享 rAF + shouldDraw FPS 控制
+│   ├── useAnimationLoop.ts  共享 rAF + shouldDraw FPS 控制
+│   ├── useLocaleName.ts  数据驱动双语字段（nameZh/nameEn）统一访问
+│   └── useLang.ts        脚本/Canvas 内文本本地化助手
 └── components/
     ├── layout/          AppHeader · AppStatusBar
     ├── common/          GlowCanvas · DataSourceSwitcher · PlaybackControls
     ├── realtime/        AnalogChannelCard · FlowCard · ParticleCard
     │                    RpmCard · VibrationCard · AcousticCard · KpiPanel
-    ├── spectrum/        SpectrumMain · WaterfallChart · OctaveBandChart
-    │                    PeakList · BearingDiagnosticPanel
-    ├── config/          ProfileSwitcher · SpectrumConfigSection
+    ├── spectrum/        SpectrumMain · SpectrumControls · SpectrumOverlays
+    │                    WaterfallChart · OctaveBandChart · PeakList
+    │                    BearingDiagnosticPanel · BearingParamEditor
+    │                    FaultAnalysisPanel · FaultSummaryPanel
+    ├── alarms/          AlarmRuleEditor · AlarmEventLog
+    │                    AlarmTimeline · AlarmStatsChart
+    ├── config/          ProfileSwitcher · ChannelConfigSection
+    │                    AcquisitionConfigSection · SpectrumConfigSection
     │                    DiagnosticsConfigSection · SystemConfigSection
-    │                    AlarmRulesInline
+    │                    AboutSection · AlarmRulesInline
     └── views/           RealtimeView · SpectrumView · HistoryView
                          AlarmsView · ConfigView
 ```
@@ -204,15 +219,22 @@ v2/src/
 - **P5** 规则引擎故障分类器（faultClassifier — 轴承 BPFI/BPFO/BSF/FTF 自动诊断）
 - **P5** PDF 巡检报告生成（useReport + html-to-image）
 - **P5** FaultSummaryPanel 故障摘要面板
+- **P5** GitHub Actions CI（lint + format:check + type-check + test + build）
+- **M2** localStorage 版本化框架 + 迁移链（5 个 store 接入）
+- **M2** dsp store 拆分（dspCompute / bearingModel / spectrumHistory + facade）
+- **M2** 4 个巨型组件拆分（AlarmsView / SpectrumMain / ConfigView / BearingDiagnosticPanel）
+- **M2** TS strict（noUnusedLocals / noUnusedParameters / noImplicitOverride / noFallthroughCasesInSwitch）
+- **M2** 消除主代码 `as any` / `!` 断言 · 边界 schema 校验（validators.ts）
+- **M2** i18n 内联三元清理 + ESLint 中文字符串守卫规则
 
 ### ⏳ 规划中
 
-| 优先级 | 任务 |
+| 里程碑 | 任务 |
 |---|---|
-| P4 | Tauri 桌面壳 + Rust Modbus 代理（离线部署）|
-| P5 | GitHub Actions CI（test + lint + build）|
-| P6 | AI 辅助故障识别（LLM 集成）|
-| P6 | OPC-UA 接入 |
+| M1 | 性能基础（环形缓冲 / WebGL 复用 / 路由分包）|
+| M3 | 测试与稳健（关键路径 80% / 网络 jitter / 错误 UI）|
+| M4 | 生产化（多客户端 CODESYS / Tauri 验证 / OPC-UA 接入）|
+| —  | AI 辅助故障识别（LLM 集成，暂不计划）|
 
 ---
 

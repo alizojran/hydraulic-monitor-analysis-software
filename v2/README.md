@@ -1,4 +1,4 @@
-# HMAS v2.0 — Vue 3 frontend
+# HMAS v3.0 — Vue 3 frontend
 
 > Vite + Vue 3 + TypeScript SPA for the Hydraulic Monitor & Analysis System.  
 > See [the root README](../README.md) for full product overview.
@@ -75,21 +75,54 @@ src/
 ├── main.ts
 ├── locales/             zh.json / en.json
 ├── config/              channels.ts · defaults.ts
-├── stores/              acquisition · dsp · alarms · config · profiles · session
+├── stores/              acquisition · dsp (facade) · dspCompute · bearingModel
+│                        spectrumHistory · alarms · config · profiles · session
+├── utils/               persistedStore.ts — versioned localStorage + migrations
+├── types/               validators.ts (runtime schema) · tauri.d.ts (optional)
 ├── workers/             fft.worker.ts · csv-parser.worker.ts
 ├── gl/                  GLPlot · GLBars · GLHeatmap + shaders / utils
 ├── dsp/                 window · metrics · octave · envelope · bearing · orderTracking
 ├── composables/         useSimulator · usePlayback · useExport · useWebSerial · useWebSocket
 │                        useAnimationLoop · useAcousticSpectrogram · useReport
+│                        useLocaleName · useLang
 ├── components/
 │   ├── layout/          AppHeader · AppStatusBar
 │   ├── common/          GlowCanvas · DataSourceSwitcher · PlaybackControls
 │   ├── realtime/        AnalogChannelCard · FlowCard · ParticleCard
 │   │                    RpmCard · VibrationCard · AcousticCard · KpiPanel
-│   ├── spectrum/        SpectrumMain · WaterfallChart · OctaveBandChart
-│   │                    PeakList · BearingDiagnosticPanel · FaultSummaryPanel
-│   ├── config/          ProfileSwitcher · SpectrumConfigSection
-│   │                    DiagnosticsConfigSection · SystemConfigSection · AlarmRulesInline
+│   ├── spectrum/        SpectrumMain · SpectrumControls · SpectrumOverlays
+│   │                    WaterfallChart · OctaveBandChart · PeakList
+│   │                    BearingDiagnosticPanel · BearingParamEditor
+│   │                    FaultAnalysisPanel · FaultSummaryPanel
+│   ├── alarms/          AlarmRuleEditor · AlarmEventLog
+│   │                    AlarmTimeline · AlarmStatsChart
+│   ├── config/          ProfileSwitcher · ChannelConfigSection
+│   │                    AcquisitionConfigSection · SpectrumConfigSection
+│   │                    DiagnosticsConfigSection · SystemConfigSection
+│   │                    AboutSection · AlarmRulesInline
 │   └── views/           RealtimeView · SpectrumView · HistoryView · AlarmsView · ConfigView
 └── fault/               faultClassifier.ts — rule-based bearing diagnostics
 ```
+
+## v3.0 Architecture Notes
+
+The v3.0 release focused on **architecture-first** restructuring (M2 milestone):
+
+- **Versioned persistence** — `utils/persistedStore.ts` wraps every `localStorage`
+  key as `{ _version, data }` with a migration chain. v2 data without `_version`
+  is auto-migrated. Quota errors dispatch `hmas-storage-quota` events.
+- **Split `dsp` store** — the original 387-line `dsp.ts` was split into
+  `dspCompute` (FFT worker), `bearingModel` (geometry + GMF), and
+  `spectrumHistory` (waterfall columns). `dsp.ts` is retained as an `@deprecated`
+  facade for backward compatibility.
+- **Component extraction** — four 480+ line components were split into focused
+  sub-components (≤ 350 lines each): `AlarmsView`, `SpectrumMain`, `ConfigView`,
+  `BearingDiagnosticPanel`.
+- **Strict TypeScript** — `noUnusedLocals`, `noUnusedParameters`,
+  `noImplicitOverride`, `noFallthroughCasesInSwitch` are all enabled. All `as any`
+  and `!` non-null assertions in main code have been eliminated.
+- **Boundary validation** — `types/validators.ts` provides runtime schema checks
+  for WebSocket / WebSerial frames and persisted data.
+- **i18n hygiene** — inline `locale === 'zh' ? ... : ...` ternaries removed from
+  components; ESLint `no-restricted-syntax` rule blocks new bare Chinese
+  literals in component scripts.
