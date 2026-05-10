@@ -190,8 +190,9 @@ function onFileInput(e: Event) {
 async function connectModbus() {
   if (!isTauri) return
   try {
-    // @ts-expect-error — Tauri commands injected at runtime
-    const { invoke } = await import(/* @vite-ignore */ '@tauri-apps/api/core')
+    const mod = '@tauri-apps/api/core'
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { invoke } = (await import(/* @vite-ignore */ mod)) as any
     await invoke('modbus_connect', { host: modbusHost.value, port: modbusPort.value, unitId: 1 })
     acqStore.setDataSource('modbus')
     acqStore.start()
