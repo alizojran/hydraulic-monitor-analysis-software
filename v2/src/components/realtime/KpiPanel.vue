@@ -72,8 +72,10 @@ import { useAcquisitionStore } from '@/stores/acquisition'
 import { useAlarmsStore } from '@/stores/alarms'
 import { CHANNEL_MAP } from '@/config/channels'
 import { useI18n } from 'vue-i18n'
+import { useLang } from '@/composables/useLang'
 
-const { locale } = useI18n()
+useI18n()
+const { lng } = useLang()
 const acqStore = useAcquisitionStore()
 const alarmsStore = useAlarmsStore()
 
@@ -89,10 +91,10 @@ const kpiDefs = [
 const kpis = computed(() =>
   kpiDefs.map((def) => ({
     ...def,
-    label:
-      locale.value === 'zh'
-        ? (CHANNEL_MAP.get(def.id)?.nameZh ?? def.id)
-        : (CHANNEL_MAP.get(def.id)?.nameEn ?? def.id),
+    label: lng(
+      CHANNEL_MAP.get(def.id)?.nameZh ?? def.id,
+      CHANNEL_MAP.get(def.id)?.nameEn ?? def.id,
+    ),
     value: (acqStore.channelValues[def.id] ?? 0).toFixed(def.unit === 'rpm' ? 0 : 1),
   })),
 )
@@ -145,26 +147,15 @@ const TAG_COLORS: Record<string, string> = {
 function makeEntry(): EventEntry {
   const now = new Date()
   const t = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`
-  const samples =
-    locale.value === 'zh'
-      ? [
-          { tag: 'SYS', msg: '心跳同步 · 13ch ok' },
-          { tag: 'TRIG', msg: '边沿触发就绪' },
-          { tag: 'V01', msg: 'RMS 接近警戒值' },
-          { tag: 'TEMP', msg: 'CH06 趋势上升 +0.6°C/min' },
-          { tag: 'S01', msg: '削波 · 95.4 dB · 抑制' },
-          { tag: 'CH02', msg: '在量程内 · 165.2 bar' },
-          { tag: 'SYS', msg: 'GC 完成 · 38ms' },
-        ]
-      : [
-          { tag: 'SYS', msg: 'Heartbeat sync · 13ch ok' },
-          { tag: 'TRIG', msg: 'Edge trigger armed' },
-          { tag: 'V01', msg: 'RMS near warning' },
-          { tag: 'TEMP', msg: 'CH06 trend +0.6°C/min' },
-          { tag: 'S01', msg: 'Clip · 95.4 dB · attenuated' },
-          { tag: 'CH02', msg: 'In range · 165.2 bar' },
-          { tag: 'SYS', msg: 'GC complete · 38ms' },
-        ]
+  const samples = [
+    { tag: 'SYS', msg: lng('心跳同步 · 13ch ok', 'Heartbeat sync · 13ch ok') },
+    { tag: 'TRIG', msg: lng('边沿触发就绪', 'Edge trigger armed') },
+    { tag: 'V01', msg: lng('RMS 接近警戒值', 'RMS near warning') },
+    { tag: 'TEMP', msg: lng('CH06 趋势上升 +0.6°C/min', 'CH06 trend +0.6°C/min') },
+    { tag: 'S01', msg: lng('削波 · 95.4 dB · 抑制', 'Clip · 95.4 dB · attenuated') },
+    { tag: 'CH02', msg: lng('在量程内 · 165.2 bar', 'In range · 165.2 bar') },
+    { tag: 'SYS', msg: lng('GC 完成 · 38ms', 'GC complete · 38ms') },
+  ]
   const pick = samples[Math.floor(Math.random() * samples.length)]
   return { t, tag: pick.tag, msg: pick.msg, color: TAG_COLORS[pick.tag] ?? '#5a7898' }
 }

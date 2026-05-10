@@ -38,7 +38,7 @@
     <template v-if="acqStore.dataSource === 'webserial'">
       <template v-if="!serial.isSupported">
         <span class="ds-warn">{{
-          locale === 'zh' ? '需要 Chrome/Edge' : 'Needs Chrome/Edge'
+          $t('source.needsBrowser')
         }}</span>
       </template>
       <template v-else-if="serial.status.value !== 'connected'">
@@ -46,7 +46,7 @@
           <option v-for="b in BAUD_RATES" :key="b" :value="b">{{ b }}</option>
         </select>
         <button class="ds-act-btn" @click="serial.connect(baudRate)">
-          {{ locale === 'zh' ? '连接串口…' : 'Connect…' }}
+          {{ $t('source.connectSerial') }}
         </button>
       </template>
       <template v-else>
@@ -72,7 +72,7 @@
           :disabled="ws.status.value === 'connecting' || ws.status.value === 'reconnecting'"
           @click="ws.connect(wsUrl)"
         >
-          {{ locale === 'zh' ? '连接' : 'Connect' }}
+          {{ $t('source.connect') }}
         </button>
       </template>
       <template v-else>
@@ -87,7 +87,7 @@
     <!-- Modbus inline controls (Tauri only) -->
     <template v-if="acqStore.dataSource === 'modbus'">
       <template v-if="!isTauri">
-        <span class="ds-warn">{{ locale === 'zh' ? '仅桌面端' : 'Desktop only' }}</span>
+        <span class="ds-warn">{{ $t('source.desktopOnly') }}</span>
       </template>
       <template v-else>
         <input
@@ -104,7 +104,7 @@
           style="width: 60px"
         />
         <button class="ds-act-btn" @click="connectModbus">
-          {{ locale === 'zh' ? '连接' : 'Connect' }}
+          {{ $t('source.connect') }}
         </button>
       </template>
     </template>
@@ -113,7 +113,6 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { useAcquisitionStore, type DataSource } from '@/stores/acquisition'
 import { useUiStore } from '@/stores/ui'
 import { useFileLoader } from '@/composables/useFileLoader'
@@ -123,7 +122,6 @@ import { useWebSocket } from '@/composables/useWebSocket'
 const SOURCES: DataSource[] = ['simulated', 'csv', 'wav', 'webserial', 'websocket', 'modbus']
 const acqStore = useAcquisitionStore()
 const uiStore = useUiStore()
-const { locale } = useI18n()
 const { loadCsv, loadWav } = useFileLoader()
 const serial = useWebSerial()
 const ws = useWebSocket()
@@ -191,8 +189,7 @@ async function connectModbus() {
   if (!isTauri) return
   try {
     const mod = '@tauri-apps/api/core'
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { invoke } = (await import(/* @vite-ignore */ mod)) as any
+    const { invoke } = await import(/* @vite-ignore */ mod)
     await invoke('modbus_connect', { host: modbusHost.value, port: modbusPort.value, unitId: 1 })
     acqStore.setDataSource('modbus')
     acqStore.start()

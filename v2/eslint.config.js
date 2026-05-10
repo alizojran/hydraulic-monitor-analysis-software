@@ -14,6 +14,21 @@ export default tseslint.config(
     languageOptions: {
       parserOptions: { parser: tseslint.parser },
     },
+    rules: {
+      // Prevents new bare Chinese string literals in component <script> blocks.
+      // Use $t() for i18n keys, or lng(zh, en) from useLang for dynamic text.
+      'no-restricted-syntax': [
+        'warn',
+        {
+          selector:
+            "Literal[value=/[\\u4e00-\\u9fff\\u3400-\\u4dbf]/]" +
+            ":not(CallExpression[callee.name='lng'] > .arguments)" +
+            ":not(CallExpression[callee.name='t'] > .arguments)",
+          message:
+            "Bare Chinese string in component script — use $t('key') or lng(zh, en) instead.",
+        },
+      ],
+    },
   },
   {
     languageOptions: {

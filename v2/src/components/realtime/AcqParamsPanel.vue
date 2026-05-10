@@ -1,36 +1,36 @@
 <template>
   <div class="acq-panel">
     <!-- Acquisition params -->
-    <div class="section-head">{{ locale === 'zh' ? '采集参数' : 'ACQ PARAMS' }}</div>
+    <div class="section-head">{{ $t('realtime.acqParams') }}</div>
     <div class="param-list">
       <div class="param-row">
-        <span class="pk">{{ locale === 'zh' ? '采样率' : 'Sample Rate' }}</span>
+        <span class="pk">{{ $t('config.acq.sampleRate') }}</span>
         <span class="pv mono">{{ (acqStore.sampleRate / 1000).toFixed(0) }} kHz</span>
       </div>
       <div class="param-row">
-        <span class="pk">{{ locale === 'zh' ? '分辨率' : 'Resolution' }}</span>
+        <span class="pk">{{ $t('realtime.resolution') }}</span>
         <span class="pv mono text-cyan">16-bit</span>
       </div>
       <div class="param-row">
-        <span class="pk">{{ locale === 'zh' ? '抗混叠' : 'Anti-alias' }}</span>
+        <span class="pk">{{ $t('realtime.antiAlias') }}</span>
         <span class="pv mono">{{ ((acqStore.sampleRate * 0.4) / 1000).toFixed(1) }} kHz</span>
       </div>
       <div class="param-row">
-        <span class="pk">{{ locale === 'zh' ? '同步源' : 'Sync' }}</span>
+        <span class="pk">{{ $t('realtime.sync') }}</span>
         <span class="pv mono">INT</span>
       </div>
       <div class="param-row">
-        <span class="pk">{{ locale === 'zh' ? '耦合方式' : 'Coupling' }}</span>
+        <span class="pk">{{ $t('realtime.coupling') }}</span>
         <span class="pv mono">DC</span>
       </div>
       <div class="param-row">
-        <span class="pk">{{ locale === 'zh' ? '采集模式' : 'Mode' }}</span>
-        <span class="pv mono text-green">{{ locale === 'zh' ? '连续' : 'CONT' }}</span>
+        <span class="pk">{{ $t('realtime.mode') }}</span>
+        <span class="pv mono text-green">{{ $t('realtime.modeCont') }}</span>
       </div>
     </div>
 
     <!-- Analog channel list -->
-    <div class="section-head">{{ locale === 'zh' ? '模拟通道 ANALOG' : 'ANALOG' }}</div>
+    <div class="section-head">{{ $t('realtime.analogSection') }}</div>
     <div class="ch-list">
       <div v-for="ch in analogChs" :key="ch.id" class="ch-pill" :style="{ borderColor: ch.hex }">
         <span class="pill-dot" :style="{ background: ch.hex, boxShadow: `0 0 5px ${ch.hex}` }" />
@@ -41,7 +41,7 @@
     </div>
 
     <!-- Dedicated channel list -->
-    <div class="section-head">{{ locale === 'zh' ? '专用通道 DEDICATED' : 'DEDICATED' }}</div>
+    <div class="section-head">{{ $t('realtime.dedicatedSection') }}</div>
     <div class="ch-list">
       <div v-for="ch in dedicatedChs" :key="ch.id" class="ch-pill" :style="{ borderColor: ch.hex }">
         <span class="pill-dot" :style="{ background: ch.hex, boxShadow: `0 0 5px ${ch.hex}` }" />
@@ -52,14 +52,14 @@
     </div>
 
     <!-- Trigger settings -->
-    <div class="section-head">{{ locale === 'zh' ? '触发设置' : 'TRIGGER' }}</div>
+    <div class="section-head">{{ $t('realtime.triggerSection') }}</div>
     <div class="param-list">
       <div class="param-row">
-        <span class="pk">{{ locale === 'zh' ? '类型' : 'Type' }}</span>
+        <span class="pk">{{ $t('realtime.trigType') }}</span>
         <span class="pv mono text-amber">EDGE ↑</span>
       </div>
       <div class="param-row">
-        <span class="pk">{{ locale === 'zh' ? '电平' : 'Level' }}</span>
+        <span class="pk">{{ $t('realtime.trigLevel') }}</span>
         <span class="pv mono">200.0 bar</span>
       </div>
     </div>
@@ -69,9 +69,6 @@
 <script setup lang="ts">
 import { useAcquisitionStore } from '@/stores/acquisition'
 import { CHANNEL_DEFS } from '@/config/channels'
-import { useI18n } from 'vue-i18n'
-
-const { locale } = useI18n()
 const acqStore = useAcquisitionStore()
 
 const analogChs = CHANNEL_DEFS.filter((c) =>

@@ -1,6 +1,10 @@
 // FFT worker — fully self-contained (no imports) to avoid any
 // CJS/ESM interop or path-resolution issue inside a module worker.
 
+const workerSelf = self as unknown as {
+  postMessage: (msg: unknown, transfer?: Transferable[]) => void
+}
+
 interface FftConfig {
   fftSize: number
   overlap: number
@@ -306,14 +310,8 @@ self.onmessage = (e: MessageEvent<FftRequest>) => {
       requestId,
       processingMs: performance.now() - t0,
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(self as any).postMessage(msg, [
-      magnitudeDb.buffer,
-      magnitudeLinear.buffer,
-      frequencies.buffer,
-    ])
+    workerSelf.postMessage(msg, [magnitudeDb.buffer, magnitudeLinear.buffer, frequencies.buffer])
   } catch (err) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(self as any).postMessage({ type: 'error', error: String(err) })
+    workerSelf.postMessage({ type: 'error', error: String(err) })
   }
 }

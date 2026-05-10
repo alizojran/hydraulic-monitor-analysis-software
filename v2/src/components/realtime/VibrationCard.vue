@@ -5,7 +5,7 @@
 
     <div class="card-header">
       <span class="ch-id mono text-dim">V02 · Vy</span>
-      <span class="ch-name">{{ locale === 'zh' ? vibCh.nameZh : vibCh.nameEn }}</span>
+      <span class="ch-name">{{ localName(vibCh) }}</span>
       <span class="header-meta mono">±3 g · IEPE</span>
     </div>
 
@@ -57,8 +57,10 @@ import { useAnimationLoop, shouldDraw } from '@/composables/useAnimationLoop'
 import { computeRms, computePeak, computeCrestFactor } from '@/dsp/metrics'
 import GlowCanvas from '@/components/common/GlowCanvas.vue'
 import { useI18n } from 'vue-i18n'
+import { useLocaleName } from '@/composables/useLocaleName'
 
-const { locale } = useI18n()
+useI18n()
+const { localName } = useLocaleName()
 const acqStore = useAcquisitionStore()
 
 const vibCh = CHANNEL_MAP.get('V02')!

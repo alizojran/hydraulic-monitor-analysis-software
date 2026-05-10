@@ -9,7 +9,7 @@
           style="font-size: 10px; padding: 2px 6px"
           @click="onClearAll"
         >
-          {{ locale === 'zh' ? '清空' : 'Clear' }}
+          {{ $t('history.clearAll') }}
         </button>
       </div>
       <div class="search-wrap">
@@ -62,16 +62,16 @@
               </div>
             </div>
             <button class="danger" @click="onDelete(selected.id)">
-              {{ $t('history.stop') }} / {{ locale === 'zh' ? '删除' : 'Delete' }}
+              {{ $t('history.stop') }} / {{ $t('history.delete') }}
             </button>
           </div>
           <div class="detail-grid">
             <div class="stat-card">
-              <div class="sc-label text-dim">{{ locale === 'zh' ? '开始' : 'Start' }}</div>
+              <div class="sc-label text-dim">{{ $t('history.start') }}</div>
               <div class="sc-val mono">{{ formatDate(selected.startTime) }}</div>
             </div>
             <div class="stat-card">
-              <div class="sc-label text-dim">{{ locale === 'zh' ? '结束' : 'End' }}</div>
+              <div class="sc-label text-dim">{{ $t('history.end') }}</div>
               <div class="sc-val mono">{{ formatDate(selected.endTime) }}</div>
             </div>
             <div class="stat-card">
@@ -87,7 +87,7 @@
               <div class="sc-val mono">{{ selected.sampleCount.toLocaleString() }}</div>
             </div>
             <div class="stat-card">
-              <div class="sc-label text-dim">{{ locale === 'zh' ? '估算大小' : 'Est. Size' }}</div>
+              <div class="sc-label text-dim">{{ $t('history.estSize') }}</div>
               <div class="sc-val mono">{{ formatBytes(estimateBytes(selected)) }}</div>
             </div>
           </div>
@@ -95,11 +95,7 @@
             <span v-for="id in selected.channelIds" :key="id" class="ch-pill mono">{{ id }}</span>
           </div>
           <div class="hint text-dim">
-            {{
-              locale === 'zh'
-                ? '会话是元数据记录。要回放真实数据，请使用 CSV 数据源加载导出的文件。'
-                : 'Sessions are metadata records. To replay actual data, use the CSV source to load an exported file.'
-            }}
+            {{ $t('history.sessionMeta') }}
           </div>
         </div>
       </template>
@@ -108,15 +104,7 @@
         <div class="placeholder">
           <DataSourceSwitcher @source-changed="onSourceChanged" />
           <div class="hint text-dim">
-            {{
-              filteredSessions.length
-                ? locale === 'zh'
-                  ? '← 选择左侧会话查看详情'
-                  : '← Select a session on the left'
-                : locale === 'zh'
-                  ? '尚无采集记录。开始采集后会自动归档到此处。'
-                  : 'No sessions yet. They will be archived here when you start a capture.'
-            }}
+            {{ filteredSessions.length ? $t('history.selectHint') : $t('history.noSessionsYet') }}
           </div>
         </div>
       </template>
@@ -130,8 +118,10 @@ import { useSessionStore } from '@/stores/session'
 import DataSourceSwitcher from '@/components/common/DataSourceSwitcher.vue'
 import type { DataSource } from '@/stores/acquisition'
 import { useI18n } from 'vue-i18n'
+import { useLang } from '@/composables/useLang'
 
-const { locale } = useI18n()
+const { t } = useI18n()
+const { lng } = useLang()
 const sessionStore = useSessionStore()
 const search = ref('')
 const activeFilter = ref('all')
@@ -164,7 +154,7 @@ const selected = computed(() =>
 )
 
 function formatDate(ts: number) {
-  return new Date(ts).toLocaleString(locale.value === 'zh' ? 'zh-CN' : 'en-US', { hour12: false })
+  return new Date(ts).toLocaleString(lng('zh-CN', 'en-US'), { hour12: false })
 }
 
 function formatDuration(sec: number) {
@@ -193,7 +183,7 @@ function onDelete(id: string) {
 }
 
 function onClearAll() {
-  if (confirm(locale.value === 'zh' ? '确定清空所有会话?' : 'Clear all sessions?')) {
+  if (confirm(t('history.confirmClear'))) {
     sessionStore.clearAll()
     selectedId.value = null
   }

@@ -14,11 +14,9 @@ export function isTauriApp(): boolean {
 
 async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
   if (!isTauriApp()) throw new Error('Tauri runtime not available')
-  // @ts-expect-error — injected by Tauri at runtime
-  const { invoke: tauriInvoke } = (await import(/* @vite-ignore */ '@tauri-apps/api/core')) as {
-    invoke: (cmd: string, args?: Record<string, unknown>) => Promise<T>
-  }
-  return tauriInvoke(cmd, args)
+  const mod = '@tauri-apps/api/core'
+  const { invoke: tauriInvoke } = await import(/* @vite-ignore */ mod)
+  return tauriInvoke(cmd, args) as Promise<T>
 }
 
 export interface ModbusConnectArgs {

@@ -1,6 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { CHANNEL_DEFS } from '@/config/channels'
+import { loadPersisted, savePersisted } from '@/utils/persistedStore'
+
+const CHANNEL_CONFIG_VERSION = 2
+const ACQ_CONFIG_VERSION = 2
 
 export interface ChannelConfig {
   id: string
@@ -41,35 +45,32 @@ function makeDefaultChannelConfigs(): Record<string, ChannelConfig> {
   )
 }
 
-function loadFromStorage<T>(key: string, fallback: T): T {
-  try {
-    const v = localStorage.getItem(key)
-    return v ? JSON.parse(v) : fallback
-  } catch {
-    return fallback
-  }
+const DEFAULT_ACQ_CONFIG: AcqConfig = {
+  sampleRate: 10000,
+  triggerType: 'software',
+  triggerChannel: 'CH01',
+  triggerLevel: 200,
+  preTriggerPct: 10,
+  postTriggerPct: 90,
 }
 
 export const useConfigStore = defineStore('config', () => {
   const channels = ref<Record<string, ChannelConfig>>(
-    loadFromStorage('daq-channel-config', makeDefaultChannelConfigs()),
+    loadPersisted<Record<string, ChannelConfig>>({
+      key: 'daq-channel-config',
+      version: CHANNEL_CONFIG_VERSION,
+    }) ?? makeDefaultChannelConfigs(),
   )
   const acquisition = ref<AcqConfig>(
-    loadFromStorage('daq-acq-config', {
-      sampleRate: 10000,
-      triggerType: 'software',
-      triggerChannel: 'CH01',
-      triggerLevel: 200,
-      preTriggerPct: 10,
-      postTriggerPct: 90,
-    }),
+    loadPersisted<AcqConfig>({ key: 'daq-acq-config', version: ACQ_CONFIG_VERSION }) ??
+      DEFAULT_ACQ_CONFIG,
   )
 
   function saveChannels() {
-    localStorage.setItem('daq-channel-config', JSON.stringify(channels.value))
+    savePersisted({ key: 'daq-channel-config', version: CHANNEL_CONFIG_VERSION }, channels.value)
   }
   function saveAcq() {
-    localStorage.setItem('daq-acq-config', JSON.stringify(acquisition.value))
+    savePersisted({ key: 'daq-acq-config', version: ACQ_CONFIG_VERSION }, acquisition.value)
   }
 
   function updateChannel(id: string, patch: Partial<ChannelConfig>) {

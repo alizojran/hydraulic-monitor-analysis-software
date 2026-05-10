@@ -86,7 +86,8 @@ export function useWebSerial() {
       acqStore.start()
 
       readLoopActive = true
-      const r = port.readable!.getReader()
+      if (!port.readable) throw new Error('Serial port readable stream unavailable')
+      const r = port.readable.getReader()
       reader = r
       try {
         while (readLoopActive) {

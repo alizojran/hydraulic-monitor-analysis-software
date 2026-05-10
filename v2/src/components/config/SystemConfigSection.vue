@@ -7,7 +7,7 @@
       <div class="cfg-row">
         <label>{{ $t('config.system.language') }}</label>
         <div class="toggle-group">
-          <button :class="{ active: locale === 'zh' }" @click="setLocale('zh')">中文</button>
+          <button :class="{ active: locale !== 'en' }" @click="setLocale('zh')">中文</button>
           <button :class="{ active: locale === 'en' }" @click="setLocale('en')">English</button>
         </div>
       </div>
@@ -20,7 +20,7 @@
           @change="acq.setTimeWindow(parseInt(($event.target as HTMLSelectElement).value))"
         >
           <option v-for="w in TIME_WINDOWS" :key="w.value" :value="w.value">
-            {{ locale === 'zh' ? w.labelZh : w.label }}
+            {{ localLabel(w) }}
           </option>
         </select>
       </div>
@@ -43,9 +43,11 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAcquisitionStore } from '@/stores/acquisition'
+import { useLocaleName } from '@/composables/useLocaleName'
 import { TIME_WINDOWS } from '@/config/channels'
 
 const { locale } = useI18n()
+const { localLabel } = useLocaleName()
 const acq = useAcquisitionStore()
 
 function setLocale(lang: string) {

@@ -22,7 +22,7 @@
       <span class="text-dim">{{ $t('status.window') }}</span>
       <select class="win-sel" :value="acqStore.timeWindowSec" @change="onWindowChange">
         <option v-for="w in timeWindows" :key="w.value" :value="w.value">
-          {{ locale === 'zh' ? w.labelZh : w.label }}
+          {{ localLabel(w) }}
         </option>
       </select>
     </div>
@@ -68,10 +68,12 @@ import { useAcquisitionStore } from '@/stores/acquisition'
 import { useUiStore } from '@/stores/ui'
 import { TIME_WINDOWS, CHANNEL_DEFS } from '@/config/channels'
 import { useI18n } from 'vue-i18n'
+import { useLocaleName } from '@/composables/useLocaleName'
 
 const acqStore = useAcquisitionStore()
 const uiStore = useUiStore()
-const { t, locale } = useI18n()
+const { t } = useI18n()
+const { localLabel } = useLocaleName()
 const timeWindows = TIME_WINDOWS
 
 const totalChannels = CHANNEL_DEFS.length
@@ -95,8 +97,7 @@ const bufferPct = computed(() => {
   const ids = Object.keys(acqStore.channelBuffers)
   if (!ids.length) return 0
   let sum = 0
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  for (const id of ids) sum += (acqStore.channelBuffers as any)[id]?.fillFraction ?? 0
+  for (const id of ids) sum += acqStore.channelBuffers[id]?.fillFraction ?? 0
   return Math.round((sum / ids.length) * 100)
 })
 

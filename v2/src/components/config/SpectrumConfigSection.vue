@@ -9,7 +9,12 @@
           :value="dsp.fftConfig.fftSize"
           @change="
             dsp.setFftConfig({
-              fftSize: parseInt(($event.target as HTMLSelectElement).value) as any,
+              fftSize: parseInt(($event.target as HTMLSelectElement).value) as
+                | 512
+                | 1024
+                | 2048
+                | 4096
+                | 8192,
             })
           "
         >
@@ -21,7 +26,16 @@
         <label>{{ $t('config.spectrum.window') }}</label>
         <select
           :value="dsp.fftConfig.window"
-          @change="dsp.setFftConfig({ window: ($event.target as HTMLSelectElement).value as any })"
+          @change="
+            dsp.setFftConfig({
+              window: ($event.target as HTMLSelectElement).value as
+                | 'hamming'
+                | 'hanning'
+                | 'blackman'
+                | 'flattop'
+                | 'rect',
+            })
+          "
         >
           <option value="hanning">Hanning</option>
           <option value="hamming">Hamming</option>
@@ -51,7 +65,11 @@
           :value="dsp.fftConfig.overlap"
           @change="
             dsp.setFftConfig({
-              overlap: parseFloat(($event.target as HTMLSelectElement).value) as any,
+              overlap: parseFloat(($event.target as HTMLSelectElement).value) as
+                | 0
+                | 0.25
+                | 0.5
+                | 0.75,
             })
           "
         >

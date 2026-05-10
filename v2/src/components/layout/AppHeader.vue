@@ -108,7 +108,7 @@ function updateClock() {
 }
 
 function toggleLang() {
-  const next = uiStore.locale === 'zh' ? 'en' : 'zh'
+  const next = uiStore.locale !== 'zh' ? 'zh' : 'en'
   uiStore.setLocale(next)
   locale.value = next
 }

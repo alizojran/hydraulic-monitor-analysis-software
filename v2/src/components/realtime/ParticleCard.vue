@@ -4,9 +4,9 @@
     <div class="c-bl" />
     <div class="card-header">
       <span class="mono text-dim">F02</span>
-      <span class="ch-name">{{ locale === 'zh' ? '油液颗粒度' : 'Particle Count' }}</span>
+      <span class="ch-name">{{ $t('channel.F02') }}</span>
       <span class="header-meta mono text-dim"
-        >ISO 4406 · {{ locale === 'zh' ? '在线监测' : 'Online' }}</span
+        >ISO 4406 · {{ lng('在线监测', 'Online') }}</span
       >
     </div>
 
@@ -39,8 +39,10 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAcquisitionStore } from '@/stores/acquisition'
 import { useI18n } from 'vue-i18n'
+import { useLang } from '@/composables/useLang'
 
-const { locale } = useI18n()
+useI18n()
+const { lng } = useLang()
 const acqStore = useAcquisitionStore()
 
 // Particle count drifts slowly — sample elapsedSec once per second.
@@ -72,12 +74,13 @@ const isoClass = computed(() =>
 const cleanClass = computed(() =>
   isoNum.value >= 19 ? 'danger' : isoNum.value >= 18 ? 'warn' : 'ok',
 )
-const cleanLabel = computed(() => {
-  if (locale.value === 'zh') {
-    return isoNum.value >= 19 ? '污染严重' : isoNum.value >= 18 ? '注意污染' : '清洁度合格'
-  }
-  return isoNum.value >= 19 ? 'CONTAMINATED' : isoNum.value >= 18 ? 'MARGINAL' : 'CLEAN'
-})
+const cleanLabel = computed(() =>
+  isoNum.value >= 19
+    ? lng('污染严重', 'CONTAMINATED')
+    : isoNum.value >= 18
+      ? lng('注意污染', 'MARGINAL')
+      : lng('清洁度合格', 'CLEAN'),
+)
 
 const bins = computed(() => {
   const t = tickedT.value

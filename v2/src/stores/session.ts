@@ -1,6 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { CHANNEL_DEFS } from '@/config/channels'
+import { loadPersisted, savePersisted } from '@/utils/persistedStore'
+
+const SESSIONS_VERSION = 2
 
 export interface SessionMeta {
   id: string
@@ -16,19 +19,13 @@ export interface SessionMeta {
 
 export const useSessionStore = defineStore('session', () => {
   const sessions = ref<SessionMeta[]>(
-    (() => {
-      try {
-        return JSON.parse(localStorage.getItem('daq-sessions') || '[]')
-      } catch {
-        return []
-      }
-    })(),
+    loadPersisted<SessionMeta[]>({ key: 'daq-sessions', version: SESSIONS_VERSION }) ?? [],
   )
   const activeSessionId = ref<string | null>(null)
   const activeSessionStart = ref<number | null>(null)
 
   function save() {
-    localStorage.setItem('daq-sessions', JSON.stringify(sessions.value.slice(-500)))
+    savePersisted({ key: 'daq-sessions', version: SESSIONS_VERSION }, sessions.value.slice(-500))
   }
 
   function addSession(meta: SessionMeta) {

@@ -3,21 +3,20 @@ import { ref, computed } from 'vue'
 import { DEFAULT_ALARM_RULES } from '@/config/defaults'
 import type { AlarmRule, AlarmEvent, AlarmSeverity } from '@/types/alarm'
 import type { SampleFrame } from '@/types/channel'
+import { loadPersisted, savePersisted } from '@/utils/persistedStore'
 
 const SEV_ORDER: Record<AlarmSeverity, number> = { high: 4, warn: 3, low: 2, info: 1 }
-
-function loadFromStorage<T>(key: string, fallback: T): T {
-  try {
-    const v = localStorage.getItem(key)
-    return v ? JSON.parse(v) : fallback
-  } catch {
-    return fallback
-  }
-}
+const ALARM_RULES_VERSION = 2
+const ALARM_EVENTS_VERSION = 2
 
 export const useAlarmsStore = defineStore('alarms', () => {
-  const rules = ref<AlarmRule[]>(loadFromStorage('daq-alarm-rules', DEFAULT_ALARM_RULES))
-  const events = ref<AlarmEvent[]>(loadFromStorage('daq-alarm-events', []))
+  const rules = ref<AlarmRule[]>(
+    loadPersisted<AlarmRule[]>({ key: 'daq-alarm-rules', version: ALARM_RULES_VERSION }) ??
+      DEFAULT_ALARM_RULES,
+  )
+  const events = ref<AlarmEvent[]>(
+    loadPersisted<AlarmEvent[]>({ key: 'daq-alarm-events', version: ALARM_EVENTS_VERSION }) ?? [],
+  )
   const activeRuleState = ref<Record<string, boolean>>({}) // ruleId -> currently triggered
 
   const activeEvents = computed(() => events.value.filter((e) => e.status === 'active'))
@@ -30,10 +29,13 @@ export const useAlarmsStore = defineStore('alarms', () => {
   })
 
   function saveRules() {
-    localStorage.setItem('daq-alarm-rules', JSON.stringify(rules.value))
+    savePersisted({ key: 'daq-alarm-rules', version: ALARM_RULES_VERSION }, rules.value)
   }
   function saveEvents() {
-    localStorage.setItem('daq-alarm-events', JSON.stringify(events.value.slice(-1000)))
+    savePersisted(
+      { key: 'daq-alarm-events', version: ALARM_EVENTS_VERSION },
+      events.value.slice(-1000),
+    )
   }
 
   function addRule(rule: Omit<AlarmRule, 'id'>) {

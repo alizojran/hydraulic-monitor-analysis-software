@@ -12,9 +12,7 @@
     </div>
 
     <div class="speed-wrap">
-      <span class="text-dim mono" style="font-size: 10px">{{
-        locale === 'zh' ? '速度' : 'Speed'
-      }}</span>
+      <span class="text-dim mono" style="font-size: 10px">{{ $t('history.speed') }}</span>
       <button
         v-for="s in SPEEDS"
         :key="s"
@@ -27,7 +25,7 @@
     </div>
 
     <span class="frames-count mono text-dim">
-      {{ acqStore.loadedFrames.length.toLocaleString() }} {{ locale === 'zh' ? '帧' : 'frames' }} ·
+      {{ acqStore.loadedFrames.length.toLocaleString() }} {{ lng('帧', 'frames') }} ·
       {{ acqStore.loadedSampleRate.toLocaleString() }} Hz
     </span>
   </div>
@@ -37,9 +35,9 @@
 import { computed } from 'vue'
 import { useAcquisitionStore } from '@/stores/acquisition'
 import { usePlayback } from '@/composables/usePlayback'
-import { useI18n } from 'vue-i18n'
+import { useLang } from '@/composables/useLang'
 
-const { locale } = useI18n()
+const { lng } = useLang()
 const acqStore = useAcquisitionStore()
 const playback = usePlayback()
 

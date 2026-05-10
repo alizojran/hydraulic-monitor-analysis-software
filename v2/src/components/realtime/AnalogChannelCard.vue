@@ -5,7 +5,7 @@
 
     <div class="ch-header">
       <span class="ch-id mono">{{ ch.id }} · {{ ch.short }}</span>
-      <span class="ch-name">{{ locale === 'zh' ? ch.nameZh : ch.nameEn }}</span>
+      <span class="ch-name">{{ localName(ch) }}</span>
       <span class="ch-status-dot" :style="{ background: ch.hex, boxShadow: `0 0 6px ${ch.hex}` }" />
     </div>
 
@@ -40,9 +40,11 @@ import { useAnimationLoop, shouldDraw } from '@/composables/useAnimationLoop'
 import { computeRms } from '@/dsp/metrics'
 import GlowCanvas from '@/components/common/GlowCanvas.vue'
 import { useI18n } from 'vue-i18n'
+import { useLocaleName } from '@/composables/useLocaleName'
 
 const props = defineProps<{ channelId: string }>()
-const { locale } = useI18n()
+useI18n()
+const { localName } = useLocaleName()
 
 const acqStore = useAcquisitionStore()
 const alarmsStore = useAlarmsStore()

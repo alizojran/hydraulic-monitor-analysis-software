@@ -8,6 +8,7 @@ import type { ChannelConfig, AcqConfig } from './config'
 import type { AlarmRule } from '@/types/alarm'
 import type { FftConfig } from '@/types/dsp'
 import type { BearingState } from './dsp'
+import { loadPersisted, savePersisted } from '@/utils/persistedStore'
 
 export interface ProfileSnapshot {
   name: string
@@ -33,25 +34,19 @@ export interface ProfileSnapshot {
 export const DEFAULT_PROFILE_NAME = 'Default'
 const PROFILES_KEY = 'daq-profiles'
 const ACTIVE_KEY = 'daq-active-profile'
-
-function loadProfiles(): ProfileSnapshot[] {
-  try {
-    const v = localStorage.getItem(PROFILES_KEY)
-    return v ? JSON.parse(v) : []
-  } catch {
-    return []
-  }
-}
+const PROFILES_VERSION = 2
 
 export const useProfilesStore = defineStore('profiles', () => {
-  const profiles = ref<ProfileSnapshot[]>(loadProfiles())
+  const profiles = ref<ProfileSnapshot[]>(
+    loadPersisted<ProfileSnapshot[]>({ key: PROFILES_KEY, version: PROFILES_VERSION }) ?? [],
+  )
   const activeProfileName = ref<string>(localStorage.getItem(ACTIVE_KEY) ?? DEFAULT_PROFILE_NAME)
   const activeProfile = computed(
     () => profiles.value.find((p) => p.name === activeProfileName.value) ?? null,
   )
 
   function _save() {
-    localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles.value))
+    savePersisted({ key: PROFILES_KEY, version: PROFILES_VERSION }, profiles.value)
   }
 
   function setActive(name: string) {
@@ -105,9 +100,9 @@ export const useProfilesStore = defineStore('profiles', () => {
     dsp.setEnvelopeMode(profile.spectrum.envelopeMode)
     dsp.setXAxisMode(profile.spectrum.xAxisMode)
     dsp.setSelectedChannel(profile.spectrum.selectedChannelId)
-    dsp.bearings = JSON.parse(JSON.stringify(profile.diagnostics.bearings))
+    dsp.setBearings(JSON.parse(JSON.stringify(profile.diagnostics.bearings)))
     dsp.setGearTeeth(profile.diagnostics.gearTeeth)
-    dsp.gearOverlay = profile.diagnostics.gearOverlay
+    dsp.setGearOverlay(profile.diagnostics.gearOverlay)
 
     alarms.setRules(JSON.parse(JSON.stringify(profile.alarms)))
     acq.setTimeWindow(profile.system.timeWindowSec)

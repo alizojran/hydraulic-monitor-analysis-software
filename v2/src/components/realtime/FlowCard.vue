@@ -14,19 +14,19 @@
       </div>
       <div class="flow-stats mono">
         <div class="stat-row">
-          <span class="text-dim">{{ locale === 'zh' ? '瞬时' : 'Instant' }}</span>
+          <span class="text-dim">{{ $t('realtime.instant') }}</span>
           <span style="color: var(--cyan)">{{ flowVal }} L/min</span>
         </div>
         <div class="stat-row">
-          <span class="text-dim">{{ locale === 'zh' ? '均值' : 'Average' }}</span>
+          <span class="text-dim">{{ $t('realtime.average') }}</span>
           <span>{{ avgV }} L/min</span>
         </div>
         <div class="stat-row">
-          <span class="text-dim">{{ locale === 'zh' ? '累计' : 'Total' }}</span>
+          <span class="text-dim">{{ $t('realtime.cumulative') }}</span>
           <span>{{ totalL }} L</span>
         </div>
         <div class="stat-row">
-          <span class="text-dim">{{ locale === 'zh' ? '脉动' : 'Ripple' }}</span>
+          <span class="text-dim">{{ $t('realtime.ripple') }}</span>
           <span :class="rippleCls">{{ ripplePct }}%</span>
         </div>
         <div class="stat-row">
@@ -50,7 +50,7 @@ import { useAnimationLoop, shouldDraw } from '@/composables/useAnimationLoop'
 import GlowCanvas from '@/components/common/GlowCanvas.vue'
 import { useI18n } from 'vue-i18n'
 
-const { locale } = useI18n()
+useI18n()
 const acqStore = useAcquisitionStore()
 const gaugeCanvas = ref<HTMLCanvasElement | null>(null)
 const trendCanvas = ref<InstanceType<typeof GlowCanvas> | null>(null)

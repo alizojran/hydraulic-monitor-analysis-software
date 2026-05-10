@@ -10,12 +10,12 @@
       <!-- Analog section -->
       <div class="section-bar">
         <span class="sb-title"
-          >{{ locale === 'zh' ? '8 通道模拟量采集' : '8-CH ANALOG INPUTS' }}
+          >{{ $t('realtime.analogInputs') }}
           <span class="sb-dot">·</span> ANALOG INPUTS
         </span>
         <span class="sb-meta mono"
           >CH01–CH08 · 24-bit · {{ $t('status.window') }}
-          {{ locale === 'zh' ? currentWindow.labelZh : currentWindow.label }}
+          {{ localLabel(currentWindow) }}
         </span>
       </div>
       <div class="analog-grid">
@@ -24,12 +24,10 @@
 
       <!-- Flow / vibration section -->
       <div class="section-bar">
-        <span class="sb-title">{{
-          locale === 'zh' ? '流量 / 振动专用通道' : 'FLOW / VIBRATION CHANNELS'
-        }}</span>
+        <span class="sb-title">{{ $t('realtime.flowVibChannels') }}</span>
         <span class="sb-meta mono"
           >FLOW-2 · VIB-2 · {{ $t('status.window') }}
-          {{ locale === 'zh' ? currentWindow.labelZh : currentWindow.label }}
+          {{ localLabel(currentWindow) }}
         </span>
       </div>
       <div class="special-grid">
@@ -42,12 +40,12 @@
       <!-- Acoustic section -->
       <div class="section-bar">
         <span class="sb-title"
-          >{{ locale === 'zh' ? '声学采集通道' : 'ACOUSTIC CHANNEL' }}
+          >{{ $t('realtime.acousticChannel') }}
           <span class="sb-dot">·</span> ACOUSTIC
         </span>
         <span class="sb-meta mono"
-          >S01 · {{ locale === 'zh' ? '麦克风' : 'Mic' }} · 20 Hz – 20 kHz · A
-          {{ locale === 'zh' ? '计权' : 'weighted' }}</span
+          >S01 · {{ $t('realtime.mic') }} · 20 Hz – 20 kHz · A
+          {{ $t('realtime.weighted') }}</span
         >
       </div>
       <div class="acoustic-wrap">
@@ -66,6 +64,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAcquisitionStore } from '@/stores/acquisition'
+import { useLocaleName } from '@/composables/useLocaleName'
 import { ANALOG_CHANNELS, TIME_WINDOWS } from '@/config/channels'
 import AcqParamsPanel from '@/components/realtime/AcqParamsPanel.vue'
 import AnalogChannelCard from '@/components/realtime/AnalogChannelCard.vue'
@@ -76,7 +75,8 @@ import VibrationCard from '@/components/realtime/VibrationCard.vue'
 import AcousticCard from '@/components/realtime/AcousticCard.vue'
 import KpiPanel from '@/components/realtime/KpiPanel.vue'
 
-const { locale } = useI18n()
+useI18n()
+const { localLabel } = useLocaleName()
 const acqStore = useAcquisitionStore()
 const currentWindow = computed(
   () => TIME_WINDOWS.find((w) => w.value === acqStore.timeWindowSec) ?? TIME_WINDOWS[1],

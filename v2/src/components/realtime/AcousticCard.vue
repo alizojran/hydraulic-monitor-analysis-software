@@ -63,7 +63,7 @@
       <!-- Right: full-height spectrogram waterfall -->
       <div class="ac-right">
         <div class="ac-wave-label mono text-dim">
-          SPECTROGRAM · 20 Hz – 20 kHz · {{ locale === 'zh' ? '瀑布图' : 'Waterfall' }}
+          SPECTROGRAM · 20 Hz – 20 kHz · {{ $t('realtime.waterfall') }}
         </div>
         <div class="spectrogram"><GlowCanvas ref="spectroCanvas" /></div>
       </div>
@@ -79,7 +79,7 @@ import { useAnimationLoop } from '@/composables/useAnimationLoop'
 import GlowCanvas from '@/components/common/GlowCanvas.vue'
 import { useI18n } from 'vue-i18n'
 
-const { locale } = useI18n()
+useI18n()
 const acqStore = useAcquisitionStore()
 
 const spectroCanvas = ref<InstanceType<typeof GlowCanvas> | null>(null)

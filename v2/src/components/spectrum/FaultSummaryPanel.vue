@@ -1,19 +1,19 @@
 <template>
   <div class="fsp">
     <div class="fsp-head">
-      <span class="fsp-title mono">{{ locale === 'zh' ? '故障诊断' : 'FAULT DIAGNOSIS' }}</span>
+      <span class="fsp-title mono">{{ $t('spectrum.faultDiagnosis') }}</span>
       <span class="overall-badge" :class="`sev-${overallSev}`">{{ overallSev.toUpperCase() }}</span>
       <button
         class="report-btn"
-        :title="locale === 'zh' ? '导出报告' : 'Export report'"
+        :title="$t('spectrum.exportReport')"
         @click="exportReport"
       >
-        ⤓ {{ locale === 'zh' ? '报告' : 'Report' }}
+        ⤓ {{ $t('spectrum.report') }}
       </button>
     </div>
 
     <div v-if="!hasFftResult" class="fsp-empty">
-      {{ locale === 'zh' ? '等待 FFT 数据…' : 'Waiting for FFT data…' }}
+      {{ $t('spectrum.waitingFft') }}
     </div>
 
     <template v-else>
@@ -25,9 +25,7 @@
       >
         <span class="ft-badge mono" :class="`sev-${fault.severity}`">{{ fault.faultType }}</span>
         <div class="ft-info">
-          <span class="ft-desc">{{
-            locale === 'zh' ? fault.descriptionZh : fault.description
-          }}</span>
+          <span class="ft-desc">{{ localDescription(fault) }}</span>
           <span class="ft-detail mono">
             SNR {{ fault.snrDb.toFixed(1) }} dB
             <template v-if="fault.hits.length">
@@ -48,8 +46,10 @@ import { useDspStore } from '@/stores/dsp'
 import { classifyBearingFaults, overallSeverity } from '@/dsp/faultClassifier'
 import { computeBearingFrequencies } from '@/dsp/bearing'
 import { useReport } from '@/composables/useReport'
+import { useLocaleName } from '@/composables/useLocaleName'
 
 const { locale } = useI18n()
+const { localDescription } = useLocaleName()
 const dspStore = useDspStore()
 const { generate } = useReport()
 
