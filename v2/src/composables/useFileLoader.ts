@@ -11,7 +11,9 @@ export function useFileLoader() {
     uiStore.setLoading(true, 0, file.name)
     try {
       const text = await file.text()
-      const worker = new Worker(new URL('../workers/csv-parser.worker.ts', import.meta.url), { type: 'module' })
+      const worker = new Worker(new URL('../workers/csv-parser.worker.ts', import.meta.url), {
+        type: 'module',
+      })
 
       await new Promise<void>((resolve, reject) => {
         worker.onmessage = (e) => {
@@ -23,9 +25,12 @@ export function useFileLoader() {
             // Map parsed columns to channel IDs
             const frames: SampleFrame[] = timestamps.map((ts: number, row: number) => {
               const chMap = new Map<string, number>()
-              channels.forEach((ch: { id: string, samples: number[] }, ci: number) => {
+              channels.forEach((ch: { id: string; samples: number[] }, ci: number) => {
                 // try to match by id, then by position
-                const def = CHANNEL_DEFS.find(d => d.id.toLowerCase() === ch.id || d.nameEn.toLowerCase().includes(ch.id)) ?? CHANNEL_DEFS[ci]
+                const def =
+                  CHANNEL_DEFS.find(
+                    (d) => d.id.toLowerCase() === ch.id || d.nameEn.toLowerCase().includes(ch.id),
+                  ) ?? CHANNEL_DEFS[ci]
                 if (def) chMap.set(def.id, ch.samples[row] ?? 0)
               })
               return { timestamp: ts, channels: chMap }
@@ -37,7 +42,10 @@ export function useFileLoader() {
             resolve()
           }
         }
-        worker.onerror = (e) => { worker.terminate(); reject(e) }
+        worker.onerror = (e) => {
+          worker.terminate()
+          reject(e)
+        }
         worker.postMessage({ type: 'parse', text, requestId: 1 })
       })
     } finally {
@@ -57,11 +65,17 @@ export function useFileLoader() {
       const channelCount = audioBuffer.numberOfChannels
       const length = audioBuffer.length
 
-      const chDef = channelCount >= 2
-        ? [CHANNEL_DEFS.find(c => c.type === 'vibration'), CHANNEL_DEFS.find(c => c.type === 'acoustic')]
-        : [CHANNEL_DEFS.find(c => c.type === 'acoustic')]
+      const chDef =
+        channelCount >= 2
+          ? [
+              CHANNEL_DEFS.find((c) => c.type === 'vibration'),
+              CHANNEL_DEFS.find((c) => c.type === 'acoustic'),
+            ]
+          : [CHANNEL_DEFS.find((c) => c.type === 'acoustic')]
 
-      const rawChannels = Array.from({ length: channelCount }, (_, i) => audioBuffer.getChannelData(i))
+      const rawChannels = Array.from({ length: channelCount }, (_, i) =>
+        audioBuffer.getChannelData(i),
+      )
 
       // Build frames targeting ~10 kHz playback rate (downsample if higher)
       const targetRate = 10000
@@ -77,7 +91,7 @@ export function useFileLoader() {
           if (def) chMap.set(def.id, ch[i])
         })
         frames.push({ timestamp: ts, channels: chMap })
-        if (i % 50000 === 0) uiStore.setLoading(true, Math.round(i / length * 100), file.name)
+        if (i % 50000 === 0) uiStore.setLoading(true, Math.round((i / length) * 100), file.name)
       }
 
       acqStore.setDataSource('wav')

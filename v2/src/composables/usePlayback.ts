@@ -12,7 +12,7 @@ import { useAcquisitionStore } from '@/stores/acquisition'
 const isPlaying = ref(false)
 const isPaused = ref(false)
 const speed = ref(1)
-const position = ref(0)   // 0..1 fraction through the frame list
+const position = ref(0) // 0..1 fraction through the frame list
 
 let timer: ReturnType<typeof setInterval> | null = null
 let idx = 0
@@ -25,7 +25,10 @@ export function usePlayback() {
   function tick() {
     if (isPaused.value) return
     const frames = acqStore.loadedFrames
-    if (idx >= frames.length) { stop(); return }
+    if (idx >= frames.length) {
+      stop()
+      return
+    }
 
     const elapsedMs = (performance.now() - startWall) * speed.value
     const targetVT = startVT + elapsedMs
@@ -50,7 +53,9 @@ export function usePlayback() {
     if (!timer) timer = setInterval(tick, 16)
   }
 
-  function pause() { isPaused.value = true }
+  function pause() {
+    isPaused.value = true
+  }
   function resume() {
     if (!isPaused.value) return
     const frames = acqStore.loadedFrames
@@ -66,7 +71,10 @@ export function usePlayback() {
   }
 
   function stop() {
-    if (timer) { clearInterval(timer); timer = null }
+    if (timer) {
+      clearInterval(timer)
+      timer = null
+    }
     isPlaying.value = false
     isPaused.value = false
     idx = 0
@@ -96,7 +104,16 @@ export function usePlayback() {
   })
 
   return {
-    isPlaying, isPaused, speed, position,
-    play, pause, resume, togglePause, stop, setSpeed, seek,
+    isPlaying,
+    isPaused,
+    speed,
+    position,
+    play,
+    pause,
+    resume,
+    togglePause,
+    stop,
+    setSpeed,
+    seek,
   }
 }

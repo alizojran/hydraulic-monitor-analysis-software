@@ -28,8 +28,15 @@ export class GLPlot {
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
     // preserveDrawingBuffer lets html-to-image / toDataURL capture the canvas
-    const gl = canvas.getContext('webgl2', { antialias: true, premultipliedAlpha: true, preserveDrawingBuffer: true })
-    if (!gl) { this.failed = true; return }
+    const gl = canvas.getContext('webgl2', {
+      antialias: true,
+      premultipliedAlpha: true,
+      preserveDrawingBuffer: true,
+    })
+    if (!gl) {
+      this.failed = true
+      return
+    }
     this.gl = gl
 
     const vs = `#version 300 es
@@ -50,7 +57,10 @@ export class GLPlot {
         frag = vec4(u_color, u_alpha * v_intensity);
       }`
     const prog = makeProgram(gl, vs, fs)
-    if (!prog) { this.failed = true; return }
+    if (!prog) {
+      this.failed = true
+      return
+    }
     this.prog = prog
 
     this.uColor = gl.getUniformLocation(prog, 'u_color')!
@@ -78,17 +88,18 @@ export class GLPlot {
     if (this.failed) return
     this.resize()
     const gl = this.gl
-    const w = this.canvas.width, h = this.canvas.height
+    const w = this.canvas.width,
+      h = this.canvas.height
     const min = options.min ?? Math.min(...Array.from(buf))
     const max = options.max ?? Math.max(...Array.from(buf))
-    const range = (max - min) || 1
+    const range = max - min || 1
     const padFrac = 0.08
     const N = buf.length
     if (N < 2) return
     const lw = (options.lw || 1.4) * (window.devicePixelRatio || 1)
     const glowStrength = options.glow ?? 0.7
 
-    gl.clearColor(0.018, 0.024, 0.030, 1.0)
+    gl.clearColor(0.018, 0.024, 0.03, 1.0)
     gl.clear(gl.COLOR_BUFFER_BIT)
 
     this._drawGrid(options.cols || 10, options.rows || 3)
@@ -106,10 +117,15 @@ export class GLPlot {
       if (!this._fillBuf || this._fillBuf.length < need) this._fillBuf = new Float32Array(need * 2)
       const fa = this._fillBuf
       for (let i = 0; i < N; i++) {
-        const x = xToNdc(i), y = yToNdc((buf as ArrayLike<number>)[i])
+        const x = xToNdc(i),
+          y = yToNdc((buf as ArrayLike<number>)[i])
         const o = i * 2 * stride
-        fa[o] = x; fa[o + 1] = y; fa[o + 2] = 0.45
-        fa[o + 3] = x; fa[o + 4] = -1.0; fa[o + 5] = 0.0
+        fa[o] = x
+        fa[o + 1] = y
+        fa[o + 2] = 0.45
+        fa[o + 3] = x
+        fa[o + 4] = -1.0
+        fa[o + 5] = 0.0
       }
       gl.bindBuffer(gl.ARRAY_BUFFER, this.buf)
       gl.bufferData(gl.ARRAY_BUFFER, fa.subarray(0, need), gl.DYNAMIC_DRAW)
@@ -132,7 +148,8 @@ export class GLPlot {
     const arr = this.vertData
 
     for (let i = 0; i < N; i++) {
-      const x = xToNdc(i), y = yToNdc((buf as ArrayLike<number>)[i])
+      const x = xToNdc(i),
+        y = yToNdc((buf as ArrayLike<number>)[i])
       let tpx: number, tpy: number
       if (i === 0) {
         tpx = (xToNdc(1) - x) * w * 0.5
@@ -142,14 +159,24 @@ export class GLPlot {
         tpy = (y - yToNdc((buf as ArrayLike<number>)[N - 2])) * h * 0.5
       } else {
         tpx = (xToNdc(i + 1) - xToNdc(i - 1)) * 0.5 * w * 0.5
-        tpy = (yToNdc((buf as ArrayLike<number>)[i + 1]) - yToNdc((buf as ArrayLike<number>)[i - 1])) * 0.5 * h * 0.5
+        tpy =
+          (yToNdc((buf as ArrayLike<number>)[i + 1]) - yToNdc((buf as ArrayLike<number>)[i - 1])) *
+          0.5 *
+          h *
+          0.5
       }
       const tlen = Math.hypot(tpx, tpy) || 1
-      const npx = -tpy / tlen, npy = tpx / tlen
-      const dx = npx * halfWPx * 2 / w, dy = npy * halfWPx * 2 / h
+      const npx = -tpy / tlen,
+        npy = tpx / tlen
+      const dx = (npx * halfWPx * 2) / w,
+        dy = (npy * halfWPx * 2) / h
       const o = i * 2 * stride
-      arr[o] = x + dx; arr[o + 1] = y + dy; arr[o + 2] = 1.0
-      arr[o + 3] = x - dx; arr[o + 4] = y - dy; arr[o + 5] = 1.0
+      arr[o] = x + dx
+      arr[o + 1] = y + dy
+      arr[o + 2] = 1.0
+      arr[o + 3] = x - dx
+      arr[o + 4] = y - dy
+      arr[o + 5] = 1.0
     }
 
     gl.bindBuffer(gl.ARRAY_BUFFER, this.buf)
@@ -176,8 +203,14 @@ export class GLPlot {
   private _drawGrid(cols: number, rows: number) {
     const gl = this.gl
     const lines: number[] = []
-    for (let i = 1; i < cols; i++) { const x = -1 + (i / cols) * 2; lines.push(x, -1, 0.06, x, 1, 0.06) }
-    for (let j = 1; j < rows; j++) { const y = -1 + (j / rows) * 2; lines.push(-1, y, 0.06, 1, y, 0.06) }
+    for (let i = 1; i < cols; i++) {
+      const x = -1 + (i / cols) * 2
+      lines.push(x, -1, 0.06, x, 1, 0.06)
+    }
+    for (let j = 1; j < rows; j++) {
+      const y = -1 + (j / rows) * 2
+      lines.push(-1, y, 0.06, 1, y, 0.06)
+    }
     const arr = new Float32Array(lines)
     gl.bindBuffer(gl.ARRAY_BUFFER, this.buf)
     gl.bufferData(gl.ARRAY_BUFFER, arr, gl.DYNAMIC_DRAW)

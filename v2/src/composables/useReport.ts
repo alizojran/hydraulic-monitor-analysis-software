@@ -135,7 +135,9 @@ export function useReport() {
   <div class="config-item"><span class="config-label">${t('数据源', 'Data source')}</span><span class="config-value">${acqStore.dataSource.toUpperCase()}</span></div>
 </div>
 
-${faults.length > 0 ? `
+${
+  faults.length > 0
+    ? `
 <h2>${t('轴承故障诊断', 'Bearing Fault Diagnosis')}</h2>
 <table>
   <thead><tr>
@@ -145,7 +147,9 @@ ${faults.length > 0 ? `
     <th>${t('严重程度', 'Severity')}</th>
   </tr></thead>
   <tbody>${faultRows}</tbody>
-</table>` : ''}
+</table>`
+    : ''
+}
 
 <h2>${t('通道实时值', 'Channel Live Values')}</h2>
 <table>
@@ -158,16 +162,22 @@ ${faults.length > 0 ? `
   <tbody>${channelRows}</tbody>
 </table>
 
-${specImg ? `
+${
+  specImg
+    ? `
 <h2>${t('频谱快照', 'Spectrum Snapshot')}</h2>
-<img class="spec-img" src="${specImg}" alt="spectrum" />` : ''}
+<img class="spec-img" src="${specImg}" alt="spectrum" />`
+    : ''
+}
 
 </body>
 </html>`
 
     const win = window.open('', '_blank', 'width=1100,height=850')
     if (!win) {
-      alert(t('弹窗被屏蔽，请允许弹窗后重试', 'Pop-up blocked — please allow pop-ups and try again'))
+      alert(
+        t('弹窗被屏蔽，请允许弹窗后重试', 'Pop-up blocked — please allow pop-ups and try again'),
+      )
       return
     }
     win.document.write(html)

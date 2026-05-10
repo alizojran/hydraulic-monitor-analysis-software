@@ -2,8 +2,8 @@ import { onMounted, onUnmounted } from 'vue'
 import { useAcquisitionStore } from '@/stores/acquisition'
 
 // ─── Pre-compute the 64 × 128 cos/sin matrix once ─────────────────
-const N = 128         // input window size
-const BINS = 64       // output frequency bins
+const N = 128 // input window size
+const BINS = 64 // output frequency bins
 const COS = new Float32Array(BINS * N)
 const SIN = new Float32Array(BINS * N)
 const HANN = new Float32Array(N)
@@ -44,7 +44,8 @@ export function useAcousticSpectrogram() {
     const col = new Float32Array(BINS)
     for (let k = 0; k < BINS; k++) {
       const base = k * N
-      let sr = 0, si = 0
+      let sr = 0,
+        si = 0
       for (let n = 0; n < N; n++) {
         const v = win[n]
         sr += v * COS[base + n]
@@ -57,6 +58,10 @@ export function useAcousticSpectrogram() {
     acqStore.pushAcousticColumn(col)
   }
 
-  onMounted(() => { timer = setInterval(tick, 16) })
-  onUnmounted(() => { if (timer) clearInterval(timer) })
+  onMounted(() => {
+    timer = setInterval(tick, 16)
+  })
+  onUnmounted(() => {
+    if (timer) clearInterval(timer)
+  })
 }

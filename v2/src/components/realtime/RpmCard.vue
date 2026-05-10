@@ -1,6 +1,7 @@
 <template>
   <div class="rpm-card corners">
-    <div class="c-br" /><div class="c-bl" />
+    <div class="c-br" />
+    <div class="c-bl" />
     <div class="card-header">
       <span class="mono ch-id text-dim">V01 · N</span>
       <span class="ch-name">{{ $t('channel.V01') }}</span>
@@ -65,7 +66,9 @@ onMounted(() => {
     snapRpm.value = acqStore.channelValues['V01'] ?? 1500
   }, 200)
 })
-onUnmounted(() => { if (snapTimer) clearInterval(snapTimer) })
+onUnmounted(() => {
+  if (snapTimer) clearInterval(snapTimer)
+})
 
 const rpm = computed(() => snapRpm.value)
 const buf = computed(() => acqStore.channelBuffers['V01']?.buffer ?? [])
@@ -75,7 +78,7 @@ const deviation = computed(() => {
   const dev = ((rpm.value - nominal) / nominal) * 100
   return Math.abs(dev).toFixed(1)
 })
-const devSign = computed(() => (rpm.value - nominal) >= 0 ? '+' : '-')
+const devSign = computed(() => (rpm.value - nominal >= 0 ? '+' : '-'))
 const devCls = computed(() => {
   const d = Math.abs((rpm.value - nominal) / nominal) * 100
   if (d > 5) return 'text-red'
@@ -88,12 +91,14 @@ let lastT = Date.now()
 const acc = ref(0)
 
 const acceleration = computed(() => Math.abs(acc.value).toFixed(1))
-const accSign = computed(() => acc.value >= 0 ? '+' : '-')
-const accCls = computed(() => Math.abs(acc.value) > 20 ? 'text-amber' : '')
+const accSign = computed(() => (acc.value >= 0 ? '+' : '-'))
+const accCls = computed(() => (Math.abs(acc.value) > 20 ? 'text-amber' : ''))
 
 const runtime = computed(() => {
   const s = Math.max(0, Math.floor(acqStore.elapsedSec))
-  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60
+  const h = Math.floor(s / 3600),
+    m = Math.floor((s % 3600) / 60),
+    sec = s % 60
   const pad = (n: number) => String(n).padStart(2, '0')
   return h > 0 ? `${pad(h)}:${pad(m)}:${pad(sec)}` : `${pad(m)}:${pad(sec)}`
 })
@@ -108,10 +113,13 @@ function drawGauge(rpm: number) {
   const canvas = gaugeCanvas.value
   if (!canvas) return
   const ctx = canvas.getContext('2d')!
-  const w = canvas.width, h = canvas.height
+  const w = canvas.width,
+    h = canvas.height
   ctx.clearRect(0, 0, w, h)
 
-  const cx = w / 2, cy = h - 12, r = h - 20
+  const cx = w / 2,
+    cy = h - 12,
+    r = h - 20
   const startAngle = Math.PI
   const endAngle = 0
   const fraction = Math.max(0, Math.min(1, (rpm - 0) / 2400))
@@ -135,7 +143,8 @@ function drawGauge(rpm: number) {
   for (let i = 0; i <= 12; i++) {
     const a = startAngle + (i / 12) * Math.PI
     const isMajor = i % 3 === 0
-    const ro = r + 4, ri = r - (isMajor ? 14 : 8)
+    const ro = r + 4,
+      ri = r - (isMajor ? 14 : 8)
     ctx.beginPath()
     ctx.moveTo(cx + ro * Math.cos(a), cy + ro * Math.sin(a))
     ctx.lineTo(cx + ri * Math.cos(a), cy + ri * Math.sin(a))
@@ -182,44 +191,89 @@ useAnimationLoop((now) => {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--r2);
-  display: flex; flex-direction: column; overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 .card-header {
-  display: flex; align-items: center; gap: 8px;
-  padding: 5px 10px; border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--border);
   background: var(--bg-2);
   font-size: 11px;
 }
-.ch-id { font-size: 10px; letter-spacing: 0.06em; }
-.ch-name { flex: 1; color: var(--text-1); }
-.header-meta { font-size: 9.5px; color: var(--green); letter-spacing: 0.06em; }
+.ch-id {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+.ch-name {
+  flex: 1;
+  color: var(--text-1);
+}
+.header-meta {
+  font-size: 9.5px;
+  color: var(--green);
+  letter-spacing: 0.06em;
+}
 
 .rpm-body {
-  display: flex; flex-direction: column; align-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   padding: 4px 0 0;
 }
-.gauge { display: block; }
+.gauge {
+  display: block;
+}
 .rpm-val {
-  display: flex; align-items: baseline; gap: 3px;
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
   margin-top: -4px;
 }
 .rpm-num {
-  font-size: 20px; font-weight: 700; color: var(--cyan);
-  text-shadow: 0 0 12px rgba(0,217,255,0.5);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--cyan);
+  text-shadow: 0 0 12px rgba(0, 217, 255, 0.5);
 }
-.rpm-unit { font-size: 9px; }
+.rpm-unit {
+  font-size: 9px;
+}
 
 .rpm-stats {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 1px 10px;
-  padding: 5px 10px; font-size: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px 10px;
+  padding: 5px 10px;
+  font-size: 10px;
   border-top: 1px solid var(--border);
   background: var(--bg-2);
 }
-.stat-row { display: flex; justify-content: space-between; gap: 4px; }
-.stat-row .text-dim { letter-spacing: 0.04em; font-size: 9.5px; }
-.text-red { color: var(--red); }
-.text-amber { color: var(--amber); }
-.text-green { color: var(--green); }
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+}
+.stat-row .text-dim {
+  letter-spacing: 0.04em;
+  font-size: 9.5px;
+}
+.text-red {
+  color: var(--red);
+}
+.text-amber {
+  color: var(--amber);
+}
+.text-green {
+  color: var(--green);
+}
 
-.rpm-trend { height: 28px; padding: 0 4px 3px; flex-shrink: 0; }
+.rpm-trend {
+  height: 28px;
+  padding: 0 4px 3px;
+  flex-shrink: 0;
+}
 </style>

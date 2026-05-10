@@ -1,6 +1,7 @@
 <template>
   <div class="vib-card corners">
-    <div class="c-br" /><div class="c-bl" />
+    <div class="c-br" />
+    <div class="c-bl" />
 
     <div class="card-header">
       <span class="ch-id mono text-dim">V02 · Vy</span>
@@ -9,10 +10,15 @@
     </div>
 
     <div class="vib-value">
-      <span class="vib-rms mono" style="color: var(--red); text-shadow: 0 0 14px rgba(255,51,85,0.4)">
+      <span
+        class="vib-rms mono"
+        style="color: var(--red); text-shadow: 0 0 14px rgba(255, 51, 85, 0.4)"
+      >
         {{ rmsVal }}<small> g RMS</small>
       </span>
-      <span class="vib-trend mono" :class="rmsTrendCls">{{ rmsTrendIcon }} {{ rmsTrendDelta }}</span>
+      <span class="vib-trend mono" :class="rmsTrendCls"
+        >{{ rmsTrendIcon }} {{ rmsTrendDelta }}</span
+      >
     </div>
 
     <div class="fft-header mono text-dim">
@@ -25,10 +31,19 @@
     </div>
 
     <div class="vib-stats mono">
-      <div class="vib-stat"><span class="text-dim">RMS</span><span :style="{color:'var(--red)'}">{{ rmsVal }}</span></div>
-      <div class="vib-stat"><span class="text-dim">PEAK</span><span>{{ peakVal }}</span></div>
-      <div class="vib-stat"><span class="text-dim">{{ $t('vibration.peakFreq') }}</span><span class="text-cyan">{{ peakFreqHz }} Hz</span></div>
-      <div class="vib-stat"><span class="text-dim">CF</span><span>{{ cfVal }}</span></div>
+      <div class="vib-stat">
+        <span class="text-dim">RMS</span><span :style="{ color: 'var(--red)' }">{{ rmsVal }}</span>
+      </div>
+      <div class="vib-stat">
+        <span class="text-dim">PEAK</span><span>{{ peakVal }}</span>
+      </div>
+      <div class="vib-stat">
+        <span class="text-dim">{{ $t('vibration.peakFreq') }}</span
+        ><span class="text-cyan">{{ peakFreqHz }} Hz</span>
+      </div>
+      <div class="vib-stat">
+        <span class="text-dim">CF</span><span>{{ cfVal }}</span>
+      </div>
     </div>
   </div>
 </template>
@@ -84,11 +99,12 @@ const VIB_COS = new Float32Array(VIB_BINS * VIB_N)
 const VIB_SIN = new Float32Array(VIB_BINS * VIB_N)
 const VIB_FREQS = new Float32Array(VIB_BINS)
 {
-  for (let n = 0; n < VIB_N; n++) VIB_HANN[n] = 0.5 * (1 - Math.cos((2 * Math.PI * n) / (VIB_N - 1)))
+  for (let n = 0; n < VIB_N; n++)
+    VIB_HANN[n] = 0.5 * (1 - Math.cos((2 * Math.PI * n) / (VIB_N - 1)))
   for (let k = 0; k < VIB_BINS; k++) {
     const f = Math.pow(k / (VIB_BINS - 1), 1.6) * 0.98
     const w = Math.PI * f
-    VIB_FREQS[k] = f * 5000  // Hz; Nyquist at 10 kHz sample rate = 5000
+    VIB_FREQS[k] = f * 5000 // Hz; Nyquist at 10 kHz sample rate = 5000
     const base = k * VIB_N
     for (let n = 0; n < VIB_N; n++) {
       VIB_COS[base + n] = Math.cos(w * n)
@@ -113,17 +129,22 @@ useAnimationLoop((now) => {
       const win = new Float32Array(VIB_N)
       for (let n = 0; n < VIB_N; n++) win[n] = (raw[n] - mean) * VIB_HANN[n]
 
-      let maxMag = 0, maxK = 0
+      let maxMag = 0,
+        maxK = 0
       for (let k = 0; k < VIB_BINS; k++) {
         const base = k * VIB_N
-        let sr = 0, si = 0
+        let sr = 0,
+          si = 0
         for (let n = 0; n < VIB_N; n++) {
           const v = win[n]
           sr += v * VIB_COS[base + n]
           si += v * VIB_SIN[base + n]
         }
         const mag = Math.sqrt(sr * sr + si * si) / VIB_N
-        if (mag > maxMag) { maxMag = mag; maxK = k }
+        if (mag > maxMag) {
+          maxMag = mag
+          maxK = k
+        }
         out[k] = Math.max(0, Math.min(1, Math.log10(1 + mag * 6) * 0.65))
       }
       fftBars = out
@@ -143,9 +164,16 @@ useAnimationLoop((now) => {
     lastRms = r
     const sign = delta >= 0 ? '+' : ''
     rmsTrendDelta.value = sign + delta.toFixed(3)
-    if (Math.abs(delta) < 0.005) { rmsTrendIcon.value = '→'; rmsTrendCls.value = '' }
-    else if (delta > 0) { rmsTrendIcon.value = '▲'; rmsTrendCls.value = 'up' }
-    else { rmsTrendIcon.value = '▼'; rmsTrendCls.value = 'down' }
+    if (Math.abs(delta) < 0.005) {
+      rmsTrendIcon.value = '→'
+      rmsTrendCls.value = ''
+    } else if (delta > 0) {
+      rmsTrendIcon.value = '▲'
+      rmsTrendCls.value = 'up'
+    } else {
+      rmsTrendIcon.value = '▼'
+      rmsTrendCls.value = 'down'
+    }
   }
 })
 </script>
@@ -160,37 +188,87 @@ useAnimationLoop((now) => {
   overflow: hidden;
 }
 .card-header {
-  display: flex; align-items: center; gap: 8px;
-  padding: 5px 10px; border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--border);
   background: var(--bg-2);
   font-size: 11px;
 }
-.ch-id { font-size: 10px; letter-spacing: 0.06em; }
-.ch-name { flex: 1; color: var(--text-1); }
-.header-meta { font-size: 9.5px; color: var(--text-2); letter-spacing: 0.06em; }
+.ch-id {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+.ch-name {
+  flex: 1;
+  color: var(--text-1);
+}
+.header-meta {
+  font-size: 9.5px;
+  color: var(--text-2);
+  letter-spacing: 0.06em;
+}
 
 .vib-value {
-  display: flex; align-items: baseline; gap: 8px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   padding: 6px 10px 2px;
 }
-.vib-rms { font-size: 20px; font-weight: 700; line-height: 1.05; }
-.vib-rms small { font-size: 10px; font-weight: 500; color: var(--text-2); margin-left: 2px; }
-.vib-trend { font-size: 9.5px; color: var(--text-2); margin-left: auto; }
-.vib-trend.up { color: var(--red); }
-.vib-trend.down { color: var(--green); }
+.vib-rms {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.05;
+}
+.vib-rms small {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-2);
+  margin-left: 2px;
+}
+.vib-trend {
+  font-size: 9.5px;
+  color: var(--text-2);
+  margin-left: auto;
+}
+.vib-trend.up {
+  color: var(--red);
+}
+.vib-trend.down {
+  color: var(--green);
+}
 
 .fft-header {
-  display: flex; justify-content: space-between;
-  padding: 3px 10px 2px; font-size: 9px; letter-spacing: 0.06em;
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 10px 2px;
+  font-size: 9px;
+  letter-spacing: 0.06em;
 }
-.fft-wrap { flex: 1; min-height: 50px; padding: 0 4px; }
+.fft-wrap {
+  flex: 1;
+  min-height: 50px;
+  padding: 0 4px;
+}
 
 .vib-stats {
-  display: grid; grid-template-columns: 1fr 1fr;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 1px 10px;
-  padding: 4px 10px 5px; border-top: 1px solid var(--border);
-  background: var(--bg-2); font-size: 10px; flex-shrink: 0;
+  padding: 4px 10px 5px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-2);
+  font-size: 10px;
+  flex-shrink: 0;
 }
-.vib-stat { display: flex; justify-content: space-between; gap: 4px; }
-.vib-stat .text-dim { letter-spacing: 0.04em; font-size: 9.5px; }
+.vib-stat {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+}
+.vib-stat .text-dim {
+  letter-spacing: 0.04em;
+  font-size: 9.5px;
+}
 </style>

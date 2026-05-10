@@ -9,12 +9,16 @@ export function useGLPlot(canvasRef: Ref<HTMLCanvasElement | null>) {
   // canvas becomes available, instead of only at the parent's onMounted —
   // covers any timing edge case where the computed-from-template-ref
   // isn't populated yet at the parent's mounted hook.
-  watch(canvasRef, (canvas) => {
-    if (canvas && !plot) {
-      plot = new GLPlot(canvas)
-      isAvailable.value = !plot.failed
-    }
-  }, { immediate: true, flush: 'post' })
+  watch(
+    canvasRef,
+    (canvas) => {
+      if (canvas && !plot) {
+        plot = new GLPlot(canvas)
+        isAvailable.value = !plot.failed
+      }
+    },
+    { immediate: true, flush: 'post' },
+  )
 
   onUnmounted(() => {
     plot?.destroy()

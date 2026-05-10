@@ -13,8 +13,15 @@ export class GLBars {
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
-    const gl = canvas.getContext('webgl2', { antialias: true, premultipliedAlpha: true, preserveDrawingBuffer: true })
-    if (!gl) { this.failed = true; return }
+    const gl = canvas.getContext('webgl2', {
+      antialias: true,
+      premultipliedAlpha: true,
+      preserveDrawingBuffer: true,
+    })
+    if (!gl) {
+      this.failed = true
+      return
+    }
     this.gl = gl
 
     const vs = `#version 300 es
@@ -36,7 +43,10 @@ export class GLBars {
         frag = vec4(col, a);
       }`
     const prog = makeProgram(gl, vs, fs)
-    if (!prog) { this.failed = true; return }
+    if (!prog) {
+      this.failed = true
+      return
+    }
     this.prog = prog
 
     this.uColor = gl.getUniformLocation(prog, 'u_color')!
@@ -75,12 +85,24 @@ export class GLBars {
       const yBottom = -1
       const yTop = -1 + Math.max(0.005, Math.min(1, (spec as ArrayLike<number>)[i])) * 2 * maxScale
       const o = i * 6 * 3
-      arr[o] = x0; arr[o + 1] = yBottom; arr[o + 2] = 0
-      arr[o + 3] = x1; arr[o + 4] = yBottom; arr[o + 5] = 0
-      arr[o + 6] = x1; arr[o + 7] = yTop; arr[o + 8] = 1
-      arr[o + 9] = x0; arr[o + 10] = yBottom; arr[o + 11] = 0
-      arr[o + 12] = x1; arr[o + 13] = yTop; arr[o + 14] = 1
-      arr[o + 15] = x0; arr[o + 16] = yTop; arr[o + 17] = 1
+      arr[o] = x0
+      arr[o + 1] = yBottom
+      arr[o + 2] = 0
+      arr[o + 3] = x1
+      arr[o + 4] = yBottom
+      arr[o + 5] = 0
+      arr[o + 6] = x1
+      arr[o + 7] = yTop
+      arr[o + 8] = 1
+      arr[o + 9] = x0
+      arr[o + 10] = yBottom
+      arr[o + 11] = 0
+      arr[o + 12] = x1
+      arr[o + 13] = yTop
+      arr[o + 14] = 1
+      arr[o + 15] = x0
+      arr[o + 16] = yTop
+      arr[o + 17] = 1
     }
 
     gl.clearColor(0.012, 0.018, 0.024, 1.0)

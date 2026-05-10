@@ -27,7 +27,7 @@ export function useExport() {
    * Columns: timestamp_ms, iso_time, then one per channel.
    */
   function exportCsv() {
-    const channelIds = CHANNEL_DEFS.map(c => c.id)
+    const channelIds = CHANNEL_DEFS.map((c) => c.id)
     const intervalMs = (acqStore.timeWindowSec * 1000) / DISPLAY_POINTS
     const now = Date.now()
 
@@ -74,8 +74,8 @@ export function useExport() {
       const dataUrl = await toPng(view, {
         pixelRatio: window.devicePixelRatio || 2,
         cacheBust: true,
-        backgroundColor: getComputedStyle(document.documentElement)
-          .getPropertyValue('--bg-0').trim() || '#000',
+        backgroundColor:
+          getComputedStyle(document.documentElement).getPropertyValue('--bg-0').trim() || '#000',
       })
       const res = await fetch(dataUrl)
       const blob = await res.blob()

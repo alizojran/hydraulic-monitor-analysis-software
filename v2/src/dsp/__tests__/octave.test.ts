@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { computeOctaveBands, THIRD_OCTAVE_CENTERS } from '../octave'
 
-function makeFlat(fftLen: number, binHz: number, levelDb: number): { mag: Float32Array; freq: Float32Array } {
+function makeFlat(
+  fftLen: number,
+  binHz: number,
+  levelDb: number,
+): { mag: Float32Array; freq: Float32Array } {
   const mag = new Float32Array(fftLen).fill(levelDb)
   const freq = new Float32Array(fftLen)
   for (let i = 0; i < fftLen; i++) freq[i] = i * binHz
@@ -28,7 +32,7 @@ describe('computeOctaveBands', () => {
   it('no-weighting gives higher mid-high values than A-weighting at low bands', () => {
     const { mag, freq } = makeFlat(8192, 1.22, -20)
     const noW = computeOctaveBands(mag, freq, 'none')
-    const aW  = computeOctaveBands(mag, freq, 'A')
+    const aW = computeOctaveBands(mag, freq, 'A')
     // At 25 Hz (band 0), A-weighting correction is -44.7 dB → A-weighted should be lower
     expect(noW[0]).toBeGreaterThan(aW[0])
   })

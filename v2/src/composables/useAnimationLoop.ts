@@ -13,12 +13,16 @@ function tick(now: number) {
   rafId = requestAnimationFrame(tick)
   frameCount++
   if (now - lastFpsTime >= 1000) {
-    if (uiStore) uiStore.setFps(Math.round(frameCount * 1000 / (now - lastFpsTime)))
+    if (uiStore) uiStore.setFps(Math.round((frameCount * 1000) / (now - lastFpsTime)))
     frameCount = 0
     lastFpsTime = now
   }
   for (const cb of callbacks) {
-    try { cb(now) } catch (e) { console.error('rAF callback error:', e) }
+    try {
+      cb(now)
+    } catch (e) {
+      console.error('rAF callback error:', e)
+    }
   }
 }
 
@@ -29,7 +33,10 @@ function startLoop() {
 }
 
 function stopLoop() {
-  if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null }
+  if (rafId !== null) {
+    cancelAnimationFrame(rafId)
+    rafId = null
+  }
 }
 
 // drawTimes for per-key rate limiting
@@ -48,7 +55,11 @@ export function shouldDraw(key: string, fps: number): boolean {
 
 export function useAnimationLoop(callback: LoopCallback) {
   onMounted(() => {
-    try { uiStore = useUiStore() } catch {}
+    try {
+      uiStore = useUiStore()
+    } catch {
+      /* useUiStore not yet mounted */
+    }
     // Clear throttle timestamps so the first frame after (re-)mount draws
     // immediately — important when switching tabs (v-if) so curves don't
     // sit blank for the rate-limit interval.

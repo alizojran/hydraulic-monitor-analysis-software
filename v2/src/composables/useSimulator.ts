@@ -14,7 +14,7 @@ const SAMPLES_PER_TICK = SIM_RATE / SIM_TICK_HZ
 const SIM_TICK_MS = 1000 / SIM_TICK_HZ
 
 function genSample(id: string, T: number, rpm: number): number {
-  const ch = CHANNEL_DEFS.find(c => c.id === id)
+  const ch = CHANNEL_DEFS.find((c) => c.id === id)
   if (!ch) return 0
   const { base = 0, vary = 0, wave } = ch
   switch (wave) {
@@ -46,7 +46,9 @@ function genSample(id: string, T: number, rpm: number): number {
       return base + (Math.random() - 0.5) * vary * 2
     }
     case 'rpm': {
-      return (ch.nominalRpm ?? 1500) + Math.sin(2 * Math.PI * 0.1 * T) * 30 + (Math.random() - 0.5) * 5
+      return (
+        (ch.nominalRpm ?? 1500) + Math.sin(2 * Math.PI * 0.1 * T) * 30 + (Math.random() - 0.5) * 5
+      )
     }
     case 'vibration': {
       const rpmHz = rpm / 60
@@ -62,9 +64,12 @@ function genSample(id: string, T: number, rpm: number): number {
     case 'acoustic': {
       const rpmHz = rpm / 60
       const base_db = ch.base ?? 72
-      return base_db + Math.sin(2 * Math.PI * 0.5 * T) * 3
-        + Math.sin(2 * Math.PI * rpmHz * T) * 2
-        + (Math.random() - 0.5) * 2
+      return (
+        base_db +
+        Math.sin(2 * Math.PI * 0.5 * T) * 3 +
+        Math.sin(2 * Math.PI * rpmHz * T) * 2 +
+        (Math.random() - 0.5) * 2
+      )
     }
     default:
       return base + (Math.random() - 0.5) * vary
@@ -85,12 +90,13 @@ export function useSimulator() {
   // reads them by reference each tick, no need to trigger Vue reactivity.
   const channelRms: Record<string, number> = {}
   const channelPeak: Record<string, number> = {}
-  const METRICS_WINDOW = 10000   // 1 s @ 10 kHz
+  const METRICS_WINDOW = 10000 // 1 s @ 10 kHz
 
   function refreshMetrics() {
     for (const ch of CHANNEL_DEFS) {
       const buf = acqStore.getFftSamples(ch.id, METRICS_WINDOW)
-      let sumSq = 0, peak = 0
+      let sumSq = 0,
+        peak = 0
       for (let i = 0; i < buf.length; i++) {
         const v = buf[i]
         sumSq += v * v
@@ -118,7 +124,7 @@ export function useSimulator() {
         sampleIndex++
         const frame: SampleFrame = {
           timestamp: ts,
-          channels: new Map(CHANNEL_DEFS.map(ch => [ch.id, genSample(ch.id, T, rpm)])),
+          channels: new Map(CHANNEL_DEFS.map((ch) => [ch.id, genSample(ch.id, T, rpm)])),
         }
         acqStore.pushFrame(frame)
         lastFrame = frame
@@ -131,17 +137,33 @@ export function useSimulator() {
   }
 
   function stop() {
-    if (intervalId) { clearInterval(intervalId); intervalId = null }
-    if (metricsId) { clearInterval(metricsId); metricsId = null }
+    if (intervalId) {
+      clearInterval(intervalId)
+      intervalId = null
+    }
+    if (metricsId) {
+      clearInterval(metricsId)
+      metricsId = null
+    }
     acqStore.stop()
   }
 
-  function pause() { acqStore.pause() }
-  function resume() { acqStore.resume() }
+  function pause() {
+    acqStore.pause()
+  }
+  function resume() {
+    acqStore.resume()
+  }
 
   onUnmounted(() => {
-    if (intervalId) { clearInterval(intervalId); intervalId = null }
-    if (metricsId) { clearInterval(metricsId); metricsId = null }
+    if (intervalId) {
+      clearInterval(intervalId)
+      intervalId = null
+    }
+    if (metricsId) {
+      clearInterval(metricsId)
+      metricsId = null
+    }
   })
 
   return { start, stop, pause, resume }

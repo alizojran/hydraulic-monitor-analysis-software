@@ -7,24 +7,28 @@
 
     <!-- Center: all data cards -->
     <main class="center">
-
       <!-- Analog section -->
       <div class="section-bar">
-        <span class="sb-title">{{ locale === 'zh' ? '8 通道模拟量采集' : '8-CH ANALOG INPUTS' }}
+        <span class="sb-title"
+          >{{ locale === 'zh' ? '8 通道模拟量采集' : '8-CH ANALOG INPUTS' }}
           <span class="sb-dot">·</span> ANALOG INPUTS
         </span>
-        <span class="sb-meta mono">CH01–CH08 · 24-bit · {{ $t('status.window') }}
+        <span class="sb-meta mono"
+          >CH01–CH08 · 24-bit · {{ $t('status.window') }}
           {{ locale === 'zh' ? currentWindow.labelZh : currentWindow.label }}
         </span>
       </div>
       <div class="analog-grid">
-        <AnalogChannelCard v-for="ch in ANALOG_CHANNELS" :key="ch.id" :channelId="ch.id" />
+        <AnalogChannelCard v-for="ch in ANALOG_CHANNELS" :key="ch.id" :channel-id="ch.id" />
       </div>
 
       <!-- Flow / vibration section -->
       <div class="section-bar">
-        <span class="sb-title">{{ locale === 'zh' ? '流量 / 振动专用通道' : 'FLOW / VIBRATION CHANNELS' }}</span>
-        <span class="sb-meta mono">FLOW-2 · VIB-2 · {{ $t('status.window') }}
+        <span class="sb-title">{{
+          locale === 'zh' ? '流量 / 振动专用通道' : 'FLOW / VIBRATION CHANNELS'
+        }}</span>
+        <span class="sb-meta mono"
+          >FLOW-2 · VIB-2 · {{ $t('status.window') }}
           {{ locale === 'zh' ? currentWindow.labelZh : currentWindow.label }}
         </span>
       </div>
@@ -37,15 +41,18 @@
 
       <!-- Acoustic section -->
       <div class="section-bar">
-        <span class="sb-title">{{ locale === 'zh' ? '声学采集通道' : 'ACOUSTIC CHANNEL' }}
+        <span class="sb-title"
+          >{{ locale === 'zh' ? '声学采集通道' : 'ACOUSTIC CHANNEL' }}
           <span class="sb-dot">·</span> ACOUSTIC
         </span>
-        <span class="sb-meta mono">S01 · {{ locale === 'zh' ? '麦克风' : 'Mic' }} · 20 Hz – 20 kHz · A {{ locale === 'zh' ? '计权' : 'weighted' }}</span>
+        <span class="sb-meta mono"
+          >S01 · {{ locale === 'zh' ? '麦克风' : 'Mic' }} · 20 Hz – 20 kHz · A
+          {{ locale === 'zh' ? '计权' : 'weighted' }}</span
+        >
       </div>
       <div class="acoustic-wrap">
         <AcousticCard />
       </div>
-
     </main>
 
     <!-- Right: KPI + alarms + storage + event log -->
@@ -71,8 +78,8 @@ import KpiPanel from '@/components/realtime/KpiPanel.vue'
 
 const { locale } = useI18n()
 const acqStore = useAcquisitionStore()
-const currentWindow = computed(() =>
-  TIME_WINDOWS.find(w => w.value === acqStore.timeWindowSec) ?? TIME_WINDOWS[1]
+const currentWindow = computed(
+  () => TIME_WINDOWS.find((w) => w.value === acqStore.timeWindowSec) ?? TIME_WINDOWS[1],
 )
 </script>
 
@@ -86,7 +93,8 @@ const currentWindow = computed(() =>
 
 .left-sidebar {
   border-right: 1px solid var(--border);
-  overflow-y: auto; overflow-x: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   background: var(--bg-0);
 }
 .center {
@@ -94,20 +102,39 @@ const currentWindow = computed(() =>
   grid-template-rows: auto minmax(0, 1.3fr) auto minmax(0, 1.15fr) auto minmax(0, 0.95fr);
   overflow: hidden;
 }
-.right  { border-left: 1px solid var(--border); overflow-y: auto; }
+.right {
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+}
 
 /* Section bar: V1-style bold header with dashed outline */
 .section-bar {
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 4px 12px;
   background: linear-gradient(180deg, var(--bg-1) 0%, var(--bg-0) 100%);
   border-top: 1px solid var(--border);
   border-bottom: 1px dashed var(--border-2);
 }
-.section-bar:first-child { border-top: none; }
-.sb-title { font-size: 11px; font-weight: 600; color: var(--text-0); letter-spacing: 0.04em; }
-.sb-dot { color: var(--cyan); margin: 0 4px; }
-.sb-meta { font-size: 10px; color: var(--text-2); letter-spacing: 0.04em; }
+.section-bar:first-child {
+  border-top: none;
+}
+.sb-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-0);
+  letter-spacing: 0.04em;
+}
+.sb-dot {
+  color: var(--cyan);
+  margin: 0 4px;
+}
+.sb-meta {
+  font-size: 10px;
+  color: var(--text-2);
+  letter-spacing: 0.04em;
+}
 
 .analog-grid {
   display: grid;
@@ -129,7 +156,11 @@ const currentWindow = computed(() =>
 .acoustic-wrap {
   padding: 5px 6px;
   min-height: 0;
-  display: flex; flex-direction: column;
+  display: flex;
+  flex-direction: column;
 }
-.acoustic-wrap > * { flex: 1; min-height: 0; }
+.acoustic-wrap > * {
+  flex: 1;
+  min-height: 0;
+}
 </style>

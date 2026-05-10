@@ -23,8 +23,15 @@ export class GLHeatmap {
     this.timeCols = timeCols
     this.colBuffer = new Uint8Array(freqBins)
 
-    const gl = canvas.getContext('webgl2', { antialias: false, premultipliedAlpha: true, preserveDrawingBuffer: true })
-    if (!gl) { this.failed = true; return }
+    const gl = canvas.getContext('webgl2', {
+      antialias: false,
+      premultipliedAlpha: true,
+      preserveDrawingBuffer: true,
+    })
+    if (!gl) {
+      this.failed = true
+      return
+    }
     this.gl = gl
 
     const vs = `#version 300 es
@@ -62,7 +69,10 @@ export class GLHeatmap {
         frag = vec4(heat(v) * vis, vis);
       }`
     const prog = makeProgram(gl, vs, fs)
-    if (!prog) { this.failed = true; return }
+    if (!prog) {
+      this.failed = true
+      return
+    }
     this.prog = prog
 
     this.uTex = gl.getUniformLocation(prog, 'u_tex')!
@@ -100,11 +110,13 @@ export class GLHeatmap {
     const out = this.colBuffer
     const N = spec.length
     if (N === this.freqBins) {
-      for (let i = 0; i < N; i++) out[i] = Math.max(0, Math.min(255, Math.round((spec as ArrayLike<number>)[i] * 255)))
+      for (let i = 0; i < N; i++)
+        out[i] = Math.max(0, Math.min(255, Math.round((spec as ArrayLike<number>)[i] * 255)))
     } else {
       for (let i = 0; i < this.freqBins; i++) {
         const t = (i / (this.freqBins - 1)) * (N - 1)
-        const i0 = Math.floor(t), i1 = Math.min(N - 1, i0 + 1)
+        const i0 = Math.floor(t),
+          i1 = Math.min(N - 1, i0 + 1)
         const f = t - i0
         const v = (spec as ArrayLike<number>)[i0] * (1 - f) + (spec as ArrayLike<number>)[i1] * f
         out[i] = Math.max(0, Math.min(255, Math.round(v * 255)))
@@ -112,7 +124,17 @@ export class GLHeatmap {
     }
     gl.bindTexture(gl.TEXTURE_2D, this.tex)
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1)
-    gl.texSubImage2D(gl.TEXTURE_2D, 0, this.writeCol, 0, 1, this.freqBins, gl.RED, gl.UNSIGNED_BYTE, out)
+    gl.texSubImage2D(
+      gl.TEXTURE_2D,
+      0,
+      this.writeCol,
+      0,
+      1,
+      this.freqBins,
+      gl.RED,
+      gl.UNSIGNED_BYTE,
+      out,
+    )
     this.writeCol = (this.writeCol + 1) % this.timeCols
     this.totalWrites++
   }

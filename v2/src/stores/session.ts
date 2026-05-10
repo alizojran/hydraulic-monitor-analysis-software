@@ -16,7 +16,13 @@ export interface SessionMeta {
 
 export const useSessionStore = defineStore('session', () => {
   const sessions = ref<SessionMeta[]>(
-    (() => { try { return JSON.parse(localStorage.getItem('daq-sessions') || '[]') } catch { return [] } })()
+    (() => {
+      try {
+        return JSON.parse(localStorage.getItem('daq-sessions') || '[]')
+      } catch {
+        return []
+      }
+    })(),
   )
   const activeSessionId = ref<string | null>(null)
   const activeSessionStart = ref<number | null>(null)
@@ -31,7 +37,7 @@ export const useSessionStore = defineStore('session', () => {
   }
 
   function deleteSession(id: string) {
-    sessions.value = sessions.value.filter(s => s.id !== id)
+    sessions.value = sessions.value.filter((s) => s.id !== id)
     save()
   }
 
@@ -71,19 +77,27 @@ export const useSessionStore = defineStore('session', () => {
       sampleCount,
       sampleRate: opts.sampleRate,
       source: opts.source,
-      channelIds: CHANNEL_DEFS.map(c => c.id),
+      channelIds: CHANNEL_DEFS.map((c) => c.id),
       label: new Date(start).toLocaleString('zh-CN', { hour12: false }),
     })
   }
 
   function renameSession(id: string, label: string) {
-    const s = sessions.value.find(x => x.id === id)
-    if (s) { s.label = label; save() }
+    const s = sessions.value.find((x) => x.id === id)
+    if (s) {
+      s.label = label
+      save()
+    }
   }
 
   return {
-    sessions, activeSessionId,
-    addSession, deleteSession, clearAll,
-    beginSession, endSession, renameSession,
+    sessions,
+    activeSessionId,
+    addSession,
+    deleteSession,
+    clearAll,
+    beginSession,
+    endSession,
+    renameSession,
   }
 })

@@ -36,15 +36,29 @@ import FaultSummaryPanel from '@/components/spectrum/FaultSummaryPanel.vue'
   gap: 0;
 }
 .left {
-  display: flex; flex-direction: column;
+  display: flex;
+  flex-direction: column;
   border-right: 1px solid var(--border);
   overflow-y: auto;
 }
-.left > :deep(*):first-child { flex: 0 0 auto; }
-.divider { height: 1px; background: var(--border); }
-.left > :deep(*):last-child { flex: 1; min-height: 120px; }
-.center {
-  display: flex; flex-direction: column;
+.left > :deep(*):first-child {
+  flex: 0 0 auto;
 }
-.waterfall-area { height: 180px; border-top: 1px solid var(--border); flex-shrink: 0; }
+.divider {
+  height: 1px;
+  background: var(--border);
+}
+.left > :deep(*):last-child {
+  flex: 1;
+  min-height: 120px;
+}
+.center {
+  display: flex;
+  flex-direction: column;
+}
+.waterfall-area {
+  height: 180px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
 </style>

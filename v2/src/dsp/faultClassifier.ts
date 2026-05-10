@@ -148,7 +148,10 @@ export function classifyBearingFaults(
 
   const results: BearingFaultResult[] = []
 
-  for (const [type, baseHz] of Object.entries(faultFreqs) as [BearingFaultResult['faultType'], number][]) {
+  for (const [type, baseHz] of Object.entries(faultFreqs) as [
+    BearingFaultResult['faultType'],
+    number,
+  ][]) {
     if (baseHz <= 0) continue
     const hits: FaultFrequencyHit[] = []
 

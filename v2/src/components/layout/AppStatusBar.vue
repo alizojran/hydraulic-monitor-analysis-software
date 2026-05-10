@@ -48,14 +48,16 @@
 
     <div class="status-item spacer" />
 
-    <div class="status-item" v-if="uiStore.gpuAvailable">
+    <div v-if="uiStore.gpuAvailable" class="status-item">
       <span class="text-dim">GPU</span>
       <span class="mono text-cyan">{{ uiStore.gpuName }}</span>
     </div>
     <div class="sep" />
     <div class="status-item">
       <span class="text-dim">FPS</span>
-      <span class="mono" :class="uiStore.fps >= 30 ? 'text-green' : 'text-amber'">{{ uiStore.fps }}</span>
+      <span class="mono" :class="uiStore.fps >= 30 ? 'text-green' : 'text-amber'">{{
+        uiStore.fps
+      }}</span>
     </div>
   </div>
 </template>
@@ -76,26 +78,33 @@ const totalChannels = CHANNEL_DEFS.length
 const activeCount = computed(() => totalChannels) // all channels active in sim
 
 const statusClass = computed(() =>
-  acqStore.isRunning && !acqStore.isPaused ? 'green' : acqStore.isPaused ? 'amber' : 'dim'
+  acqStore.isRunning && !acqStore.isPaused ? 'green' : acqStore.isPaused ? 'amber' : 'dim',
 )
 const statusLabel = computed(() =>
-  acqStore.isRunning && !acqStore.isPaused ? t('status.running') : acqStore.isPaused ? t('status.paused') : t('status.stopped')
+  acqStore.isRunning && !acqStore.isPaused
+    ? t('status.running')
+    : acqStore.isPaused
+      ? t('status.paused')
+      : t('status.stopped'),
 )
 const sourceLabel = computed(() => t(`source.${acqStore.dataSource}`))
-const sourceClass = computed(() => acqStore.dataSource === 'simulated' ? 'text-1' : 'text-cyan')
+const sourceClass = computed(() => (acqStore.dataSource === 'simulated' ? 'text-1' : 'text-cyan'))
 
 const bufferPct = computed(() => {
   // Average buffer fill across all channels
   const ids = Object.keys(acqStore.channelBuffers)
   if (!ids.length) return 0
   let sum = 0
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const id of ids) sum += (acqStore.channelBuffers as any)[id]?.fillFraction ?? 0
   return Math.round((sum / ids.length) * 100)
 })
 
 const elapsedStr = computed(() => {
   const s = Math.max(0, Math.floor(acqStore.elapsedSec))
-  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60
+  const h = Math.floor(s / 3600),
+    m = Math.floor((s % 3600) / 60),
+    sec = s % 60
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${pad(h)}:${pad(m)}:${pad(sec)}`
 })
@@ -117,23 +126,55 @@ function onWindowChange(e: Event) {
   flex-shrink: 0;
   font-size: 11.5px;
 }
-.status-item { display: flex; align-items: center; gap: 6px; }
-.spacer { flex: 1; }
-.sep { width: 1px; height: 14px; background: var(--border); }
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.spacer {
+  flex: 1;
+}
+.sep {
+  width: 1px;
+  height: 14px;
+  background: var(--border);
+}
 
-.dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-.dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
-.dot.amber { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
-.dot.dim   { background: var(--text-dim); }
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot.green {
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+}
+.dot.amber {
+  background: var(--amber);
+  box-shadow: 0 0 6px var(--amber);
+}
+.dot.dim {
+  background: var(--text-dim);
+}
 
-.win-sel { padding: 1px 4px; height: 20px; font-size: 11px; }
+.win-sel {
+  padding: 1px 4px;
+  height: 20px;
+  font-size: 11px;
+}
 
 .buf-bar {
-  width: 56px; height: 5px; background: var(--bg-2);
-  border: 1px solid var(--border); border-radius: 2px; overflow: hidden;
+  width: 56px;
+  height: 5px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  overflow: hidden;
 }
 .buf-fill {
-  height: 100%; background: linear-gradient(90deg, var(--green), var(--cyan));
+  height: 100%;
+  background: linear-gradient(90deg, var(--green), var(--cyan));
   transition: width 0.4s;
 }
 </style>

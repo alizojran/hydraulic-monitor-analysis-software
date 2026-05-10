@@ -6,7 +6,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { useDspStore } from '@/stores/dsp'
 import { useGLHeatmap } from '@/composables/useGLHeatmap'
 import { useAnimationLoop, shouldDraw } from '@/composables/useAnimationLoop'
@@ -40,7 +40,18 @@ useAnimationLoop(() => {
 </script>
 
 <style scoped>
-.waterfall-wrap { display: flex; flex-direction: column; height: 100%; }
-.wf-title { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 8px; }
-.wf-canvas { flex: 1; }
+.waterfall-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.wf-title {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+}
+.wf-canvas {
+  flex: 1;
+}
 </style>

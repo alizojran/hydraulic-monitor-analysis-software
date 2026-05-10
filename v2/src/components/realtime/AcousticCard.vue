@@ -1,10 +1,13 @@
 <template>
   <div class="acoustic-card corners">
-    <div class="c-br" /><div class="c-bl" />
+    <div class="c-br" />
+    <div class="c-bl" />
 
     <div class="card-header">
       <span class="ch-id mono text-dim">S01 · {{ $t('acoustic.spl') }}</span>
-      <span class="header-meta mono text-dim">DURATION <span class="text-1">{{ duration }}</span></span>
+      <span class="header-meta mono text-dim"
+        >DURATION <span class="text-1">{{ duration }}</span></span
+      >
       <span class="flex-spacer" />
       <span class="header-meta text-dim">{{ $t('acoustic.subtitle') }}</span>
     </div>
@@ -13,7 +16,10 @@
       <!-- Left: big SPL value + horizontal gradient + stats -->
       <div class="ac-left">
         <div class="db-block">
-          <span class="db-val mono" :style="{ color: dbColor, textShadow: `0 0 14px ${dbColor}66` }">
+          <span
+            class="db-val mono"
+            :style="{ color: dbColor, textShadow: `0 0 14px ${dbColor}66` }"
+          >
             {{ dbVal }}<small> dB(A)</small>
           </span>
         </div>
@@ -25,12 +31,26 @@
           </div>
         </div>
         <div class="ac-stats mono">
-          <div class="ac-stat-row"><span class="text-dim">PEAK</span><span>{{ peakDb }} dB</span></div>
-          <div class="ac-stat-row"><span class="text-dim">LAeq</span><span>{{ laeq }} dB</span></div>
-          <div class="ac-stat-row"><span class="text-dim">L10</span><span>{{ l10 }} dB</span></div>
-          <div class="ac-stat-row"><span class="text-dim">L90</span><span>{{ l90 }} dB</span></div>
-          <div class="ac-stat-row"><span class="text-dim">{{ $t('acoustic.peakFreq') }}</span><span class="text-cyan">{{ peakFreq }} kHz</span></div>
-          <div class="ac-stat-row"><span class="text-dim">{{ $t('acoustic.bandwidth') }}</span><span>20 kHz</span></div>
+          <div class="ac-stat-row">
+            <span class="text-dim">PEAK</span><span>{{ peakDb }} dB</span>
+          </div>
+          <div class="ac-stat-row">
+            <span class="text-dim">LAeq</span><span>{{ laeq }} dB</span>
+          </div>
+          <div class="ac-stat-row">
+            <span class="text-dim">L10</span><span>{{ l10 }} dB</span>
+          </div>
+          <div class="ac-stat-row">
+            <span class="text-dim">L90</span><span>{{ l90 }} dB</span>
+          </div>
+          <div class="ac-stat-row">
+            <span class="text-dim">{{ $t('acoustic.peakFreq') }}</span
+            ><span class="text-cyan">{{ peakFreq }} kHz</span>
+          </div>
+          <div class="ac-stat-row">
+            <span class="text-dim">{{ $t('acoustic.bandwidth') }}</span
+            ><span>20 kHz</span>
+          </div>
         </div>
 
         <!-- LAeq trend sparkline (last minute) -->
@@ -42,7 +62,9 @@
 
       <!-- Right: full-height spectrogram waterfall -->
       <div class="ac-right">
-        <div class="ac-wave-label mono text-dim">SPECTROGRAM · 20 Hz – 20 kHz · {{ locale === 'zh' ? '瀑布图' : 'Waterfall' }}</div>
+        <div class="ac-wave-label mono text-dim">
+          SPECTROGRAM · 20 Hz – 20 kHz · {{ locale === 'zh' ? '瀑布图' : 'Waterfall' }}
+        </div>
         <div class="spectrogram"><GlowCanvas ref="spectroCanvas" /></div>
       </div>
     </div>
@@ -78,7 +100,7 @@ const dbColor = computed(() => {
   return '#00ff95'
 })
 
-const peakDb = computed(() => buf.value.length ? Math.max(...buf.value).toFixed(1) : '—')
+const peakDb = computed(() => (buf.value.length ? Math.max(...buf.value).toFixed(1) : '—'))
 const laeq = computed(() => {
   const b = buf.value
   if (!b.length) return '—'
@@ -99,7 +121,8 @@ function percentile(b: number[] | Float32Array, p: number): string {
 
 const duration = computed(() => {
   const s = Math.max(0, Math.floor(acqStore.elapsedSec))
-  const m = Math.floor(s / 60), sec = s % 60
+  const m = Math.floor(s / 60),
+    sec = s % 60
   return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
 })
 
@@ -117,17 +140,23 @@ function drawLaeqSparkline() {
   if (!canvas) return
   const ctx = canvas.getContext('2d')
   if (!ctx) return
-  const w = canvas.width, h = canvas.height
+  const w = canvas.width,
+    h = canvas.height
   ctx.clearRect(0, 0, w, h)
 
   const data = laeqHistory.value
   if (data.length < 2) return
 
   // Auto-range with padding
-  let mn = Infinity, mx = -Infinity
-  for (const v of data) { if (v < mn) mn = v; if (v > mx) mx = v }
+  let mn = Infinity,
+    mx = -Infinity
+  for (const v of data) {
+    if (v < mn) mn = v
+    if (v > mx) mx = v
+  }
   const pad = (mx - mn) * 0.15 + 0.5
-  mn -= pad; mx += pad
+  mn -= pad
+  mx += pad
 
   const xStep = w / (LAEQ_WINDOW - 1)
 
@@ -178,9 +207,14 @@ onMounted(() => {
     }
   }, 1000)
 })
-onUnmounted(() => { if (laeqTimer) clearInterval(laeqTimer) })
+onUnmounted(() => {
+  if (laeqTimer) clearInterval(laeqTimer)
+})
 
-watch(() => laeqHistory.value.length, () => drawLaeqSparkline())
+watch(
+  () => laeqHistory.value.length,
+  () => drawLaeqSparkline(),
+)
 
 // Monotonic-total seen by this component instance. On (re-)mount this starts
 // at 0 so the full stored history is replayed in one frame, restoring the
@@ -212,69 +246,146 @@ useAnimationLoop((now) => {
 
 <style scoped>
 .acoustic-card {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: var(--r2); display: flex; flex-direction: column; overflow: hidden;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   height: 100%;
 }
 .card-header {
-  display: flex; align-items: center; gap: 14px;
-  padding: 5px 12px; border-bottom: 1px solid var(--border);
-  background: var(--bg-2); font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 5px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-2);
+  font-size: 11px;
 }
-.flex-spacer { flex: 1; }
-.header-meta { font-size: 10.5px; letter-spacing: 0.06em; }
+.flex-spacer {
+  flex: 1;
+}
+.header-meta {
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+}
 
 .ac-body {
-  flex: 1; display: grid; grid-template-columns: 240px 1fr;
-  gap: 10px; padding: 10px 12px; min-height: 0;
+  flex: 1;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 10px;
+  padding: 10px 12px;
+  min-height: 0;
 }
 
-.ac-left { display: flex; flex-direction: column; gap: 8px; }
-.db-block { display: flex; align-items: baseline; gap: 4px; }
-.db-val { font-size: 36px; font-weight: 700; line-height: 1; letter-spacing: 0.01em; }
-.db-val small { font-size: 12px; font-weight: 500; color: var(--text-2); margin-left: 2px; }
+.ac-left {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.db-block {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.db-val {
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+.db-val small {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+  margin-left: 2px;
+}
 
-.spl-bar { position: relative; height: 18px; }
+.spl-bar {
+  position: relative;
+  height: 18px;
+}
 .spl-grad {
-  position: absolute; inset: 0;
+  position: absolute;
+  inset: 0;
   background: linear-gradient(90deg, #00ff95 0%, #ffe600 40%, #ff8800 70%, #ff3355 100%);
-  border-radius: 2px; opacity: 0.7;
+  border-radius: 2px;
+  opacity: 0.7;
   border: 1px solid var(--border);
 }
 .spl-marker {
-  position: absolute; top: -3px; bottom: -3px; width: 2px;
-  background: #fff; box-shadow: 0 0 6px #fff;
-  transform: translateX(-1px); transition: left 0.15s linear;
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: #fff;
+  box-shadow: 0 0 6px #fff;
+  transform: translateX(-1px);
+  transition: left 0.15s linear;
 }
 .spl-ticks {
-  position: absolute; top: 100%; left: 0; right: 0;
-  display: flex; justify-content: space-between;
-  font-family: var(--font-mono); font-size: 9px; color: var(--text-2);
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-2);
   padding: 2px 0;
 }
 
 .ac-stats {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 2px 14px;
-  font-size: 11px; padding-top: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 14px;
+  font-size: 11px;
+  padding-top: 8px;
 }
-.ac-stat-row { display: flex; justify-content: space-between; }
-.ac-stat-row .text-dim { letter-spacing: 0.06em; font-size: 10px; }
+.ac-stat-row {
+  display: flex;
+  justify-content: space-between;
+}
+.ac-stat-row .text-dim {
+  letter-spacing: 0.06em;
+  font-size: 10px;
+}
 
 .laeq-trend {
-  display: flex; flex-direction: column; gap: 2px;
-  margin-top: auto; padding-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: auto;
+  padding-top: 6px;
 }
-.lt-label { font-size: 9px; letter-spacing: 0.1em; }
+.lt-label {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+}
 .lt-canvas {
-  width: 100%; height: 36px;
-  background: var(--bg-2); border: 1px solid var(--border);
+  width: 100%;
+  height: 36px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
   border-radius: 2px;
 }
 
 .ac-right {
-  display: flex; flex-direction: column; gap: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   min-height: 0;
 }
-.ac-wave-label { font-size: 9px; letter-spacing: 0.1em; padding: 2px 0 4px; }
-.spectrogram { flex: 1; min-height: 60px; }
+.ac-wave-label {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  padding: 2px 0 4px;
+}
+.spectrogram {
+  flex: 1;
+  min-height: 60px;
+}
 </style>

@@ -21,7 +21,7 @@ interface FftRequest {
   config: FftConfig
   channelId: string
   requestId: number
-  envelope?: boolean   // when true, run Hilbert → |·| → FFT(envelope)
+  envelope?: boolean // when true, run Hilbert → |·| → FFT(envelope)
 }
 
 // ─── Window functions ───────────────────────────────────────────────
@@ -36,19 +36,28 @@ function getWindow(name: string, N: number): Float32Array {
       return w
     case 'blackman':
       for (let i = 0; i < N; i++) {
-        w[i] = 0.42 - 0.5 * Math.cos((2 * Math.PI * i) / (N - 1)) + 0.08 * Math.cos((4 * Math.PI * i) / (N - 1))
+        w[i] =
+          0.42 -
+          0.5 * Math.cos((2 * Math.PI * i) / (N - 1)) +
+          0.08 * Math.cos((4 * Math.PI * i) / (N - 1))
       }
       return w
     case 'flattop': {
-      const a0 = 0.21557895, a1 = 0.41663158, a2 = 0.27726316, a3 = 0.08357895, a4 = 0.00694737
+      const a0 = 0.21557895,
+        a1 = 0.41663158,
+        a2 = 0.27726316,
+        a3 = 0.08357895,
+        a4 = 0.00694737
       for (let i = 0; i < N; i++) {
         const x = (2 * Math.PI * i) / (N - 1)
-        w[i] = a0 - a1 * Math.cos(x) + a2 * Math.cos(2 * x) - a3 * Math.cos(3 * x) + a4 * Math.cos(4 * x)
+        w[i] =
+          a0 - a1 * Math.cos(x) + a2 * Math.cos(2 * x) - a3 * Math.cos(3 * x) + a4 * Math.cos(4 * x)
       }
       return w
     }
     default:
-      w.fill(1); return w
+      w.fill(1)
+      return w
   }
 }
 
@@ -64,7 +73,7 @@ function getTwiddles(N: number): Float64Array {
   let off = 0
   for (let len = 2; len <= N; len <<= 1) {
     const half = len >> 1
-    const angStep = -2 * Math.PI / len
+    const angStep = (-2 * Math.PI) / len
     for (let k = 0; k < half; k++) {
       t[off++] = Math.cos(angStep * k)
       t[off++] = Math.sin(angStep * k)
@@ -80,11 +89,18 @@ function fftInPlace(re: Float32Array, im: Float32Array): void {
   let j = 0
   for (let i = 0; i < N - 1; i++) {
     if (i < j) {
-      const tr = re[i]; re[i] = re[j]; re[j] = tr
-      const ti = im[i]; im[i] = im[j]; im[j] = ti
+      const tr = re[i]
+      re[i] = re[j]
+      re[j] = tr
+      const ti = im[i]
+      im[i] = im[j]
+      im[j] = ti
     }
     let k = N >> 1
-    while (k <= j) { j -= k; k >>= 1 }
+    while (k <= j) {
+      j -= k
+      k >>= 1
+    }
     j += k
   }
   // butterflies
@@ -95,12 +111,16 @@ function fftInPlace(re: Float32Array, im: Float32Array): void {
     for (let i = 0; i < N; i += len) {
       let to = off
       for (let k = 0; k < half; k++) {
-        const wr = t[to++], wi = t[to++]
-        const ix = i + k, jx = ix + half
+        const wr = t[to++],
+          wi = t[to++]
+        const ix = i + k,
+          jx = ix + half
         const tr = wr * re[jx] - wi * im[jx]
         const ti = wr * im[jx] + wi * re[jx]
-        re[jx] = re[ix] - tr; im[jx] = im[ix] - ti
-        re[ix] = re[ix] + tr; im[ix] = im[ix] + ti
+        re[jx] = re[ix] - tr
+        im[jx] = im[ix] - ti
+        re[ix] = re[ix] + tr
+        im[ix] = im[ix] + ti
       }
     }
     off += half * 2
@@ -116,7 +136,8 @@ function computeRms(samples: Float32Array): number {
 function computePeak(samples: Float32Array): number {
   let m = 0
   for (let i = 0; i < samples.length; i++) {
-    const a = Math.abs(samples[i]); if (a > m) m = a
+    const a = Math.abs(samples[i])
+    if (a > m) m = a
   }
   return m
 }
@@ -133,12 +154,20 @@ function computeTHD(magLin: Float32Array, f0Bin: number, harmonics = 5): number 
 }
 function parabolicPeak(mag: Float32Array, bin: number): number {
   if (bin <= 0 || bin >= mag.length - 1) return bin
-  const a = mag[bin - 1], b = mag[bin], c = mag[bin + 1]
+  const a = mag[bin - 1],
+    b = mag[bin],
+    c = mag[bin + 1]
   const denom = a - 2 * b + c
   if (Math.abs(denom) < 1e-10) return bin
-  return bin - 0.5 * (c - a) / denom
+  return bin - (0.5 * (c - a)) / denom
 }
-function findPeaks(magDb: Float32Array, magLin: Float32Array, freqs: Float32Array, binHz: number, n = 8): PeakInfo[] {
+function findPeaks(
+  magDb: Float32Array,
+  magLin: Float32Array,
+  freqs: Float32Array,
+  binHz: number,
+  n = 8,
+): PeakInfo[] {
   const minBin = Math.max(1, Math.floor(10 / binHz))
   const peaks: PeakInfo[] = []
   for (let i = minBin + 1; i < magDb.length - 1; i++) {
@@ -150,7 +179,11 @@ function findPeaks(magDb: Float32Array, magLin: Float32Array, freqs: Float32Arra
   const filtered: PeakInfo[] = []
   for (const p of peaks) {
     let close = false
-    for (const f of filtered) if (Math.abs(p.binIndex - f.binIndex) < 3) { close = true; break }
+    for (const f of filtered)
+      if (Math.abs(p.binIndex - f.binIndex) < 3) {
+        close = true
+        break
+      }
     if (!close) {
       const interpBin = parabolicPeak(magLin, p.binIndex)
       filtered.push({ ...p, frequency: interpBin * binHz })
@@ -172,10 +205,12 @@ function hilbertEnvelope(input: Float32Array): Float32Array {
 
   // Single-sided mask: bin 0 + bin N/2 unchanged, 1..N/2-1 doubled, rest zero.
   for (let i = 1; i < N / 2; i++) {
-    re[i] *= 2; im[i] *= 2
+    re[i] *= 2
+    im[i] *= 2
   }
   for (let i = N / 2 + 1; i < N; i++) {
-    re[i] = 0; im[i] = 0
+    re[i] = 0
+    im[i] = 0
   }
   // IFFT via conjugate-FFT-conjugate / N
   for (let i = 0; i < N; i++) im[i] = -im[i]
@@ -184,7 +219,7 @@ function hilbertEnvelope(input: Float32Array): Float32Array {
   const env = new Float32Array(N)
   for (let i = 0; i < N; i++) {
     const r = re[i] * inv
-    const m = -im[i] * inv  // un-conjugate
+    const m = -im[i] * inv // un-conjugate
     env[i] = Math.sqrt(r * r + m * m)
   }
   return env
@@ -238,7 +273,8 @@ self.onmessage = (e: MessageEvent<FftRequest>) => {
     const scale = 2 / fftSize
 
     for (let i = 0; i < halfN; i++) {
-      const r = re[i], m = im[i]
+      const r = re[i],
+        m = im[i]
       const mag = Math.sqrt(r * r + m * m) * scale
       magnitudeLinear[i] = mag
       magnitudeDb[i] = mag > 1e-10 ? 20 * Math.log10(mag) : -120
@@ -252,10 +288,30 @@ self.onmessage = (e: MessageEvent<FftRequest>) => {
     const peakValue = computePeak(windowed)
     const crestFactor = rms > 0 ? peakValue / rms : 0
 
-    const result = { magnitudeDb, magnitudeLinear, frequencies, binHz, peaks, thd, rms, peakValue, crestFactor }
-    const msg = { type: 'result', result, channelId, requestId, processingMs: performance.now() - t0 }
+    const result = {
+      magnitudeDb,
+      magnitudeLinear,
+      frequencies,
+      binHz,
+      peaks,
+      thd,
+      rms,
+      peakValue,
+      crestFactor,
+    }
+    const msg = {
+      type: 'result',
+      result,
+      channelId,
+      requestId,
+      processingMs: performance.now() - t0,
+    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(self as any).postMessage(msg, [magnitudeDb.buffer, magnitudeLinear.buffer, frequencies.buffer])
+    ;(self as any).postMessage(msg, [
+      magnitudeDb.buffer,
+      magnitudeLinear.buffer,
+      frequencies.buffer,
+    ])
   } catch (err) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(self as any).postMessage({ type: 'error', error: String(err) })

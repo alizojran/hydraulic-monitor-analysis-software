@@ -114,10 +114,14 @@ export function useWebSerial() {
     abortCtrl?.abort()
     try {
       await (reader as ReadableStreamDefaultReader<Uint8Array> | null)?.cancel()
-    } catch { /* ignored */ }
+    } catch {
+      /* ignored */
+    }
     try {
       await port?.close()
-    } catch { /* ignored */ }
+    } catch {
+      /* ignored */
+    }
     port = null
     reader = null
     abortCtrl = null

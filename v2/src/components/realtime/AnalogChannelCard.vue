@@ -1,6 +1,7 @@
 <template>
   <div class="ch-card corners" :class="{ alarm: hasAlarm }">
-    <div class="c-br" /><div class="c-bl" />
+    <div class="c-br" />
+    <div class="c-bl" />
 
     <div class="ch-header">
       <span class="ch-id mono">{{ ch.id }} · {{ ch.short }}</span>
@@ -17,7 +18,10 @@
     <div class="ch-stats mono">
       <span><span class="text-dim">MIN</span> {{ minVal }}</span>
       <span><span class="text-dim">MAX</span> {{ maxVal }}</span>
-      <span><span class="text-dim">RMS</span> <span :style="{color: ch.hex}">{{ rmsVal }}</span></span>
+      <span
+        ><span class="text-dim">RMS</span>
+        <span :style="{ color: ch.hex }">{{ rmsVal }}</span></span
+      >
     </div>
 
     <div class="ch-canvas-wrap">
@@ -58,13 +62,15 @@ onMounted(() => {
     snapValue.value = acqStore.channelValues[props.channelId] ?? ch.base ?? 0
   }, 200)
 })
-onUnmounted(() => { if (snapTimer) clearInterval(snapTimer) })
+onUnmounted(() => {
+  if (snapTimer) clearInterval(snapTimer)
+})
 
 const displayVal = computed(() => snapValue.value.toFixed(ch.type === 'temperature' ? 2 : 1))
 
 const buf = computed(() => acqStore.channelBuffers[props.channelId]?.buffer ?? [])
-const minVal = computed(() => buf.value.length ? Math.min(...buf.value).toFixed(1) : '—')
-const maxVal = computed(() => buf.value.length ? Math.max(...buf.value).toFixed(1) : '—')
+const minVal = computed(() => (buf.value.length ? Math.min(...buf.value).toFixed(1) : '—'))
+const maxVal = computed(() => (buf.value.length ? Math.max(...buf.value).toFixed(1) : '—'))
 const rmsVal = computed(() => {
   const b = buf.value
   if (!b.length) return '—'
@@ -73,7 +79,7 @@ const rmsVal = computed(() => {
 })
 
 const hasAlarm = computed(() =>
-  alarmsStore.activeEvents.some(e => e.channelId === props.channelId)
+  alarmsStore.activeEvents.some((e) => e.channelId === props.channelId),
 )
 
 useAnimationLoop(() => {
@@ -94,7 +100,10 @@ useAnimationLoop(() => {
   overflow: hidden;
   position: relative;
 }
-.ch-card.alarm { border-color: var(--red); box-shadow: 0 0 12px rgba(255,51,85,0.18); }
+.ch-card.alarm {
+  border-color: var(--red);
+  box-shadow: 0 0 12px rgba(255, 51, 85, 0.18);
+}
 
 .ch-header {
   display: flex;
@@ -104,24 +113,56 @@ useAnimationLoop(() => {
   border-bottom: 1px solid var(--border);
   background: var(--bg-2);
 }
-.ch-id { font-size: 10px; color: var(--text-2); letter-spacing: 0.06em; }
+.ch-id {
+  font-size: 10px;
+  color: var(--text-2);
+  letter-spacing: 0.06em;
+}
 .ch-name {
-  flex: 1; font-size: 11px; color: var(--text-1);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  flex: 1;
+  font-size: 11px;
+  color: var(--text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.ch-status-dot { width: 6px; height: 6px; border-radius: 50%; }
+.ch-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
 
-.ch-value-row { padding: 8px 10px 2px; }
-.ch-val {
-  font-size: 26px; font-weight: 700; letter-spacing: 0.02em; line-height: 1.05;
+.ch-value-row {
+  padding: 8px 10px 2px;
 }
-.ch-val small { font-size: 11px; font-weight: 500; color: var(--text-2); margin-left: 3px; }
+.ch-val {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+}
+.ch-val small {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-2);
+  margin-left: 3px;
+}
 
 .ch-stats {
-  display: flex; justify-content: space-between;
-  padding: 2px 10px 4px; font-size: 10px; color: var(--text-1);
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 10px 4px;
+  font-size: 10px;
+  color: var(--text-1);
 }
-.ch-stats .text-dim { margin-right: 3px; letter-spacing: 0.04em; }
+.ch-stats .text-dim {
+  margin-right: 3px;
+  letter-spacing: 0.04em;
+}
 
-.ch-canvas-wrap { flex: 1; min-height: 38px; padding: 0 4px 4px; }
+.ch-canvas-wrap {
+  flex: 1;
+  min-height: 38px;
+  padding: 0 4px 4px;
+}
 </style>

@@ -38,13 +38,17 @@ function loadProfiles(): ProfileSnapshot[] {
   try {
     const v = localStorage.getItem(PROFILES_KEY)
     return v ? JSON.parse(v) : []
-  } catch { return [] }
+  } catch {
+    return []
+  }
 }
 
 export const useProfilesStore = defineStore('profiles', () => {
   const profiles = ref<ProfileSnapshot[]>(loadProfiles())
   const activeProfileName = ref<string>(localStorage.getItem(ACTIVE_KEY) ?? DEFAULT_PROFILE_NAME)
-  const activeProfile = computed(() => profiles.value.find(p => p.name === activeProfileName.value) ?? null)
+  const activeProfile = computed(
+    () => profiles.value.find((p) => p.name === activeProfileName.value) ?? null,
+  )
 
   function _save() {
     localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles.value))
@@ -117,7 +121,7 @@ export const useProfilesStore = defineStore('profiles', () => {
   }
 
   function upsertProfile(data: ProfileSnapshot) {
-    const idx = profiles.value.findIndex(p => p.name === data.name)
+    const idx = profiles.value.findIndex((p) => p.name === data.name)
     if (idx >= 0) {
       profiles.value[idx] = data
     } else {
@@ -128,20 +132,20 @@ export const useProfilesStore = defineStore('profiles', () => {
 
   function deleteProfile(name: string) {
     if (name === DEFAULT_PROFILE_NAME) return
-    profiles.value = profiles.value.filter(p => p.name !== name)
+    profiles.value = profiles.value.filter((p) => p.name !== name)
     if (activeProfileName.value === name) setActive(DEFAULT_PROFILE_NAME)
     _save()
   }
 
   function cloneProfile(sourceName: string, newName: string) {
-    const src = profiles.value.find(p => p.name === sourceName)
+    const src = profiles.value.find((p) => p.name === sourceName)
     if (!src) return
     upsertProfile({ ...JSON.parse(JSON.stringify(src)), name: newName, createdAt: Date.now() })
     setActive(newName)
   }
 
   function exportProfile(name: string): string {
-    const p = profiles.value.find(x => x.name === name)
+    const p = profiles.value.find((x) => x.name === name)
     if (!p) throw new Error('Profile not found')
     return JSON.stringify(p, null, 2)
   }
@@ -158,9 +162,18 @@ export const useProfilesStore = defineStore('profiles', () => {
   }
 
   return {
-    profiles, activeProfileName, activeProfile,
-    setActive, upsertProfile, deleteProfile, cloneProfile,
-    captureCurrentState, applyProfile, saveToActive,
-    exportProfile, exportAll, importProfile,
+    profiles,
+    activeProfileName,
+    activeProfile,
+    setActive,
+    upsertProfile,
+    deleteProfile,
+    cloneProfile,
+    captureCurrentState,
+    applyProfile,
+    saveToActive,
+    exportProfile,
+    exportAll,
+    importProfile,
   }
 })

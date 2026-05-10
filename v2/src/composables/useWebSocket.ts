@@ -47,17 +47,30 @@ export function useWebSocket() {
   function handleMessage(data: string) {
     messagesReceived.value++
     try {
-      const msg = JSON.parse(data) as { type?: string; ts?: number; ch?: Record<string, number>; frames?: unknown[] }
+      const msg = JSON.parse(data) as {
+        type?: string
+        ts?: number
+        ch?: Record<string, number>
+        frames?: unknown[]
+      }
       if (msg.type === 'batch' && Array.isArray(msg.frames)) {
         for (const f of msg.frames) {
           const frame = parseFrameObj(f as { ts?: unknown; ch?: unknown })
-          if (frame) { acqStore.pushFrame(frame); framesReceived.value++ }
+          if (frame) {
+            acqStore.pushFrame(frame)
+            framesReceived.value++
+          }
         }
       } else {
         const frame = parseFrameObj(msg)
-        if (frame) { acqStore.pushFrame(frame); framesReceived.value++ }
+        if (frame) {
+          acqStore.pushFrame(frame)
+          framesReceived.value++
+        }
       }
-    } catch { /* malformed message — skip */ }
+    } catch {
+      /* malformed message — skip */
+    }
   }
 
   function scheduleReconnect() {
@@ -114,7 +127,10 @@ export function useWebSocket() {
 
   function disconnect() {
     intentionalClose = true
-    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null }
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer)
+      reconnectTimer = null
+    }
     ws?.close()
     ws = null
     status.value = 'disconnected'

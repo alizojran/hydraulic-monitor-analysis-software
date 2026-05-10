@@ -5,12 +5,16 @@ export function useGLBars(canvasRef: Ref<HTMLCanvasElement | null>) {
   let bars: GLBars | null = null
   const isAvailable = ref(false)
 
-  watch(canvasRef, (canvas) => {
-    if (canvas && !bars) {
-      bars = new GLBars(canvas)
-      isAvailable.value = !bars.failed
-    }
-  }, { immediate: true, flush: 'post' })
+  watch(
+    canvasRef,
+    (canvas) => {
+      if (canvas && !bars) {
+        bars = new GLBars(canvas)
+        isAvailable.value = !bars.failed
+      }
+    },
+    { immediate: true, flush: 'post' },
+  )
 
   onUnmounted(() => {
     bars?.destroy()

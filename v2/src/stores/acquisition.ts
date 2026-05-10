@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, reactive, computed } from 'vue'
-import { DISPLAY_POINTS, CHANNEL_DEFS, TIME_WINDOWS } from '@/config/channels'
+import { DISPLAY_POINTS, CHANNEL_DEFS } from '@/config/channels'
 import type { SampleFrame } from '@/types/channel'
 
 export type DataSource = 'simulated' | 'csv' | 'wav' | 'webserial' | 'websocket' | 'modbus'
@@ -39,23 +39,30 @@ class TimeWindowBuffer {
       const avg = this.acc.count > 0 ? this.acc.sum / this.acc.count : value
       const mn = this.acc.count > 0 ? this.acc.min : value
       const mx = this.acc.count > 0 ? this.acc.max : value
-      this.points.shift(); this.points.push(avg)
-      this.minPoints.shift(); this.minPoints.push(mn)
-      this.maxPoints.shift(); this.maxPoints.push(mx)
+      this.points.shift()
+      this.points.push(avg)
+      this.minPoints.shift()
+      this.minPoints.push(mn)
+      this.maxPoints.shift()
+      this.maxPoints.push(mx)
       if (this.filledCount < DISPLAY_POINTS) this.filledCount++
       this.acc = { sum: value, min: value, max: value, count: 1 }
       this.lastEmitTime += this._pointIntervalMs
       if (now - this.lastEmitTime > this._pointIntervalMs * DISPLAY_POINTS) {
-        this.lastEmitTime = now; break
+        this.lastEmitTime = now
+        break
       }
     }
   }
 
   reset(value?: number) {
     const v = value ?? this.lastValue
-    this.points.fill(v); this.minPoints.fill(v); this.maxPoints.fill(v)
+    this.points.fill(v)
+    this.minPoints.fill(v)
+    this.maxPoints.fill(v)
     this.acc = { sum: 0, min: Infinity, max: -Infinity, count: 0 }
-    this.lastEmitTime = 0; this.filledCount = 0
+    this.lastEmitTime = 0
+    this.filledCount = 0
   }
 
   get buffer(): number[] {
@@ -64,7 +71,9 @@ class TimeWindowBuffer {
     return this.points.slice(DISPLAY_POINTS - this.filledCount)
   }
 
-  get fillFraction() { return this.filledCount / DISPLAY_POINTS }
+  get fillFraction() {
+    return this.filledCount / DISPLAY_POINTS
+  }
 }
 
 export const useAcquisitionStore = defineStore('acquisition', () => {
@@ -78,21 +87,26 @@ export const useAcquisitionStore = defineStore('acquisition', () => {
 
   // Per-channel time-window buffers
   const channelBuffers = reactive<Record<string, TimeWindowBuffer>>(
-    Object.fromEntries(CHANNEL_DEFS.map(ch => [ch.id, new TimeWindowBuffer(ch.base ?? 0, (timeWindowSec.value * 1000) / DISPLAY_POINTS)]))
+    Object.fromEntries(
+      CHANNEL_DEFS.map((ch) => [
+        ch.id,
+        new TimeWindowBuffer(ch.base ?? 0, (timeWindowSec.value * 1000) / DISPLAY_POINTS),
+      ]),
+    ),
   )
 
   // Current instantaneous values for display
   const channelValues = reactive<Record<string, number>>(
-    Object.fromEntries(CHANNEL_DEFS.map(ch => [ch.id, ch.base ?? 0]))
+    Object.fromEntries(CHANNEL_DEFS.map((ch) => [ch.id, ch.base ?? 0])),
   )
 
   // Raw sample buffer for FFT (last N samples per channel)
   const FFT_BUF_SIZE = 16384
   const fftBuffers = reactive<Record<string, Float32Array>>(
-    Object.fromEntries(CHANNEL_DEFS.map(ch => [ch.id, new Float32Array(FFT_BUF_SIZE)]))
+    Object.fromEntries(CHANNEL_DEFS.map((ch) => [ch.id, new Float32Array(FFT_BUF_SIZE)])),
   )
   const fftBufHead = reactive<Record<string, number>>(
-    Object.fromEntries(CHANNEL_DEFS.map(ch => [ch.id, 0]))
+    Object.fromEntries(CHANNEL_DEFS.map((ch) => [ch.id, 0])),
   )
 
   // For file playback
@@ -132,8 +146,12 @@ export const useAcquisitionStore = defineStore('acquisition', () => {
     sessionStartTime.value = null
   }
 
-  function pause() { isPaused.value = true }
-  function resume() { isPaused.value = false }
+  function pause() {
+    isPaused.value = true
+  }
+  function resume() {
+    isPaused.value = false
+  }
 
   function setTimeWindow(seconds: number) {
     timeWindowSec.value = seconds
@@ -192,10 +210,31 @@ export const useAcquisitionStore = defineStore('acquisition', () => {
   }
 
   return {
-    dataSource, isRunning, isPaused, timeWindowSec, sampleRate,
-    sessionStartTime, elapsedSec, channelBuffers, channelValues,
-    loadedFrames, loadedSampleRate, playbackPosition, pointIntervalMs,
-    acousticSpectrogram, acousticSpectrogramTotal, pushAcousticColumn, clearAcousticSpectrogram,
-    start, stop, pause, resume, setTimeWindow, pushFrame, setDataSource, loadFrames, getFftSamples,
+    dataSource,
+    isRunning,
+    isPaused,
+    timeWindowSec,
+    sampleRate,
+    sessionStartTime,
+    elapsedSec,
+    channelBuffers,
+    channelValues,
+    loadedFrames,
+    loadedSampleRate,
+    playbackPosition,
+    pointIntervalMs,
+    acousticSpectrogram,
+    acousticSpectrogramTotal,
+    pushAcousticColumn,
+    clearAcousticSpectrogram,
+    start,
+    stop,
+    pause,
+    resume,
+    setTimeWindow,
+    pushFrame,
+    setDataSource,
+    loadFrames,
+    getFftSamples,
   }
 })

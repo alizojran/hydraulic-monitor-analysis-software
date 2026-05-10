@@ -43,11 +43,11 @@
     "CH06": "Cooler Return Temp",
     "CH07": "Cylinder 1 Position",
     "CH08": "Cylinder 2 Position",
-    "F01":  "Main Flow Rate",
-    "F02":  "Particle Count",
-    "V01":  "Motor Speed",
-    "V02":  "Motor Vibration Y",
-    "S01":  "Acoustic Sensor"
+    "F01": "Main Flow Rate",
+    "F02": "Particle Count",
+    "V01": "Motor Speed",
+    "V02": "Motor Vibration Y",
+    "S01": "Acoustic Sensor"
   },
   "source": {
     "title": "Data Source",

@@ -58,7 +58,7 @@ describe('computeBearingFrequencies', () => {
     const fast = computeBearingFrequencies({ ...REF_6205, rpmHz: 20 })
     expect(fast.bpfi / slow.bpfi).toBeCloseTo(2, 5)
     expect(fast.bpfo / slow.bpfo).toBeCloseTo(2, 5)
-    expect(fast.ftf  / slow.ftf ).toBeCloseTo(2, 5)
+    expect(fast.ftf / slow.ftf).toBeCloseTo(2, 5)
   })
 
   it('contact angle affects ball pass frequencies', () => {
@@ -73,7 +73,11 @@ describe('computeBearingFrequencies', () => {
 
   it('FAG 22320 contact angle 12° produces valid results', () => {
     const res = computeBearingFrequencies({
-      rpmHz: 25, ballCount: 14, pitchDiamMm: 145.0, ballDiamMm: 28.0, contactAngleDeg: 12,
+      rpmHz: 25,
+      ballCount: 14,
+      pitchDiamMm: 145.0,
+      ballDiamMm: 28.0,
+      contactAngleDeg: 12,
     })
     expect(res.bpfi).toBeGreaterThan(0)
     expect(res.bpfo).toBeGreaterThan(0)

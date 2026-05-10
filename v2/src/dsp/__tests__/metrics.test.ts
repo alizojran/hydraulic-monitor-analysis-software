@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { computeRms, computePeak, computeCrestFactor, computeTHD } from '../metrics'
 
-function f32(arr: number[]): Float32Array { return new Float32Array(arr) }
+function f32(arr: number[]): Float32Array {
+  return new Float32Array(arr)
+}
 
 describe('computeRms', () => {
   it('RMS of a DC signal equals its amplitude', () => {
@@ -12,7 +14,7 @@ describe('computeRms', () => {
   it('RMS of a pure sine wave = amplitude / √2', () => {
     const N = 4096
     const sig = new Float32Array(N)
-    for (let i = 0; i < N; i++) sig[i] = Math.sin(2 * Math.PI * i / 64)
+    for (let i = 0; i < N; i++) sig[i] = Math.sin((2 * Math.PI * i) / 64)
     expect(computeRms(sig)).toBeCloseTo(1 / Math.SQRT2, 3)
   })
 
@@ -43,7 +45,7 @@ describe('computeCrestFactor', () => {
   it('crest factor of a sine wave ≈ √2', () => {
     const N = 4096
     const sig = new Float32Array(N)
-    for (let i = 0; i < N; i++) sig[i] = Math.sin(2 * Math.PI * i / 64)
+    for (let i = 0; i < N; i++) sig[i] = Math.sin((2 * Math.PI * i) / 64)
     expect(computeCrestFactor(sig)).toBeCloseTo(Math.SQRT2, 2)
   })
 
@@ -58,7 +60,7 @@ describe('computeCrestFactor', () => {
 
   it('impulsive signal has high crest factor', () => {
     const sig = new Float32Array(1024).fill(0.01)
-    sig[512] = 10.0  // single impulse
+    sig[512] = 10.0 // single impulse
     expect(computeCrestFactor(sig)).toBeGreaterThan(10)
   })
 })
@@ -77,14 +79,14 @@ describe('computeTHD', () => {
 
   it('pure fundamental (no harmonics) gives THD near 0', () => {
     const mag = new Float32Array(256).fill(0)
-    mag[10] = 1.0  // only fundamental
+    mag[10] = 1.0 // only fundamental
     expect(computeTHD(mag, 10)).toBeCloseTo(0, 5)
   })
 
   it('equal fundamental + 2nd harmonic gives THD = 1.0', () => {
     const mag = new Float32Array(256).fill(0)
-    mag[10] = 1.0   // fundamental
-    mag[20] = 1.0   // 2nd harmonic (equal amplitude)
+    mag[10] = 1.0 // fundamental
+    mag[20] = 1.0 // 2nd harmonic (equal amplitude)
     // THD = sqrt(H2^2) / H1 = 1.0
     expect(computeTHD(mag, 10, 2)).toBeCloseTo(1.0, 5)
   })

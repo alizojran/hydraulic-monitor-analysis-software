@@ -7,7 +7,11 @@ export function hex2rgb(h: string): [number, number, number] {
   ]
 }
 
-export function makeProgram(gl: WebGL2RenderingContext, vsSrc: string, fsSrc: string): WebGLProgram | null {
+export function makeProgram(
+  gl: WebGL2RenderingContext,
+  vsSrc: string,
+  fsSrc: string,
+): WebGLProgram | null {
   function compile(type: number, src: string): WebGLShader | null {
     const s = gl.createShader(type)!
     gl.shaderSource(s, src)

@@ -34,7 +34,7 @@ describe('classifyBearingFaults', () => {
   it('detects BPFO critical fault when strong peak injected at bpfo', () => {
     const { magnitudeDb, frequencies } = makeSpectrum([GEOMETRY.bpfo], -10, -80)
     const results = classifyBearingFaults(magnitudeDb, frequencies, GEOMETRY)
-    const bpfo = results.find(r => r.faultType === 'BPFO')!
+    const bpfo = results.find((r) => r.faultType === 'BPFO')!
     expect(bpfo.severity).toBe('critical')
     expect(bpfo.snrDb).toBeGreaterThan(20)
   })
@@ -42,7 +42,7 @@ describe('classifyBearingFaults', () => {
   it('detects BPFI warning fault with moderate SNR', () => {
     const { magnitudeDb, frequencies } = makeSpectrum([GEOMETRY.bpfi], -68, -80)
     const results = classifyBearingFaults(magnitudeDb, frequencies, GEOMETRY)
-    const bpfi = results.find(r => r.faultType === 'BPFI')!
+    const bpfi = results.find((r) => r.faultType === 'BPFI')!
     expect(['watch', 'warning', 'critical']).toContain(bpfi.severity)
   })
 
@@ -50,7 +50,7 @@ describe('classifyBearingFaults', () => {
     const harmonicHz = [GEOMETRY.bpfo, GEOMETRY.bpfo * 2, GEOMETRY.bpfo * 3]
     const { magnitudeDb, frequencies } = makeSpectrum(harmonicHz, -20, -80)
     const results = classifyBearingFaults(magnitudeDb, frequencies, GEOMETRY)
-    const bpfo = results.find(r => r.faultType === 'BPFO')!
+    const bpfo = results.find((r) => r.faultType === 'BPFO')!
     expect(bpfo.hits.length).toBeGreaterThanOrEqual(2)
   })
 

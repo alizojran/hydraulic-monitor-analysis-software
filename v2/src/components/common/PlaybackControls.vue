@@ -1,5 +1,5 @@
 <template>
-  <div class="pb-controls" v-if="acqStore.loadedFrames.length > 0">
+  <div v-if="acqStore.loadedFrames.length > 0" class="pb-controls">
     <button class="pb-btn" @click="onPlayPause">
       <span v-if="!playback.isPlaying.value || playback.isPaused.value">▶</span>
       <span v-else>❚❚</span>
@@ -12,18 +12,23 @@
     </div>
 
     <div class="speed-wrap">
-      <span class="text-dim mono" style="font-size:10px">{{ locale === 'zh' ? '速度' : 'Speed' }}</span>
+      <span class="text-dim mono" style="font-size: 10px">{{
+        locale === 'zh' ? '速度' : 'Speed'
+      }}</span>
       <button
         v-for="s in SPEEDS"
         :key="s"
         class="speed-btn mono"
         :class="{ active: playback.speed.value === s }"
         @click="playback.setSpeed(s)"
-      >{{ s }}×</button>
+      >
+        {{ s }}×
+      </button>
     </div>
 
     <span class="frames-count mono text-dim">
-      {{ acqStore.loadedFrames.length.toLocaleString() }} {{ locale === 'zh' ? '帧' : 'frames' }} · {{ acqStore.loadedSampleRate.toLocaleString() }} Hz
+      {{ acqStore.loadedFrames.length.toLocaleString() }} {{ locale === 'zh' ? '帧' : 'frames' }} ·
+      {{ acqStore.loadedSampleRate.toLocaleString() }} Hz
     </span>
   </div>
 </template>
@@ -57,41 +62,80 @@ function onSeek(e: MouseEvent) {
 
 <style scoped>
 .pb-controls {
-  display: flex; align-items: center; gap: 10px;
-  padding: 4px 12px; font-size: 11px;
-  background: var(--bg-1); border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 12px;
+  font-size: 11px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border);
 }
 .pb-btn {
-  background: transparent; border: 1px solid var(--border);
-  border-radius: var(--r); padding: 2px 8px;
-  font-size: 11px; color: var(--cyan); cursor: pointer;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 2px 8px;
+  font-size: 11px;
+  color: var(--cyan);
+  cursor: pointer;
   font-family: var(--font-mono);
 }
-.pb-btn:hover { background: rgba(0,217,255,0.1); border-color: var(--cyan); }
+.pb-btn:hover {
+  background: rgba(0, 217, 255, 0.1);
+  border-color: var(--cyan);
+}
 
 .seek-wrap {
-  flex: 1; display: flex; align-items: center; gap: 8px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   cursor: pointer;
 }
 .seek-bar {
-  flex: 1; height: 6px; background: var(--bg-2);
-  border: 1px solid var(--border); border-radius: 3px; overflow: hidden;
+  flex: 1;
+  height: 6px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  overflow: hidden;
 }
 .seek-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--cyan), var(--green));
   transition: width 0.05s linear;
 }
-.pos { font-size: 10px; color: var(--text-1); min-width: 32px; text-align: right; }
-
-.speed-wrap { display: flex; align-items: center; gap: 4px; }
-.speed-btn {
-  background: transparent; border: 1px solid var(--border);
-  border-radius: 2px; padding: 1px 6px; font-size: 10px;
-  color: var(--text-2); cursor: pointer;
+.pos {
+  font-size: 10px;
+  color: var(--text-1);
+  min-width: 32px;
+  text-align: right;
 }
-.speed-btn:hover { color: var(--text-1); }
-.speed-btn.active { background: rgba(0,217,255,0.15); border-color: var(--cyan); color: var(--cyan); }
 
-.frames-count { font-size: 10px; }
+.speed-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.speed-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 1px 6px;
+  font-size: 10px;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.speed-btn:hover {
+  color: var(--text-1);
+}
+.speed-btn.active {
+  background: rgba(0, 217, 255, 0.15);
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+
+.frames-count {
+  font-size: 10px;
+}
 </style>

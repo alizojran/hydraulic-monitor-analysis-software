@@ -1,6 +1,22 @@
-export type ChannelType = 'pressure' | 'temperature' | 'displacement' | 'flow' | 'particle' | 'rpm' | 'vibration' | 'acoustic'
+export type ChannelType =
+  | 'pressure'
+  | 'temperature'
+  | 'displacement'
+  | 'flow'
+  | 'particle'
+  | 'rpm'
+  | 'vibration'
+  | 'acoustic'
 
-export type WaveShape = 'pressure' | 'square' | 'sine' | 'slow' | 'noise' | 'rpm' | 'vibration' | 'acoustic'
+export type WaveShape =
+  | 'pressure'
+  | 'square'
+  | 'sine'
+  | 'slow'
+  | 'noise'
+  | 'rpm'
+  | 'vibration'
+  | 'acoustic'
 
 export interface ChannelDef {
   id: string

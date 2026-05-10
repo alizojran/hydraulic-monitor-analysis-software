@@ -24,24 +24,35 @@ self.onmessage = (e: MessageEvent<ParseRequest>) => {
   if (type !== 'parse') return
 
   const warnings: string[] = []
-  const lines = text.split(/\r?\n/).filter(l => l.trim())
+  const lines = text.split(/\r?\n/).filter((l) => l.trim())
   if (lines.length < 2) {
-    self.postMessage({ type: 'done', requestId, channels: [], timestamps: [], detectedSampleRate: 0, rowCount: 0, warnings: ['File is empty'] })
+    self.postMessage({
+      type: 'done',
+      requestId,
+      channels: [],
+      timestamps: [],
+      detectedSampleRate: 0,
+      rowCount: 0,
+      warnings: ['File is empty'],
+    })
     return
   }
 
   // detect delimiter
   const delim = lines[0].includes('\t') ? '\t' : ','
-  const headers = lines[0].split(delim).map(h => h.trim().toLowerCase().replace(/"/g, ''))
+  const headers = lines[0].split(delim).map((h) => h.trim().toLowerCase().replace(/"/g, ''))
 
   // find timestamp column
-  const tsColIndex = headers.findIndex(h => /^(time|timestamp|t|time_s|time_ms|ts)$/i.test(h))
+  const tsColIndex = headers.findIndex((h) => /^(time|timestamp|t|time_s|time_ms|ts)$/i.test(h))
   let tsIsMs = false
 
   const dataHeaders = headers.filter((_, i) => i !== tsColIndex)
-  const dataIndices = headers.reduce<number[]>((acc, _, i) => { if (i !== tsColIndex) acc.push(i); return acc }, [])
+  const dataIndices = headers.reduce<number[]>((acc, _, i) => {
+    if (i !== tsColIndex) acc.push(i)
+    return acc
+  }, [])
 
-  const channels: ParsedChannel[] = dataHeaders.map(id => ({ id, samples: [] }))
+  const channels: ParsedChannel[] = dataHeaders.map((id) => ({ id, samples: [] }))
   const timestamps: number[] = []
 
   const CHUNK = 10000

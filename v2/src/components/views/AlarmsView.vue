@@ -4,21 +4,42 @@
     <aside class="sidebar">
       <div class="sidebar-header">
         <span class="section-title">{{ $t('alarms.rules') }}</span>
-        <button class="primary" style="font-size:11px;padding:3px 8px" @click="showAddRule = true">+ {{ $t('alarms.addRule') }}</button>
+        <button
+          class="primary"
+          style="font-size: 11px; padding: 3px 8px"
+          @click="showAddRule = true"
+        >
+          + {{ $t('alarms.addRule') }}
+        </button>
       </div>
       <div class="rules-list">
         <div v-for="rule in alarmsStore.rules" :key="rule.id" class="rule-item">
           <div class="rule-row">
-            <input type="checkbox" :checked="rule.enabled" @change="alarmsStore.toggleRule(rule.id)" />
+            <input
+              type="checkbox"
+              :checked="rule.enabled"
+              @change="alarmsStore.toggleRule(rule.id)"
+            />
             <span class="rule-label">{{ rule.label }}</span>
-            <span class="badge" :class="`badge-${rule.severity}`">{{ $t(`alarms.severity.${rule.severity}`) }}</span>
+            <span class="badge" :class="`badge-${rule.severity}`">{{
+              $t(`alarms.severity.${rule.severity}`)
+            }}</span>
           </div>
           <div class="rule-detail mono text-dim">
-            {{ rule.channelId }} · {{ $t(`alarms.metrics.${rule.metric}`) }} {{ rule.operator }} {{ rule.threshold }}
+            {{ rule.channelId }} · {{ $t(`alarms.metrics.${rule.metric}`) }} {{ rule.operator }}
+            {{ rule.threshold }}
           </div>
           <div class="rule-actions">
-            <button @click="editRule(rule)" style="font-size:10px;padding:2px 6px">{{ $t('alarms.editRule') }}</button>
-            <button class="danger" @click="alarmsStore.deleteRule(rule.id)" style="font-size:10px;padding:2px 6px">×</button>
+            <button style="font-size: 10px; padding: 2px 6px" @click="editRule(rule)">
+              {{ $t('alarms.editRule') }}
+            </button>
+            <button
+              class="danger"
+              style="font-size: 10px; padding: 2px 6px"
+              @click="alarmsStore.deleteRule(rule.id)"
+            >
+              ×
+            </button>
           </div>
         </div>
       </div>
@@ -37,7 +58,9 @@
       <div class="stats-panel">
         <div class="stats-card">
           <div class="sc-head">
-            <span class="sc-title">{{ locale === 'zh' ? '近 24 小时事件' : 'Last 24 h Events' }}</span>
+            <span class="sc-title">{{
+              locale === 'zh' ? '近 24 小时事件' : 'Last 24 h Events'
+            }}</span>
             <span class="sc-total mono">{{ stats24h.total }}</span>
           </div>
           <canvas ref="histCanvas" class="hist-canvas" width="600" height="80" />
@@ -77,21 +100,31 @@
           </thead>
           <tbody>
             <tr v-if="!alarmsStore.events.length">
-              <td colspan="7" class="text-dim" style="text-align:center;padding:20px">{{ $t('alarms.noAlarms') }}</td>
+              <td colspan="7" class="text-dim" style="text-align: center; padding: 20px">
+                {{ $t('alarms.noAlarms') }}
+              </td>
             </tr>
-            <tr
-              v-for="ev in sortedEvents"
-              :key="ev.id"
-              :class="`sev-row-${ev.status}`"
-            >
-              <td><span class="badge" :class="`badge-${ev.severity}`">{{ $t(`alarms.severity.${ev.severity}`) }}</span></td>
-              <td class="mono text-dim" style="font-size:10px">{{ formatTime(ev.timestamp) }}</td>
+            <tr v-for="ev in sortedEvents" :key="ev.id" :class="`sev-row-${ev.status}`">
+              <td>
+                <span class="badge" :class="`badge-${ev.severity}`">{{
+                  $t(`alarms.severity.${ev.severity}`)
+                }}</span>
+              </td>
+              <td class="mono text-dim" style="font-size: 10px">{{ formatTime(ev.timestamp) }}</td>
               <td class="mono text-1">{{ ev.channelId }}</td>
               <td>{{ ev.description }}</td>
               <td class="mono">{{ ev.value.toFixed(2) }}</td>
-              <td><span class="status-badge" :class="ev.status">{{ $t(`alarms.status.${ev.status}`) }}</span></td>
               <td>
-                <button v-if="ev.status === 'active'" @click="alarmsStore.acknowledge(ev.id)" style="font-size:10px;padding:2px 6px">
+                <span class="status-badge" :class="ev.status">{{
+                  $t(`alarms.status.${ev.status}`)
+                }}</span>
+              </td>
+              <td>
+                <button
+                  v-if="ev.status === 'active'"
+                  style="font-size: 10px; padding: 2px 6px"
+                  @click="alarmsStore.acknowledge(ev.id)"
+                >
                   {{ $t('alarms.acknowledge') }}
                 </button>
               </td>
@@ -104,7 +137,9 @@
     <!-- Add/edit rule modal -->
     <div v-if="showAddRule" class="modal-overlay" @click.self="showAddRule = false">
       <div class="modal">
-        <div class="modal-title">{{ editingRule ? $t('alarms.editRule') : $t('alarms.addRule') }}</div>
+        <div class="modal-title">
+          {{ editingRule ? $t('alarms.editRule') : $t('alarms.addRule') }}
+        </div>
         <div class="form-row">
           <label>{{ $t('alarms.channel') }}</label>
           <select v-model="ruleForm.channelId">
@@ -121,13 +156,20 @@
         </div>
         <div class="form-row">
           <label>{{ $t('alarms.operator') }}</label>
-          <select v-model="ruleForm.operator"><option>></option><option>>=</option><option>&lt;</option><option>&lt;=</option></select>
-          <input v-model.number="ruleForm.threshold" type="number" style="width:80px" />
+          <select v-model="ruleForm.operator">
+            <option>></option>
+            <option>>=</option>
+            <option>&lt;</option>
+            <option>&lt;=</option>
+          </select>
+          <input v-model.number="ruleForm.threshold" type="number" style="width: 80px" />
         </div>
         <div class="form-row">
           <label>{{ $t('alarms.severity.high') }}</label>
           <select v-model="ruleForm.severity">
-            <option v-for="s in ['high','warn','low','info']" :key="s" :value="s">{{ $t(`alarms.severity.${s}`) }}</option>
+            <option v-for="s in ['high', 'warn', 'low', 'info']" :key="s" :value="s">
+              {{ $t(`alarms.severity.${s}`) }}
+            </option>
           </select>
         </div>
         <div class="form-row">
@@ -158,7 +200,10 @@ const histCanvas = ref<HTMLCanvasElement | null>(null)
 const donutCanvas = ref<HTMLCanvasElement | null>(null)
 
 const SEVERITY_COLORS: Record<string, string> = {
-  high: '#ff3355', warn: '#ffaa00', low: '#00d9ff', info: '#5a7898',
+  high: '#ff3355',
+  warn: '#ffaa00',
+  low: '#00d9ff',
+  info: '#5a7898',
 }
 
 const stats24h = computed(() => {
@@ -181,7 +226,7 @@ const severityStats = computed(() => {
   for (const ev of alarmsStore.events) {
     counts[ev.severity] = (counts[ev.severity] ?? 0) + 1
   }
-  return (['high', 'warn', 'low', 'info'] as const).map(k => ({
+  return (['high', 'warn', 'low', 'info'] as const).map((k) => ({
     key: k,
     count: counts[k],
     color: SEVERITY_COLORS[k],
@@ -193,7 +238,8 @@ function drawHistogram() {
   if (!canvas) return
   const ctx = canvas.getContext('2d')
   if (!ctx) return
-  const w = canvas.width, h = canvas.height
+  const w = canvas.width,
+    h = canvas.height
   ctx.clearRect(0, 0, w, h)
 
   const buckets = stats24h.value.buckets
@@ -211,7 +257,8 @@ function drawHistogram() {
     ctx.fillStyle = hot ? 'rgba(255,51,85,0.85)' : 'rgba(0,217,255,0.7)'
     ctx.fillRect(x, y, bw, bh)
     if (hot) {
-      ctx.shadowColor = '#ff3355'; ctx.shadowBlur = 6
+      ctx.shadowColor = '#ff3355'
+      ctx.shadowBlur = 6
       ctx.fillRect(x, y, bw, bh)
       ctx.shadowBlur = 0
     }
@@ -223,9 +270,13 @@ function drawDonut() {
   if (!canvas) return
   const ctx = canvas.getContext('2d')
   if (!ctx) return
-  const w = canvas.width, h = canvas.height
+  const w = canvas.width,
+    h = canvas.height
   ctx.clearRect(0, 0, w, h)
-  const cx = w / 2, cy = h / 2, r = 48, ring = 14
+  const cx = w / 2,
+    cy = h / 2,
+    r = 48,
+    ring = 14
 
   const stats = severityStats.value
   const total = stats.reduce((a, b) => a + b.count, 0)
@@ -267,13 +318,22 @@ function redrawStats() {
 }
 
 onMounted(() => nextTick(redrawStats))
-watch(() => alarmsStore.events.length, () => nextTick(redrawStats))
+watch(
+  () => alarmsStore.events.length,
+  () => nextTick(redrawStats),
+)
 watch(locale, () => nextTick(redrawStats))
 const showAddRule = ref(false)
 const editingRule = ref<AlarmRule | null>(null)
 
 const ruleForm = reactive({
-  channelId: 'CH01', metric: 'value', operator: '>', threshold: 0, severity: 'warn', label: '', enabled: true
+  channelId: 'CH01',
+  metric: 'value',
+  operator: '>',
+  threshold: 0,
+  severity: 'warn',
+  label: '',
+  enabled: true,
 })
 
 const sortedEvents = computed(() => [...alarmsStore.events].reverse())
@@ -290,8 +350,10 @@ function editRule(rule: AlarmRule) {
 
 function saveRule() {
   if (editingRule.value) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     alarmsStore.updateRule(editingRule.value.id, ruleForm as any)
   } else {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     alarmsStore.addRule(ruleForm as any)
   }
   editingRule.value = null
@@ -300,63 +362,247 @@ function saveRule() {
 </script>
 
 <style scoped>
-.alarms-view { display: grid; grid-template-columns: 280px 1fr; height: 100%; overflow: hidden; }
-.sidebar { border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; }
-.sidebar-header { display: flex; align-items: center; justify-content: space-between; padding: 8px; }
-.section-title { font-size: 10px; color: var(--text-2); letter-spacing: 0.1em; text-transform: uppercase; }
-.rules-list { flex: 1; padding: 0 8px 8px; display: flex; flex-direction: column; gap: 6px; }
-.rule-item { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r); padding: 8px; }
-.rule-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
-.rule-label { flex: 1; font-size: 12px; }
-.rule-detail { font-size: 10px; margin-bottom: 4px; }
-.rule-actions { display: flex; gap: 4px; }
+.alarms-view {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  height: 100%;
+  overflow: hidden;
+}
+.sidebar {
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px;
+}
+.section-title {
+  font-size: 10px;
+  color: var(--text-2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.rules-list {
+  flex: 1;
+  padding: 0 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rule-item {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 8px;
+}
+.rule-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+.rule-label {
+  flex: 1;
+  font-size: 12px;
+}
+.rule-detail {
+  font-size: 10px;
+  margin-bottom: 4px;
+}
+.rule-actions {
+  display: flex;
+  gap: 4px;
+}
 
-.center { display: flex; flex-direction: column; overflow: hidden; }
-.toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--border); }
-.spacer { flex: 1; }
+.center {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.spacer {
+  flex: 1;
+}
 
 .stats-panel {
-  display: grid; grid-template-columns: 1fr 280px; gap: 8px;
-  padding: 8px 12px; border-bottom: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
   background: var(--bg-1);
 }
 .stats-card {
-  background: var(--bg-2); border: 1px solid var(--border);
-  border-radius: var(--r); padding: 8px 10px;
-  display: flex; flex-direction: column; gap: 6px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
-.sc-head { display: flex; justify-content: space-between; align-items: baseline; }
-.sc-title { font-size: 10px; color: var(--text-2); letter-spacing: 0.1em; text-transform: uppercase; }
-.sc-total { font-size: 16px; font-weight: 700; color: var(--text-0); }
-.hist-canvas { width: 100%; height: 80px; display: block; }
+.sc-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.sc-title {
+  font-size: 10px;
+  color: var(--text-2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.sc-total {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-0);
+}
+.hist-canvas {
+  width: 100%;
+  height: 80px;
+  display: block;
+}
 .hist-axis {
-  display: flex; justify-content: space-between;
-  font-size: 9px; padding: 0 2px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  padding: 0 2px;
 }
-.donut-card { padding: 8px 12px; }
-.donut-wrap { display: flex; align-items: center; gap: 12px; }
-.donut-legend { flex: 1; display: flex; flex-direction: column; gap: 4px; font-size: 10.5px; }
-.legend-row { display: flex; align-items: center; gap: 6px; }
-.legend-row .dot { width: 7px; height: 7px; border-radius: 50%; }
-.lg-label { flex: 1; color: var(--text-1); }
-.lg-val { color: var(--text-0); font-weight: 600; }
+.donut-card {
+  padding: 8px 12px;
+}
+.donut-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.donut-legend {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 10.5px;
+}
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.legend-row .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.lg-label {
+  flex: 1;
+  color: var(--text-1);
+}
+.lg-val {
+  color: var(--text-0);
+  font-weight: 600;
+}
 
-.event-table-wrap { flex: 1; overflow-y: auto; }
-.event-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-th { text-align: left; padding: 6px 12px; font-size: 10px; color: var(--text-2); font-weight: 500; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg-1); }
-td { padding: 6px 12px; border-bottom: 1px solid var(--border); }
-.sev-row-active td { background: rgba(255,51,85,0.03); }
-.sev-row-acknowledged td { background: rgba(255,170,0,0.03); }
-.status-badge { font-size: 10px; padding: 1px 6px; border-radius: 10px; border: 1px solid var(--border); color: var(--text-2); }
-.status-badge.active { color: var(--red); border-color: rgba(255,51,85,0.4); }
-.status-badge.acknowledged { color: var(--amber); border-color: rgba(255,170,0,0.4); }
-.status-badge.resolved { color: var(--green); border-color: rgba(0,255,149,0.3); }
+.event-table-wrap {
+  flex: 1;
+  overflow-y: auto;
+}
+.event-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+th {
+  text-align: left;
+  padding: 6px 12px;
+  font-size: 10px;
+  color: var(--text-2);
+  font-weight: 500;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg-1);
+}
+td {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.sev-row-active td {
+  background: rgba(255, 51, 85, 0.03);
+}
+.sev-row-acknowledged td {
+  background: rgba(255, 170, 0, 0.03);
+}
+.status-badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  color: var(--text-2);
+}
+.status-badge.active {
+  color: var(--red);
+  border-color: rgba(255, 51, 85, 0.4);
+}
+.status-badge.acknowledged {
+  color: var(--amber);
+  border-color: rgba(255, 170, 0, 0.4);
+}
+.status-badge.resolved {
+  color: var(--green);
+  border-color: rgba(0, 255, 149, 0.3);
+}
 
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 100; }
-.modal { background: var(--bg-3); border: 1px solid var(--border-2); border-radius: var(--r2); padding: 20px; min-width: 320px; }
-.modal-title { font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--text-0); }
-.form-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-.form-row label { width: 80px; font-size: 12px; color: var(--text-2); }
-.form-row select, .form-row input { flex: 1; }
-.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal {
+  background: var(--bg-3);
+  border: 1px solid var(--border-2);
+  border-radius: var(--r2);
+  padding: 20px;
+  min-width: 320px;
+}
+.modal-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--text-0);
+}
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.form-row label {
+  width: 80px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.form-row select,
+.form-row input {
+  flex: 1;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
 </style>
