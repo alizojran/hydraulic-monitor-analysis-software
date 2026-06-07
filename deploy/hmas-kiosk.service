@@ -1,0 +1,41 @@
+# HMAS kiosk — full-screen Chromium pointing at the local server.
+#
+# Use this on a Raspberry Pi with an attached display when the Pi itself is the
+# monitoring terminal. Because the browser loads http://localhost/, WebSerial
+# (USB DAQ boards) works without HTTPS.
+#
+# Install (runs as the desktop user; replace `pi` if different):
+#   sudo cp deploy/hmas-kiosk.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now hmas-kiosk.service
+#
+# Requires a graphical session (e.g. Raspberry Pi OS Desktop / LightDM) and
+# chromium-browser installed:  sudo apt install -y chromium-browser unclutter
+
+[Unit]
+Description=HMAS Chromium Kiosk
+After=graphical.target nginx.service
+Wants=graphical.target
+
+[Service]
+User=pi
+# Adjust if your session uses a different display / Wayland.
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/pi/.Xauthority
+# Wait for nginx to answer before launching the browser.
+ExecStartPre=/bin/sh -c 'until curl -sf http://localhost/ >/dev/null; do sleep 1; done'
+ExecStart=/usr/bin/chromium-browser \
+  --kiosk \
+  --incognito=false \
+  --noerrdialogs \
+  --disable-infobars \
+  --disable-translate \
+  --disable-session-crashed-bubble \
+  --check-for-update-interval=31536000 \
+  --autoplay-policy=no-user-gesture-required \
+  http://localhost/
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical.target
