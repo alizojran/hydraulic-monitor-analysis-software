@@ -39,12 +39,16 @@ const PRICING_USD_PER_M: Record<string, { in: number; out: number }> = {
   'claude-haiku-3-5': { in: 0.8, out: 4 },
 }
 
-function estimateCostUsd(model: string, inputTokens: number, outputTokens: number): number {
+export function estimateCostUsd(model: string, inputTokens: number, outputTokens: number): number {
   const p = PRICING_USD_PER_M[model] ?? { in: 3, out: 15 }
   return (inputTokens * p.in + outputTokens * p.out) / 1_000_000
 }
 
-function ampDbAt(magnitudeDb: Float32Array, frequencies: Float32Array, targetHz: number): number {
+export function ampDbAt(
+  magnitudeDb: Float32Array,
+  frequencies: Float32Array,
+  targetHz: number,
+): number {
   if (targetHz <= 0 || magnitudeDb.length === 0) return -120
   let bestIdx = 0
   let bestDelta = Infinity
@@ -131,7 +135,7 @@ function snapshotMeasurements(): {
 }
 
 // ── Build prompt ────────────────────────────────────────────────────────────
-function buildPrompt(
+export function buildPrompt(
   staticProfile: DeviceStaticProfile,
   baseline: ConditionBaseline | null,
   deviation: DeviationReport | null,
@@ -315,7 +319,7 @@ async function callClaude(
 }
 
 // ── Parse + validate LLM JSON response ──────────────────────────────────────
-function parseResult(
+export function parseResult(
   raw: string,
   model: string,
   inputTokens: number,
