@@ -1,0 +1,12 @@
+// Writes IEEE-754 quiet NaN, little-endian: 0x7FC00000.
+FUNCTION HmasWriteNaN32 : BOOL
+VAR_INPUT
+    pbyBuf    : POINTER TO BYTE;
+    udiOffset : UDINT;
+END_VAR
+    pbyBuf[udiOffset] := 16#00;
+    pbyBuf[udiOffset + 1] := 16#00;
+    pbyBuf[udiOffset + 2] := 16#C0;
+    pbyBuf[udiOffset + 3] := 16#7F;
+    HmasWriteNaN32 := TRUE;
+END_FUNCTION

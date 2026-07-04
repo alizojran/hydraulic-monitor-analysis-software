@@ -1,0 +1,18 @@
+// ==========================================================================
+//  TYPE  E_WsState — WebSocket Server State Machine
+// ==========================================================================
+//  PLC_PRG calls FB_HmasWebSocketServer cyclically. The internal state
+//  machine progresses through these states:
+// ==========================================================================
+
+TYPE E_WsState :
+(
+    IDLE              := 0,   // Disabled
+    LISTENING         := 1,   // TCP server bound, waiting for client
+    READING_HANDSHAKE := 2,   // Client connected, reading HTTP Upgrade request
+    SENDING_RESPONSE  := 3,   // Building / sending 101 Switching Protocols
+    CONNECTED         := 4,   // WebSocket established, streaming frames
+    CLOSING           := 5,   // Sending close, releasing socket
+    ERROR_STATE       := 99   // Unrecoverable; fbServer must be re-enabled
+);
+END_TYPE

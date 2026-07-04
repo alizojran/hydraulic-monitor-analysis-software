@@ -1,0 +1,1841 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HMAS 数据库管理</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        --bg: #f4f7fb;
+        --panel: #ffffff;
+        --soft: #f7fafc;
+        --text: #17212f;
+        --muted: #64748b;
+        --line: #dbe4ee;
+        --accent: #0f766e;
+        --accent-soft: #e6f6f3;
+        --danger: #b42318;
+        --danger-soft: #fff1f0;
+        --ok: #0f7a3b;
+        --warn: #a45f00;
+        --shadow: 0 10px 28px rgba(15, 23, 42, 0.07);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      .shell {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 22px;
+      }
+
+      header {
+        display: flex;
+        gap: 16px;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 14px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 26px;
+        line-height: 1.2;
+      }
+
+      h2 {
+        margin: 0;
+        font-size: 16px;
+      }
+
+      label {
+        display: block;
+        margin: 0 0 6px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      input,
+      select,
+      textarea,
+      button {
+        font: inherit;
+      }
+
+      input,
+      select,
+      textarea {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--text);
+        padding: 10px 12px;
+        outline: none;
+      }
+
+      textarea {
+        min-height: 126px;
+        resize: vertical;
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      button {
+        min-height: 40px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--text);
+        padding: 9px 13px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      button.primary {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: #fff;
+      }
+
+      button.danger {
+        border-color: #ffcdc7;
+        background: var(--danger-soft);
+        color: var(--danger);
+      }
+
+      .toolbar,
+      .row,
+      .split {
+        display: flex;
+        gap: 10px;
+        align-items: end;
+        flex-wrap: wrap;
+      }
+
+      .split {
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      .token-box {
+        min-width: 320px;
+        flex: 1 1 460px;
+      }
+
+      .auto-refresh {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 40px;
+        padding: 0 4px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .auto-refresh input {
+        width: auto;
+        margin: 0;
+      }
+
+      .auto-refresh strong {
+        color: var(--accent);
+      }
+
+      .field {
+        flex: 1 1 150px;
+        min-width: 132px;
+      }
+
+      .field.compact {
+        flex: 0 0 130px;
+      }
+
+      .field.time-field {
+        flex: 0 0 285px;
+        min-width: 285px;
+      }
+
+      input[type="datetime-local"] {
+        min-width: 270px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 0.95fr 1.05fr;
+        gap: 14px;
+      }
+
+      .panel {
+        min-width: 0;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+        padding: 15px;
+      }
+
+      .panel.full {
+        grid-column: 1 / -1;
+      }
+
+      .muted {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .message {
+        margin: 0 0 14px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--muted);
+        min-height: 40px;
+      }
+
+      .message.ok {
+        border-color: #bfe8cd;
+        color: var(--ok);
+        background: #f0fff5;
+      }
+
+      .message.err {
+        border-color: #ffcdc7;
+        color: var(--danger);
+        background: var(--danger-soft);
+      }
+
+      .message.warn {
+        border-color: #ffe0a6;
+        color: var(--warn);
+        background: #fff8e8;
+      }
+
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      .storage-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+
+      .process-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 10px;
+        margin: 8px 0 14px;
+      }
+
+      .metric {
+        min-height: 78px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--soft);
+        padding: 12px;
+      }
+
+      .metric span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 8px;
+        font-size: 20px;
+        overflow-wrap: anywhere;
+      }
+
+      .process-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--soft);
+        padding: 12px;
+        min-height: 92px;
+      }
+
+      .process-card span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .process-card strong {
+        display: block;
+        margin-top: 7px;
+        font-size: 21px;
+        line-height: 1.1;
+        font-variant-numeric: tabular-nums;
+        overflow-wrap: anywhere;
+      }
+
+      .process-card em {
+        display: block;
+        margin-top: 5px;
+        color: var(--muted);
+        font-size: 12px;
+        font-style: normal;
+      }
+
+      .metric strong.ok {
+        color: var(--ok);
+      }
+
+      .metric strong.warn {
+        color: var(--warn);
+      }
+
+      .inline-state {
+        margin: 0 0 10px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .inline-state.err {
+        color: var(--danger);
+      }
+
+      .device-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: 10px;
+      }
+
+      .device-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        padding: 12px;
+        cursor: pointer;
+      }
+
+      .device-card:hover,
+      .device-card.active {
+        border-color: var(--accent);
+        background: var(--accent-soft);
+      }
+
+      .device-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+
+      .device-id {
+        font-weight: 800;
+        overflow-wrap: anywhere;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        border-radius: 999px;
+        padding: 3px 8px;
+        font-size: 12px;
+        background: #edf2f7;
+        color: var(--muted);
+      }
+
+      .pill.online {
+        background: #e9fbef;
+        color: var(--ok);
+      }
+
+      .pill.offline {
+        background: #f2f5f8;
+        color: var(--muted);
+      }
+
+      .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+
+      .device-meta {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 5px 10px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .device-meta b {
+        color: var(--text);
+        font-weight: 650;
+      }
+
+      .tabs {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .tab {
+        min-height: 34px;
+        padding: 7px 10px;
+      }
+
+      .tab.active {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: var(--accent-soft);
+      }
+
+      .selected-line {
+        margin: 0 0 12px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .table-wrap {
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        max-height: 560px;
+      }
+
+      .chart-section {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+      }
+
+      .chart-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .chart-actions button {
+        min-height: 34px;
+        padding: 6px 10px;
+      }
+
+      .signal-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 10px 0;
+      }
+
+      .signal-option {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        padding: 6px 8px;
+        color: var(--text);
+        font-size: 12px;
+      }
+
+      .signal-option input {
+        width: auto;
+        margin: 0;
+      }
+
+      .signal-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--accent);
+      }
+
+      .chart-wrap {
+        height: 340px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        overflow: hidden;
+      }
+
+      #queryChart {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      table {
+        width: 100%;
+        min-width: 900px;
+        border-collapse: separate;
+        border-spacing: 0;
+        table-layout: fixed;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--line);
+        padding: 8px 9px;
+        text-align: left;
+        vertical-align: middle;
+        font-size: 13px;
+        line-height: 1.32;
+      }
+
+      th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: #f8fafc;
+        color: #334155;
+        font-weight: 760;
+      }
+
+      tbody tr:nth-child(even) {
+        background: #fbfdff;
+      }
+
+      tbody tr:hover {
+        background: var(--accent-soft);
+      }
+
+      td {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .mono {
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      }
+
+      .num {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .json-cell {
+        color: var(--muted);
+      }
+
+      @media (max-width: 980px) {
+        .shell {
+          padding: 16px;
+        }
+
+        header,
+        .grid {
+          display: block;
+        }
+
+        .panel {
+          margin-bottom: 14px;
+        }
+
+        .metrics {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .storage-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .process-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .metrics {
+          grid-template-columns: 1fr;
+        }
+
+        .storage-grid {
+          grid-template-columns: 1fr;
+        }
+
+        h1 {
+          font-size: 22px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <div>
+          <h1>HMAS 数据库管理</h1>
+          <div class="muted">设备状态、数据查询、只读 SQL、历史数据清理</div>
+          <div class="muted" id="pageVersion">本地页面版本：2026-06-28 01:55</div>
+        </div>
+        <div class="toolbar">
+          <div class="token-box">
+            <label for="token">管理 Token</label>
+            <input id="token" type="password" autocomplete="off" placeholder="输入 ADMIN_TOKEN" />
+          </div>
+          <div class="token-box">
+            <label for="cloudBase">云服务器地址</label>
+            <input id="cloudBase" type="text" autocomplete="off" value="http://8.148.228.136:8080" />
+          </div>
+          <button id="saveToken" class="primary">保存</button>
+          <button id="refreshAll">刷新</button>
+          <label class="auto-refresh">
+            <input id="autoRefresh" type="checkbox" checked />
+            <span>自动刷新 <strong>0.5 秒</strong></span>
+          </label>
+          <span id="refreshState" class="muted">未启动</span>
+        </div>
+      </header>
+
+      <p id="message" class="message">请输入管理 Token 后刷新。</p>
+
+      <section class="metrics" id="statusGrid"></section>
+
+      <section class="grid">
+        <div class="panel">
+          <div class="split">
+            <h2>在线设备</h2>
+            <span class="muted">点击设备查看该设备数据</span>
+          </div>
+          <div class="device-list" id="deviceList"></div>
+        </div>
+
+        <div class="panel">
+          <div class="split">
+            <h2>云端暂存数据</h2>
+            <div>
+              <button id="startSimulator">启动模拟器</button>
+              <button id="stopSimulator">停止模拟器</button>
+            </div>
+          </div>
+          <div class="storage-grid" id="storageGrid"></div>
+          <p class="inline-state" id="tablesState">正在读取云端数据库统计...</p>
+          <div class="table-wrap">
+            <table id="tablesTable"></table>
+          </div>
+        </div>
+
+        <div class="panel full">
+          <div class="split">
+            <div>
+              <h2>设备数据</h2>
+              <p class="selected-line" id="selectedLine">未选择设备时显示全部设备。</p>
+            </div>
+            <div class="row">
+              <div class="field compact">
+                <label for="latestTable">表</label>
+                <select id="latestTable"></select>
+              </div>
+              <div class="field compact">
+                <label for="latestLimit">最新条数(无时间)</label>
+                <input id="latestLimit" type="number" min="1" max="10000" value="50" />
+              </div>
+              <div class="field time-field">
+                <label for="queryFrom">开始时间</label>
+                <input id="queryFrom" type="text" inputmode="numeric" autocomplete="off" placeholder="不填则查询最新N条" />
+              </div>
+              <div class="field time-field">
+                <label for="queryTo">结束时间</label>
+                <input id="queryTo" type="text" inputmode="numeric" autocomplete="off" placeholder="不填则查询最新N条" />
+              </div>
+              <button id="clearDevice">全部设备</button>
+              <button id="loadLatest" class="primary">查询</button>
+            </div>
+          </div>
+          <div class="process-grid" id="processGrid"></div>
+          <p class="inline-state" id="queryProgress">历史表格为手动查询；自动刷新更新在线设备、云端暂存和上方过程量。</p>
+          <div class="tabs" id="tableTabs"></div>
+          <div class="chart-section">
+            <div class="split">
+              <h2>查询曲线</h2>
+              <div class="chart-actions">
+                <button id="selectAllSignals">全选信号</button>
+                <button id="clearSignals">清空信号</button>
+              </div>
+            </div>
+            <p class="inline-state" id="chartState">查询数据后可选择一个或多个信号绘制曲线。</p>
+            <div class="signal-list" id="signalList"></div>
+            <div class="chart-wrap">
+              <canvas id="queryChart"></canvas>
+            </div>
+          </div>
+          <div class="table-wrap" style="margin-top: 12px">
+            <table id="latestRowsTable"></table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2 style="margin-bottom: 12px">只读 SQL</h2>
+          <textarea id="sql">SELECT ts, device_id, channel_id, rms, peak, main_freq, main_amp_db
+FROM fft_summary
+ORDER BY ts DESC
+LIMIT 20</textarea>
+          <div class="row" style="margin-top: 10px">
+            <button id="runSql" class="primary">运行只读查询</button>
+            <span class="muted">只允许 SELECT / WITH / EXPLAIN，最多显示 500 行。</span>
+          </div>
+          <div class="table-wrap" style="margin-top: 12px; max-height: 360px">
+            <table id="sqlResultTable"></table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2 style="margin-bottom: 12px">清理旧数据</h2>
+          <div class="row">
+            <div class="field">
+              <label for="deleteTable">表</label>
+              <select id="deleteTable"></select>
+            </div>
+            <div class="field">
+              <label for="deleteBefore">删除早于</label>
+              <input id="deleteBefore" type="datetime-local" />
+            </div>
+            <button id="deleteOld" class="danger">删除旧数据</button>
+          </div>
+          <p class="muted">
+            删除会直接写入数据库，只支持按时间清理历史表。建议先确认公司服务器已经完成备份。
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const tables = ["devices", "fft_summary", "fft_spectrum", "alarm_events", "device_ingest_log"];
+      const deletableTables = ["fft_summary", "fft_spectrum", "alarm_events", "device_ingest_log"];
+      const el = (id) => document.getElementById(id);
+      let activeTable = "fft_summary";
+      let selectedDeviceId = "";
+      let latestDevices = [];
+      let latestProcessValues = {};
+      let latestQueryRows = [];
+      let latestSignalKeys = [];
+      let selectedSignalKeys = new Set();
+      let autoRefreshTimer = null;
+      let autoRefreshBusy = false;
+      let autoRefreshTick = 0;
+      let lastOverviewRefreshAt = 0;
+      let userInteractingUntil = 0;
+      let lastUserInteractionAt = 0;
+      let lastUserScrollRestore = null;
+      const autoRefreshStorageKey = "hmas_local_admin_auto_refresh_v1";
+      const cloudBaseStorageKey = "hmas_local_admin_cloud_base";
+
+      const tableColumns = {
+        devices: [
+          ["id", "设备"],
+          ["effective_status", "显示状态"],
+          ["database_status", "数据库状态"],
+          ["last_active_at", "最后活跃"],
+          ["last_data_at", "最新数据"],
+          ["inactive_seconds", "离线秒数"],
+          ["fft_rows", "FFT 行数"],
+          ["created_at", "创建时间"],
+        ],
+        fft_summary: [
+          ["ts", "时间"],
+          ["device_id", "设备"],
+          ["channel_id", "通道"],
+          ["seq", "序号"],
+          ["ch01_pressure", "CH01 主泵出口 bar"],
+          ["ch02_pressure", "CH02 系统A bar"],
+          ["ch03_pressure", "CH03 系统B bar"],
+          ["ch04_pressure", "CH04 回油 bar"],
+          ["ch05_temp", "CH05 油箱 °C"],
+          ["ch06_temp", "CH06 回油 °C"],
+          ["ch07_displacement", "CH07 1#油缸 mm"],
+          ["ch08_displacement", "CH08 2#油缸 mm"],
+          ["f01_flow", "F01 流量 L/min"],
+          ["f02_iso", "F02 油液颗粒度 (ISO 4406)"],
+          ["v01_speed", "V01 转速 rpm"],
+          ["v02_vibration", "V02 振动 g"],
+          ["s01_sound", "S01 声学 dB"],
+          ["rms", "RMS"],
+          ["peak", "Peak"],
+          ["main_freq", "主频 Hz"],
+          ["main_amp_db", "主幅 dB"],
+          ["sample_rate", "采样率"],
+          ["fft_size", "FFT"],
+          ["bpfi_db", "BPFI dB"],
+          ["bpfo_db", "BPFO dB"],
+          ["created_at", "入库时间"],
+        ],
+        fft_spectrum: [
+          ["ts", "时间"],
+          ["device_id", "设备"],
+          ["channel_id", "通道"],
+          ["seq", "序号"],
+          ["spectrum_len", "频点"],
+          ["compressed_bytes", "压缩字节"],
+          ["spectrum_codec", "编码"],
+          ["sample_rate", "采样率"],
+          ["fft_size", "FFT"],
+          ["created_at", "入库时间"],
+        ],
+        alarm_events: [
+          ["ts", "时间"],
+          ["device_id", "设备"],
+          ["channel_id", "通道"],
+          ["severity", "级别"],
+          ["message", "消息"],
+          ["created_at", "入库时间"],
+        ],
+        device_ingest_log: [
+          ["ts", "时间"],
+          ["device_id", "设备"],
+          ["remote_addr", "来源"],
+          ["event", "事件"],
+          ["detail", "详情"],
+        ],
+        storage_stats: [
+          ["name", "数据表"],
+          ["rows", "记录数"],
+          ["size", "占用空间"],
+          ["first", "最早数据"],
+          ["last", "最新数据"],
+        ],
+      };
+
+      const tableNames = {
+        devices: "设备表",
+        fft_summary: "FFT 摘要",
+        fft_spectrum: "FFT 频谱压缩包",
+        alarm_events: "报警事件",
+        device_ingest_log: "设备接入日志",
+      };
+
+      function setMessage(text, type = "") {
+        const node = el("message");
+        node.textContent = text;
+        node.className = `message ${type}`.trim();
+      }
+
+      function getToken() {
+        return el("token").value.trim();
+      }
+
+      function getCloudBase() {
+        return (el("cloudBase").value.trim() || "http://8.148.228.136:8080").replace(/\/+$/, "");
+      }
+
+      async function api(path, options = {}) {
+        const token = getToken();
+        if (!token) throw new Error("请先输入管理 Token");
+        const headers = {
+          Authorization: `Bearer ${token}`,
+          ...(options.headers || {}),
+        };
+        if (options.body && !headers["content-type"]) headers["content-type"] = "application/json";
+        const url = new URL(`${getCloudBase()}${path}`);
+        if (!options.method || String(options.method).toUpperCase() === "GET") {
+          url.searchParams.set("_ts", String(Date.now()));
+        }
+        const res = await fetch(url.toString(), { ...options, headers, cache: "no-store" });
+        const payload = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(payload.error || `HTTP ${res.status}`);
+        return payload;
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (char) => {
+          const map = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+          return map[char];
+        });
+      }
+
+      function fmtTime(value) {
+        if (!value) return "";
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) return String(value);
+        return d.toLocaleString("zh-CN", { hour12: false });
+      }
+
+      function fmtShortTime(value) {
+        if (!value) return "-";
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) return String(value);
+        return `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
+      }
+
+      function fmtInputDateTime(value) {
+        const d = value instanceof Date ? value : new Date(value);
+        if (Number.isNaN(d.getTime())) return "";
+        return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
+      }
+
+      function parseLocalDateTime(text) {
+        const value = String(text || "").trim();
+        if (!value) return null;
+        const normalized = value
+          .replace(/\//g, "-")
+          .replace(/\s+/, "T");
+        const match = normalized.match(/^(\d{4})-(\d{1,2})-(\d{1,2})T(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/);
+        if (match) {
+          const [, year, month, day, hour, minute, second = "0"] = match;
+          const d = new Date(
+            Number(year),
+            Number(month) - 1,
+            Number(day),
+            Number(hour),
+            Number(minute),
+            Number(second),
+            0,
+          );
+          if (
+            d.getFullYear() === Number(year) &&
+            d.getMonth() === Number(month) - 1 &&
+            d.getDate() === Number(day) &&
+            d.getHours() === Number(hour) &&
+            d.getMinutes() === Number(minute) &&
+            d.getSeconds() === Number(second)
+          ) {
+            return d;
+          }
+        }
+        const fallback = new Date(value);
+        return Number.isNaN(fallback.getTime()) ? null : fallback;
+      }
+
+      function fmtBytes(bytes) {
+        const n = Number(bytes) || 0;
+        if (n < 1024) return `${n} B`;
+        if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+        if (n < 1024 * 1024 * 1024) return `${(n / 1024 / 1024).toFixed(1)} MB`;
+        return `${(n / 1024 / 1024 / 1024).toFixed(2)} GB`;
+      }
+
+      function fmtNumber(value, digits = 3) {
+        const n = Number(value);
+        if (!Number.isFinite(n)) return "";
+        if (Math.abs(n) >= 1000) return n.toFixed(0);
+        if (Math.abs(n) >= 100) return n.toFixed(1);
+        return n.toFixed(digits).replace(/0+$/, "").replace(/\.$/, "");
+      }
+
+      function fmtInteger(value) {
+        const n = Number(value);
+        return Number.isFinite(n) ? String(Math.trunc(n)) : "-";
+      }
+
+      function fmtSeconds(value) {
+        const n = Number(value);
+        return Number.isFinite(n) ? `${Math.max(0, Math.trunc(n))} 秒` : "-";
+      }
+
+      function formatIso4406(ch) {
+        const base = Number(ch?.F02);
+        const a = Number.isFinite(Number(ch?.F02_4um))
+          ? Math.round(Number(ch.F02_4um))
+          : Number.isFinite(base)
+            ? Math.round(base)
+            : null;
+        const b = Number.isFinite(Number(ch?.F02_6um))
+          ? Math.round(Number(ch.F02_6um))
+          : Number.isFinite(base)
+            ? Math.max(0, Math.round(base) - 2)
+            : null;
+        const c = Number.isFinite(Number(ch?.F02_14um))
+          ? Math.round(Number(ch.F02_14um))
+          : Number.isFinite(base)
+            ? Math.max(0, Math.round(base) - 5)
+            : null;
+        return a === null || b === null || c === null ? "-" : `${a} / ${b} / ${c}`;
+      }
+
+      function valueText(value, key = "") {
+        if (value === null || value === undefined) return "";
+        if (key === "inactive_seconds") return fmtSeconds(value);
+        if (key === "fft_rows" || key === "row_count") return fmtInteger(value);
+        if (key.includes("ts") || key.endsWith("_at")) return fmtShortTime(value);
+        if (key.includes("bytes")) return fmtBytes(value);
+        if (typeof value === "number") return fmtNumber(value);
+        if (Array.isArray(value)) return `[${value.length} 项]`;
+        if (typeof value === "object") return JSON.stringify(value);
+        if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}T/.test(value)) return fmtShortTime(value);
+        return String(value);
+      }
+
+      function cellClass(value, key) {
+        if (typeof value === "number" || key.includes("bytes") || key === "seq") return "num mono";
+        if (Array.isArray(value) || (value && typeof value === "object")) return "json-cell";
+        if (key.includes("ts") || key.endsWith("_at")) return "mono";
+        return "";
+      }
+
+      function withPreservedScroll(nodes, render) {
+        const restore = captureScrollState(nodes);
+        render();
+        restoreScrollState(restore);
+      }
+
+      function captureScrollState(extraNodes = []) {
+        const pageX = window.scrollX;
+        const pageY = window.scrollY;
+        const nodes = [
+          ...document.querySelectorAll(".table-wrap"),
+          el("deviceList"),
+          ...extraNodes,
+        ].filter(Boolean);
+        const uniqueNodes = Array.from(new Set(nodes));
+        const positions = uniqueNodes.map((node) => [node, node.scrollLeft, node.scrollTop]);
+        return () => {
+          for (const [node, left, top] of positions) {
+            node.scrollLeft = left;
+            node.scrollTop = top;
+          }
+          window.scrollTo(pageX, pageY);
+        };
+      }
+
+      function restoreScrollState(restore) {
+        restore();
+        requestAnimationFrame(() => {
+          restore();
+          requestAnimationFrame(restore);
+        });
+      }
+
+      function markUserInteracting() {
+        lastUserInteractionAt = Date.now();
+        userInteractingUntil = Date.now() + 1500;
+        lastUserScrollRestore = captureScrollState();
+      }
+
+      function isUserInteracting() {
+        return Date.now() < userInteractingUntil;
+      }
+
+      function isViewingMovedContent() {
+        if (window.scrollY > 20 || window.scrollX > 20) return true;
+        return [...document.querySelectorAll(".table-wrap")].some(
+          (node) => node.scrollLeft > 2 || node.scrollTop > 2,
+        );
+      }
+
+      function renderTable(tableEl, rows, tableName = "") {
+        const scrollParent = tableEl.closest(".table-wrap");
+        if (!rows || rows.length === 0) {
+          withPreservedScroll([scrollParent], () => {
+            tableEl.innerHTML = "<tbody><tr><td>没有数据</td></tr></tbody>";
+          });
+          return;
+        }
+        const configured = tableColumns[tableName] || null;
+        const columns = configured
+          ? configured.filter(([key]) => rows.some((row) => Object.prototype.hasOwnProperty.call(row, key)))
+          : Array.from(
+              rows.reduce((set, row) => {
+                Object.keys(row).forEach((key) => set.add(key));
+                return set;
+              }, new Set()),
+            ).map((key) => [key, key]);
+        const signature = columns.map(([key]) => key).join("|");
+        if (tableEl.dataset.signature === signature && tableEl.tBodies[0]?.rows.length === rows.length) {
+          rows.forEach((row, rowIndex) => {
+            const tr = tableEl.tBodies[0].rows[rowIndex];
+            columns.forEach(([key], colIndex) => {
+              const td = tr.cells[colIndex];
+              if (!td) return;
+              const text = valueText(row[key], key);
+              if (td.textContent !== text) td.textContent = text;
+              td.title = text;
+              td.className = cellClass(row[key], key);
+            });
+          });
+          return;
+        }
+        const width = Math.max(880, columns.length * 118);
+        const head = `<thead><tr>${columns.map(([, label]) => `<th>${escapeHtml(label)}</th>`).join("")}</tr></thead>`;
+        const body = rows
+          .map(
+            (row) =>
+              `<tr>${columns
+                .map(([key]) => {
+                  const text = valueText(row[key], key);
+                  return `<td class="${cellClass(row[key], key)}" title="${escapeHtml(valueText(row[key], key))}">${escapeHtml(text)}</td>`;
+                })
+                .join("")}</tr>`,
+          )
+          .join("");
+        withPreservedScroll([scrollParent], () => {
+          tableEl.style.minWidth = `${width}px`;
+          tableEl.dataset.signature = signature;
+          tableEl.innerHTML = `${head}<tbody>${body}</tbody>`;
+        });
+      }
+
+      const chartColors = [
+        "#0f766e",
+        "#2563eb",
+        "#dc2626",
+        "#9333ea",
+        "#ca8a04",
+        "#0891b2",
+        "#16a34a",
+        "#ea580c",
+      ];
+
+      function chartTimeValue(row) {
+        const raw = row?.ts ?? row?.created_at ?? row?.last_active_at ?? row?.last_seen_at;
+        const d = new Date(raw);
+        return Number.isNaN(d.getTime()) ? null : d.getTime();
+      }
+
+      function numericValue(value) {
+        if (typeof value === "number" && Number.isFinite(value)) return value;
+        if (typeof value !== "string") return null;
+        const trimmed = value.trim();
+        if (!trimmed || trimmed.includes("/") || /[a-zA-Z\u4e00-\u9fa5]/.test(trimmed)) return null;
+        const n = Number(trimmed);
+        return Number.isFinite(n) ? n : null;
+      }
+
+      function labelForKey(key) {
+        const configured = tableColumns[activeTable] || [];
+        return configured.find(([candidate]) => candidate === key)?.[1] || key;
+      }
+
+      function detectSignalKeys(rows) {
+        if (!Array.isArray(rows) || rows.length === 0) return [];
+        const excluded = new Set([
+          "ts",
+          "created_at",
+          "device_id",
+          "channel_id",
+          "seq",
+          "sample_rate",
+          "fft_size",
+          "bin_hz",
+          "spectrum_len",
+          "compressed_bytes",
+          "spectrum_scale",
+          "spectrum_codec",
+          "remote_addr",
+          "event",
+          "detail",
+          "severity",
+          "message",
+          "id",
+        ]);
+        const keys = Array.from(
+          rows.reduce((set, row) => {
+            Object.keys(row || {}).forEach((key) => {
+              if (!excluded.has(key)) set.add(key);
+            });
+            return set;
+          }, new Set()),
+        );
+        return keys.filter((key) => rows.some((row) => numericValue(row?.[key]) !== null));
+      }
+
+      function defaultSignalSelection(keys) {
+        const preferred = [
+          "ch01_pressure",
+          "ch02_pressure",
+          "f01_flow",
+          "v01_speed",
+          "v02_vibration",
+          "s01_sound",
+          "rms",
+          "peak",
+          "main_freq",
+          "main_amp_db",
+        ];
+        const selected = preferred.filter((key) => keys.includes(key)).slice(0, 3);
+        return new Set(selected.length > 0 ? selected : keys.slice(0, 3));
+      }
+
+      function updateSignalList(rows) {
+        latestQueryRows = Array.isArray(rows) ? rows : [];
+        latestSignalKeys = detectSignalKeys(latestQueryRows);
+        selectedSignalKeys = defaultSignalSelection(latestSignalKeys);
+        renderSignalList();
+        drawQueryChart();
+      }
+
+      function renderSignalList() {
+        const list = el("signalList");
+        if (!latestQueryRows.length) {
+          list.innerHTML = "";
+          el("chartState").textContent = "查询数据后可选择一个或多个信号绘制曲线。";
+          return;
+        }
+        if (latestSignalKeys.length === 0) {
+          list.innerHTML = "";
+          el("chartState").textContent = "当前查询结果没有可绘制的数值信号。";
+          return;
+        }
+        list.innerHTML = latestSignalKeys
+          .map((key, index) => {
+            const color = chartColors[index % chartColors.length];
+            const checked = selectedSignalKeys.has(key) ? "checked" : "";
+            return `<label class="signal-option">
+              <input type="checkbox" data-signal="${escapeHtml(key)}" ${checked} />
+              <span class="signal-dot" style="background:${color}"></span>
+              ${escapeHtml(labelForKey(key))}
+            </label>`;
+          })
+          .join("");
+        list.querySelectorAll("input[data-signal]").forEach((input) => {
+          input.addEventListener("change", () => {
+            if (input.checked) selectedSignalKeys.add(input.dataset.signal);
+            else selectedSignalKeys.delete(input.dataset.signal);
+            drawQueryChart();
+          });
+        });
+      }
+
+      function resizeCanvasToDisplaySize(canvas) {
+        const rect = canvas.getBoundingClientRect();
+        const ratio = window.devicePixelRatio || 1;
+        const width = Math.max(320, Math.floor(rect.width * ratio));
+        const height = Math.max(220, Math.floor(rect.height * ratio));
+        if (canvas.width !== width || canvas.height !== height) {
+          canvas.width = width;
+          canvas.height = height;
+        }
+        return { width, height, ratio };
+      }
+
+      function drawQueryChart() {
+        const canvas = el("queryChart");
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        const { width, height, ratio } = resizeCanvasToDisplaySize(canvas);
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, width, height);
+
+        const selected = latestSignalKeys.filter((key) => selectedSignalKeys.has(key));
+        if (!latestQueryRows.length || selected.length === 0) {
+          ctx.fillStyle = "#64748b";
+          ctx.font = `${13 * ratio}px sans-serif`;
+          ctx.fillText(latestQueryRows.length ? "请选择信号" : "查询数据后显示曲线", 18 * ratio, 32 * ratio);
+          el("chartState").textContent = latestQueryRows.length
+            ? "请选择一个或多个信号。"
+            : "查询数据后可选择一个或多个信号绘制曲线。";
+          return;
+        }
+
+        const pointsByKey = selected.map((key) => {
+          const points = latestQueryRows
+            .map((row) => ({ t: chartTimeValue(row), v: numericValue(row?.[key]) }))
+            .filter((point) => Number.isFinite(point.t) && Number.isFinite(point.v))
+            .sort((a, b) => a.t - b.t);
+          return { key, points };
+        }).filter((series) => series.points.length > 0);
+
+        if (pointsByKey.length === 0) {
+          ctx.fillStyle = "#64748b";
+          ctx.font = `${13 * ratio}px sans-serif`;
+          ctx.fillText("所选信号没有可绘制数据", 18 * ratio, 32 * ratio);
+          el("chartState").textContent = "所选信号没有可绘制数据。";
+          return;
+        }
+
+        const allTimes = pointsByKey.flatMap((series) => series.points.map((point) => point.t));
+        const minT = Math.min(...allTimes);
+        const maxT = Math.max(...allTimes);
+        const padLeft = 68 * ratio;
+        const padRight = 22 * ratio;
+        const padTop = 24 * ratio;
+        const padBottom = 48 * ratio;
+        const plotX = padLeft;
+        const plotY = padTop;
+        const plotW = Math.max(1, width - padLeft - padRight);
+        const plotH = Math.max(1, height - padTop - padBottom);
+        const xFor = (t) => plotX + ((t - minT) / Math.max(1, maxT - minT)) * plotW;
+
+        ctx.strokeStyle = "#dbe4ee";
+        ctx.lineWidth = 1 * ratio;
+        ctx.fillStyle = "#64748b";
+        ctx.font = `${11 * ratio}px sans-serif`;
+        for (let i = 0; i <= 4; i++) {
+          const y = plotY + (plotH * i) / 4;
+          ctx.beginPath();
+          ctx.moveTo(plotX, y);
+          ctx.lineTo(plotX + plotW, y);
+          ctx.stroke();
+        }
+        for (let i = 0; i <= 4; i++) {
+          const x = plotX + (plotW * i) / 4;
+          ctx.beginPath();
+          ctx.moveTo(x, plotY);
+          ctx.lineTo(x, plotY + plotH);
+          ctx.stroke();
+          const t = minT + ((maxT - minT) * i) / 4;
+          ctx.fillText(fmtShortTime(t), x - 36 * ratio, plotY + plotH + 24 * ratio);
+        }
+        ctx.strokeStyle = "#94a3b8";
+        ctx.strokeRect(plotX, plotY, plotW, plotH);
+
+        const legend = [];
+        pointsByKey.forEach((series, index) => {
+          const values = series.points.map((point) => point.v);
+          const minV = Math.min(...values);
+          const maxV = Math.max(...values);
+          const span = Math.max(1e-9, maxV - minV);
+          const yFor = (v) => plotY + plotH - ((v - minV) / span) * plotH;
+          const color = chartColors[latestSignalKeys.indexOf(series.key) % chartColors.length];
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2 * ratio;
+          ctx.beginPath();
+          series.points.forEach((point, pointIndex) => {
+            const x = xFor(point.t);
+            const y = yFor(point.v);
+            if (pointIndex === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          });
+          ctx.stroke();
+          if (series.points.length === 1) {
+            const only = series.points[0];
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(xFor(only.t), yFor(only.v), 3 * ratio, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          legend.push(`${labelForKey(series.key)} ${fmtNumber(minV)}~${fmtNumber(maxV)}`);
+        });
+
+        ctx.fillStyle = "#17212f";
+        ctx.font = `${12 * ratio}px sans-serif`;
+        legend.slice(0, 4).forEach((text, index) => {
+          const x = plotX + index * 190 * ratio;
+          ctx.fillStyle = chartColors[latestSignalKeys.indexOf(pointsByKey[index].key) % chartColors.length];
+          ctx.fillRect(x, 10 * ratio, 10 * ratio, 10 * ratio);
+          ctx.fillStyle = "#17212f";
+          ctx.fillText(text, x + 15 * ratio, 19 * ratio);
+        });
+        if (legend.length > 4) {
+          ctx.fillStyle = "#64748b";
+          ctx.fillText(`+${legend.length - 4} 个信号`, plotX + 760 * ratio, 19 * ratio);
+        }
+
+        el("chartState").textContent =
+          `已绘制 ${pointsByKey.length} 个信号，数据点 ${latestQueryRows.length} 行；每条曲线按自身最小/最大值缩放。`;
+      }
+
+      function renderStatus(payload) {
+        const simRunning = Boolean(payload.simulator?.enabled || payload.simulator?.running);
+        const cards = [
+          ["在线设备", payload.service?.onlineDevices ?? 0, "ok"],
+          ["模拟器", simRunning ? "运行中" : "已停止", simRunning ? "ok" : "warn"],
+          ["实时网页连接", payload.service?.liveClients ?? 0, ""],
+          ["数据库时间", fmtShortTime(payload.database?.dbTime), ""],
+        ];
+        el("statusGrid").innerHTML = cards
+          .map(
+            ([label, value, cls]) =>
+              `<div class="metric"><span>${label}</span><strong class="${cls}">${escapeHtml(value)}</strong></div>`,
+          )
+          .join("");
+      }
+
+      function renderStats(rows) {
+        const list = Array.isArray(rows) ? rows : [];
+        const totalRows = list.reduce((sum, row) => sum + (Number(row.rowCount) || 0), 0);
+        const totalBytes = list.reduce((sum, row) => sum + (Number(row.totalBytes) || 0), 0);
+        const summaryRows = list.find((row) => row.table === "fft_summary")?.rowCount ?? 0;
+        const latestTs = list
+          .map((row) => row.lastTs)
+          .filter(Boolean)
+          .sort()
+          .at(-1);
+        const cards = [
+          ["总记录数", fmtNumber(totalRows, 0), ""],
+          ["数据库占用", fmtBytes(totalBytes), ""],
+          ["FFT 摘要", fmtNumber(summaryRows, 0), ""],
+          ["最新入库", fmtShortTime(latestTs), ""],
+        ];
+        el("storageGrid").innerHTML = cards
+          .map(
+            ([label, value, cls]) =>
+              `<div class="metric"><span>${label}</span><strong class="${cls}">${escapeHtml(value)}</strong></div>`,
+          )
+          .join("");
+        el("tablesState").textContent =
+          `云端正在暂存 ${list.length} 张表的数据；记录数和最新入库约 3 秒刷新，占用空间约 60 秒校准一次。`;
+        el("tablesState").className = "inline-state";
+        const normalized = list.map((row) => ({
+          name: tableNames[row.table] || row.table,
+          rows: row.rowCount,
+          size: fmtBytes(row.totalBytes),
+          first: fmtShortTime(row.firstTs),
+          last: fmtShortTime(row.lastTs),
+        }));
+        renderTable(el("tablesTable"), normalized, "storage_stats");
+      }
+
+      function latestDeviceValues() {
+        if (!selectedDeviceId) return {};
+        if (Object.keys(latestProcessValues).length > 0) return latestProcessValues;
+        const dev = latestDevices.find((item) => item.id === selectedDeviceId);
+        return dev?.channel_values || {};
+      }
+
+      function renderProcessCards() {
+        const ch = latestDeviceValues();
+        const cards = [
+          ["主泵出口压力", ch.CH01, "bar", "CH01"],
+          ["系统A压力", ch.CH02, "bar", "CH02"],
+          ["系统B压力", ch.CH03, "bar", "CH03"],
+          ["回油压力", ch.CH04, "bar", "CH04"],
+          ["油箱温度", ch.CH05, "°C", "CH05"],
+          ["冷却回油温度", ch.CH06, "°C", "CH06"],
+          ["1#油缸位移", ch.CH07, "mm", "CH07"],
+          ["2#油缸位移", ch.CH08, "mm", "CH08"],
+          ["主管路流量", ch.F01, "L/min", "F01"],
+          ["油液颗粒度 (ISO 4406)", formatIso4406(ch), "", "F02"],
+          ["电机转速", ch.V01, "rpm", "V01"],
+          ["电机振动Y", ch.V02, "g RMS", "V02"],
+          ["声学噪声", ch.S01, "dB", "S01"],
+        ];
+        const grid = el("processGrid");
+        if (grid.children.length !== cards.length) {
+          grid.innerHTML = cards
+            .map(
+              ([label, , , channel]) => `<div class="process-card" data-channel="${escapeHtml(channel)}">
+                <span>${escapeHtml(label)}</span>
+                <strong>-</strong>
+                <em>${escapeHtml(channel)}${selectedDeviceId ? "" : " - 请先选择设备"}</em>
+              </div>`,
+            )
+            .join("");
+        }
+        cards.forEach(([label, value, unit, channel], index) => {
+          const card = grid.children[index];
+          if (!card) return;
+          const digits = unit === "rpm" ? 0 : unit === "g RMS" ? 3 : 1;
+          const text =
+            typeof value === "string"
+              ? value
+              : value === null || value === undefined
+                ? "-"
+                : fmtNumber(value, digits);
+          card.querySelector("span").textContent = label;
+          card.querySelector("strong").textContent = unit ? `${text} ${unit}` : text;
+          card.querySelector("em").textContent = `${channel}${selectedDeviceId ? "" : " - 请先选择设备"}`;
+        });
+      }
+
+      function renderDevices(devices) {
+        latestDevices = devices || [];
+        if (latestDevices.length === 0) {
+          withPreservedScroll([el("deviceList")], () => {
+            el("deviceList").innerHTML = '<div class="muted">没有设备。</div>';
+          });
+          renderProcessCards();
+          return;
+        }
+        withPreservedScroll([el("deviceList")], () => {
+          el("deviceList").innerHTML = latestDevices
+            .map((dev) => {
+              const channels = Object.keys(dev.channels || {});
+              const active = dev.id === selectedDeviceId ? "active" : "";
+              const online = dev.online ? "online" : "offline";
+              const inactiveText = fmtSeconds(dev.inactive_seconds);
+              return `<div class="device-card ${active}" data-device="${escapeHtml(dev.id)}">
+                <div class="device-top">
+                  <div class="device-id">${escapeHtml(dev.id)}</div>
+                  <span class="pill ${online}"><span class="dot"></span>${dev.online ? "在线" : "离线"}</span>
+                </div>
+                <div class="device-meta">
+                  <span>最后活跃</span><b>${escapeHtml(fmtShortTime(dev.last_active_at))}</b>
+                  <span>最新数据</span><b>${escapeHtml(fmtShortTime(dev.last_data_at))}</b>
+                  <span>未活跃</span><b>${escapeHtml(inactiveText)}</b>
+                  <span>数据库状态</span><b>${escapeHtml(dev.database_status || dev.status || "-")}</b>
+                  <span>累计 FFT</span><b>${escapeHtml(fmtInteger(dev.fft_rows))} 行</b>
+                  <span>通道</span><b>${escapeHtml(channels.length ? channels.join(", ") : "-")}</b>
+                </div>
+              </div>`;
+            })
+            .join("");
+        });
+        el("deviceList").querySelectorAll(".device-card").forEach((card) => {
+          card.addEventListener("click", () => selectDevice(card.dataset.device || ""));
+        });
+        renderProcessCards();
+      }
+
+      function updateSelectedLine() {
+        el("selectedLine").textContent = selectedDeviceId
+          ? `当前设备：${selectedDeviceId}`
+          : "未选择设备时显示全部设备，压力/流量/转速需先选择设备。";
+        renderProcessCards();
+      }
+
+      function selectDevice(deviceId) {
+        selectedDeviceId = deviceId;
+        latestProcessValues = {};
+        updateSelectedLine();
+        renderDevices(latestDevices);
+        if (activeTable === "devices") {
+          activeTable = "fft_summary";
+          el("latestTable").value = activeTable;
+        }
+        renderTabs();
+        el("queryProgress").textContent = "已选择设备；表格数据请点击查询。";
+        updateSignalList([]);
+        refreshProcessValues();
+      }
+
+      function fillSelectors() {
+        el("latestTable").innerHTML = tables.map((table) => `<option value="${table}">${table}</option>`).join("");
+        el("latestTable").value = activeTable;
+        el("deleteTable").innerHTML = deletableTables
+          .map((table) => `<option value="${table}">${table}</option>`)
+          .join("");
+        renderTabs();
+      }
+
+      function renderTabs() {
+        el("tableTabs").innerHTML = tables
+          .map(
+            (table) =>
+              `<button class="tab ${table === activeTable ? "active" : ""}" data-table="${table}">${table}</button>`,
+          )
+          .join("");
+        el("tableTabs").querySelectorAll("button").forEach((button) => {
+          button.addEventListener("click", () => {
+            activeTable = button.dataset.table;
+            el("latestTable").value = activeTable;
+            renderTabs();
+            el("queryProgress").textContent = `已切换到 ${activeTable}；表格数据请点击查询。`;
+            updateSignalList([]);
+          });
+        });
+      }
+
+      async function refreshStatus() {
+        const payload = await api("/api/admin/status");
+        renderStatus(payload);
+      }
+
+      async function refreshDevices() {
+        const payload = await api("/api/admin/devices");
+        renderDevices(payload.devices);
+      }
+
+      async function refreshProcessValues() {
+        if (!selectedDeviceId) {
+          latestProcessValues = {};
+          renderProcessCards();
+          return;
+        }
+        const payload = await api(`/api/latest?deviceId=${encodeURIComponent(selectedDeviceId)}`);
+        const row = (payload.rows || [])
+          .filter((item) => item.ch && Object.keys(item.ch).length > 0)
+          .sort((a, b) => Number(b.ts || 0) - Number(a.ts || 0))[0];
+        latestProcessValues = row?.ch || {};
+        renderProcessCards();
+      }
+
+      async function refreshTables() {
+        try {
+          const payload = await api("/api/admin/tables");
+          renderStats(payload.tables);
+        } catch (err) {
+          el("storageGrid").innerHTML = "";
+          el("tablesTable").innerHTML = "<tbody><tr><td>存储统计读取失败</td></tr></tbody>";
+          el("tablesState").textContent = `存储统计读取失败：${err.message}`;
+          el("tablesState").className = "inline-state err";
+          throw err;
+        }
+      }
+
+      async function loadLatest({ updateTabs = true } = {}) {
+        activeTable = el("latestTable").value;
+        if (updateTabs) renderTabs();
+        updateSelectedLine();
+        const totalLimit = Math.min(Math.max(Number(el("latestLimit").value) || 50, 1), 10000);
+        const allRows = [];
+        const fromText = el("queryFrom").value.trim();
+        const toText = el("queryTo").value.trim();
+        const from = parseLocalDateTime(fromText);
+        const to = parseLocalDateTime(toText);
+        if (fromText && !from) {
+          setMessage("开始时间格式不正确，请使用 2026/06/28 00:50:00。", "err");
+          return;
+        }
+        if (toText && !to) {
+          setMessage("结束时间格式不正确，请使用 2026/06/28 01:00:00。", "err");
+          return;
+        }
+        const rangeMode = Boolean(from || to);
+        if (from && to && from.getTime() > to.getTime()) {
+          setMessage("开始时间不能晚于结束时间。", "err");
+          return;
+        }
+        if (!rangeMode) {
+          setMessage("未填写起止时间，本次按“最新条数(无时间)”查询。", "warn");
+        }
+        el("queryProgress").textContent = rangeMode
+          ? "正在统计时间范围数据，最大接收条数不会限制本次查询..."
+          : `接收最新数据：0 / ${totalLimit}`;
+        el("queryProgress").className = "inline-state";
+        if (rangeMode) setMessage("正在按时间范围查询...", "warn");
+
+        if (rangeMode) {
+          const countParams = new URLSearchParams();
+          countParams.set("table", activeTable);
+          if (from) countParams.set("from", from.toISOString());
+          if (to) countParams.set("to", to.toISOString());
+          if (selectedDeviceId && activeTable !== "devices") countParams.set("deviceId", selectedDeviceId);
+          const countPayload = await api(`/api/admin/count?${countParams.toString()}`);
+          const totalRows = Math.max(0, Number(countPayload.count) || 0);
+          if (totalRows === 0) {
+            renderTable(el("latestRowsTable"), [], activeTable);
+            updateSignalList([]);
+            el("queryProgress").textContent = "时间范围查询完成：0 条";
+            setMessage("时间范围查询完成：0 条。", "ok");
+            return;
+          }
+
+          const pageSize = 100;
+          let lastRenderAt = 0;
+          el("queryProgress").textContent = `时间范围共 ${totalRows} 条，正在接收：0 / ${totalRows}`;
+          for (let offset = 0; offset < totalRows; offset += pageSize) {
+            const limit = Math.min(pageSize, totalRows - offset);
+            const params = new URLSearchParams();
+            params.set("table", activeTable);
+            params.set("limit", String(limit));
+            params.set("offset", String(offset));
+            params.set("order", "asc");
+            if (from) params.set("from", from.toISOString());
+            if (to) params.set("to", to.toISOString());
+            if (selectedDeviceId && activeTable !== "devices") params.set("deviceId", selectedDeviceId);
+            const payload = await api(`/api/admin/latest?${params.toString()}`);
+            const rows = payload.rows || [];
+            allRows.push(...rows);
+            const now = Date.now();
+            if (now - lastRenderAt > 300 || allRows.length >= totalRows || rows.length < limit) {
+              renderTable(el("latestRowsTable"), allRows, activeTable);
+              lastRenderAt = now;
+            }
+            el("queryProgress").textContent = `时间范围共 ${totalRows} 条，正在接收：${Math.min(allRows.length, totalRows)} / ${totalRows}`;
+            if (rows.length < limit) break;
+            await new Promise((resolve) => setTimeout(resolve, 20));
+          }
+          renderTable(el("latestRowsTable"), allRows, activeTable);
+          updateSignalList(allRows);
+          el("queryProgress").textContent = `时间范围查询完成：${allRows.length} / ${totalRows} 条`;
+          setMessage(`时间范围查询完成：${allRows.length} / ${totalRows} 条。`, "ok");
+          return;
+        }
+
+        const pageSize = totalLimit > 100 ? 100 : totalLimit;
+        for (let offset = 0; offset < totalLimit; offset += pageSize) {
+          const limit = Math.min(pageSize, totalLimit - offset);
+          const params = new URLSearchParams();
+          params.set("table", activeTable);
+          params.set("limit", String(limit));
+          params.set("offset", String(offset));
+          if (selectedDeviceId && activeTable !== "devices") params.set("deviceId", selectedDeviceId);
+          const payload = await api(`/api/admin/latest?${params.toString()}`);
+          const rows = payload.rows || [];
+          allRows.push(...rows);
+          renderTable(el("latestRowsTable"), allRows, activeTable);
+          el("queryProgress").textContent = `接收最新数据：${allRows.length} / ${totalLimit}`;
+          if (rows.length < limit) break;
+          await new Promise((resolve) => setTimeout(resolve, 20));
+        }
+        updateSignalList(allRows);
+        el("queryProgress").textContent = `最新数据接收完成：${allRows.length} 条`;
+        setMessage(`最新数据查询完成：${allRows.length} 条。`, "ok");
+      }
+
+      async function refreshAll() {
+        try {
+          setMessage("正在刷新...", "warn");
+          await Promise.all([refreshStatus(), refreshDevices(), refreshTables()]);
+          if (selectedDeviceId) await refreshProcessValues();
+          setMessage("状态刷新完成。表格数据请点击查询。", "ok");
+        } catch (err) {
+          setMessage(err.message, "err");
+        }
+      }
+
+      async function refreshRealtime() {
+        if (!getToken() || autoRefreshBusy) return;
+        autoRefreshBusy = true;
+        autoRefreshTick++;
+        const refreshStartedAt = Date.now();
+        const restoreScroll = captureScrollState();
+        try {
+          const tasks = [];
+          if (selectedDeviceId) await refreshProcessValues();
+          if (refreshStartedAt - lastOverviewRefreshAt >= 3000) {
+            lastOverviewRefreshAt = refreshStartedAt;
+            tasks.push(refreshStatus(), refreshDevices(), refreshTables());
+          }
+          if (tasks.length > 0) await Promise.all(tasks);
+          const restoreTarget =
+            lastUserInteractionAt > refreshStartedAt && lastUserScrollRestore
+              ? lastUserScrollRestore
+              : restoreScroll;
+          restoreScrollState(restoreTarget);
+          el("refreshState").textContent = `自动刷新中 ${fmtShortTime(Date.now())}`;
+          el("refreshState").style.color = "var(--muted)";
+        } catch (err) {
+          const restoreTarget =
+            lastUserInteractionAt > refreshStartedAt && lastUserScrollRestore
+              ? lastUserScrollRestore
+              : restoreScroll;
+          restoreScrollState(restoreTarget);
+          el("refreshState").textContent = `自动刷新失败：${err.message}`;
+          el("refreshState").style.color = "var(--danger)";
+        } finally {
+          autoRefreshBusy = false;
+        }
+      }
+
+      function setAutoRefresh(enabled) {
+        if (autoRefreshTimer) {
+          clearInterval(autoRefreshTimer);
+          autoRefreshTimer = null;
+        }
+        localStorage.setItem(autoRefreshStorageKey, enabled ? "1" : "0");
+        if (!enabled) {
+          el("refreshState").textContent = "自动刷新已关闭";
+          el("refreshState").style.color = "var(--muted)";
+          return;
+        }
+        el("refreshState").textContent = "自动刷新中";
+        autoRefreshTimer = setInterval(refreshRealtime, 500);
+        void refreshRealtime();
+      }
+
+      async function runSql() {
+        try {
+          setMessage("正在运行 SQL...", "warn");
+          const payload = await api("/api/admin/query", {
+            method: "POST",
+            body: JSON.stringify({ sql: el("sql").value }),
+          });
+          renderTable(el("sqlResultTable"), payload.rows);
+          setMessage(`查询完成：${payload.rowCount ?? payload.rows.length} 行。`, "ok");
+        } catch (err) {
+          setMessage(err.message, "err");
+        }
+      }
+
+      async function deleteOld() {
+        const table = el("deleteTable").value;
+        const before = el("deleteBefore").value;
+        if (!before) {
+          setMessage("请选择清理截止时间。", "err");
+          return;
+        }
+        const confirmText = `确认删除 ${table} 中早于 ${fmtTime(before)} 的数据？`;
+        if (!window.confirm(confirmText)) return;
+        try {
+          setMessage("正在删除旧数据...", "warn");
+          const payload = await api("/api/admin/delete-before", {
+            method: "POST",
+            body: JSON.stringify({ table, before }),
+          });
+          setMessage(`删除完成：${payload.deleted} 行。`, "ok");
+          await Promise.all([refreshTables(), refreshDevices(), loadLatest()]);
+        } catch (err) {
+          setMessage(err.message, "err");
+        }
+      }
+
+      async function simulatorAction(action) {
+        try {
+          const payload = await api(`/api/admin/simulator/${action}`, { method: "POST" });
+          setMessage(`模拟器${payload.enabled || payload.running ? "运行中" : "已停止"}。`, "ok");
+          await Promise.all([refreshStatus(), refreshDevices()]);
+        } catch (err) {
+          setMessage(err.message, "err");
+        }
+      }
+
+      function setDefaultDeleteBefore() {
+        const d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        d.setSeconds(0, 0);
+        const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+        el("deleteBefore").value = local;
+      }
+
+      function setDefaultQueryRange() {
+        const to = new Date();
+        const from = new Date(to.getTime() - 10 * 60 * 1000);
+        el("queryFrom").value = fmtInputDateTime(from);
+        el("queryTo").value = fmtInputDateTime(to);
+      }
+
+      el("saveToken").addEventListener("click", () => {
+        localStorage.setItem("hmas_admin_token", getToken());
+        localStorage.setItem(cloudBaseStorageKey, getCloudBase());
+        setMessage("Token 已保存到本机浏览器。", "ok");
+      });
+      el("refreshAll").addEventListener("click", refreshAll);
+      el("autoRefresh").addEventListener("change", () => setAutoRefresh(el("autoRefresh").checked));
+      el("loadLatest").addEventListener("click", loadLatest);
+      el("selectAllSignals").addEventListener("click", () => {
+        selectedSignalKeys = new Set(latestSignalKeys);
+        renderSignalList();
+        drawQueryChart();
+      });
+      el("clearSignals").addEventListener("click", () => {
+        selectedSignalKeys = new Set();
+        renderSignalList();
+        drawQueryChart();
+      });
+      el("clearDevice").addEventListener("click", () => {
+        selectedDeviceId = "";
+        latestProcessValues = {};
+        updateSelectedLine();
+        renderDevices(latestDevices);
+        el("queryProgress").textContent = "已切换为全部设备；表格数据请点击查询。";
+        updateSignalList([]);
+      });
+      el("runSql").addEventListener("click", runSql);
+      el("deleteOld").addEventListener("click", deleteOld);
+      el("startSimulator").addEventListener("click", () => simulatorAction("start"));
+      el("stopSimulator").addEventListener("click", () => simulatorAction("stop"));
+      document.addEventListener("scroll", markUserInteracting, { passive: true, capture: true });
+      document.addEventListener("wheel", markUserInteracting, { passive: true });
+      document.addEventListener("pointerdown", markUserInteracting, { passive: true });
+      document.addEventListener("touchstart", markUserInteracting, { passive: true });
+      document.addEventListener("keydown", (event) => {
+        if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "].includes(event.key)) {
+          markUserInteracting();
+        }
+      });
+      window.addEventListener("resize", drawQueryChart);
+
+      el("token").value = localStorage.getItem("hmas_admin_token") || "";
+      el("cloudBase").value = localStorage.getItem(cloudBaseStorageKey) || "http://8.148.228.136:8080";
+      el("autoRefresh").checked = localStorage.getItem(autoRefreshStorageKey) !== "0";
+      fillSelectors();
+      setDefaultDeleteBefore();
+      setDefaultQueryRange();
+      updateSelectedLine();
+      drawQueryChart();
+      if (getToken()) refreshAll();
+      setAutoRefresh(el("autoRefresh").checked);
+    </script>
+  </body>
+</html>

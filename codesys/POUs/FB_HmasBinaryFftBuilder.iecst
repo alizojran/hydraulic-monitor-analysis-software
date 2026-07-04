@@ -1,0 +1,141 @@
+// ==========================================================================
+//  FUNCTION_BLOCK  FB_HmasBinaryFftBuilder
+// ==========================================================================
+//  Builds one HMAS cloud binary FFT frame:
+//
+//    [4-byte big-endian payload length][HMF1 payload]
+//
+//  HMF1 fields match cloud-server/src/protocol.js encodeBinaryFftPayload().
+// ==========================================================================
+FUNCTION_BLOCK FB_HmasBinaryFftBuilder
+VAR_INPUT
+    sChannelId      : STRING(16);
+    udiSeq          : UDINT;
+    uliTimestampMs  : ULINT;
+    rRms            : REAL;
+    rPeak           : REAL;
+    rCrestFactor    : REAL;
+    rThd            : REAL;
+    xUseBearing     : BOOL;
+    pSpectrum       : POINTER TO INT;
+END_VAR
+VAR_OUTPUT
+    abyFrame        : ARRAY[0..2303] OF BYTE;     // 4 + 148 + 1024*2 = 2200 bytes
+    udiFrameLen     : UDINT;
+    udiPayloadLen   : UDINT;
+    xDone           : BOOL;
+    xError          : BOOL;
+    sError          : STRING(120);
+END_VAR
+VAR
+    pPayload        : POINTER TO BYTE;
+    pChannel        : POINTER TO BYTE;
+    udiOffset       : UDINT;
+    i               : UINT;
+    uiChannelLen    : UINT;
+    xTmp            : BOOL;
+END_VAR
+// --------------------------------------------------------------------------
+
+xDone := FALSE;
+xError := FALSE;
+sError := '';
+udiPayloadLen := 148 + UINT_TO_UDINT(GVL_HmasChannels.cHmasBinCount) * 2;
+udiFrameLen := udiPayloadLen + 4;
+
+IF pSpectrum = 0 THEN
+    xError := TRUE;
+    sError := 'pSpectrum is null';
+    RETURN;
+END_IF
+
+IF udiFrameLen > SIZEOF(abyFrame) THEN
+    xError := TRUE;
+    sError := 'frame buffer too small';
+    RETURN;
+END_IF
+
+FOR udiOffset := 0 TO udiFrameLen - 1 DO
+    abyFrame[udiOffset] := 0;
+END_FOR
+
+// Outer length prefix, big-endian.
+xTmp := HmasWriteU32BE(ADR(abyFrame), 0, udiPayloadLen);
+pPayload := ADR(abyFrame) + 4;
+
+// HMF1 fixed header.
+pPayload[0] := 16#48;     // H
+pPayload[1] := 16#4D;     // M
+pPayload[2] := 16#46;     // F
+pPayload[3] := 16#31;     // 1
+pPayload[4] := 1;         // version
+
+uiChannelLen := TO_UINT(LEN(sChannelId));
+IF uiChannelLen > 16 THEN
+    uiChannelLen := 16;
+END_IF
+pPayload[5] := TO_BYTE(uiChannelLen);
+
+xTmp := HmasWriteU16LE(pPayload, 6, 0);                 // flags
+xTmp := HmasWriteU32LE(pPayload, 8, udiSeq);
+xTmp := HmasWriteU64LE(pPayload, 12, uliTimestampMs);
+xTmp := HmasWriteU32LE(pPayload, 20, GVL_HmasChannels.cHmasSampleRateHz);
+xTmp := HmasWriteU16LE(pPayload, 24, GVL_HmasChannels.cHmasFftSize);
+xTmp := HmasWriteU16LE(pPayload, 26, GVL_HmasChannels.cHmasBinCount);
+xTmp := HmasWriteI16LE(pPayload, 28, GVL_HmasChannels.cHmasDbScale);
+xTmp := HmasWriteI16LE(pPayload, 30, 0);
+xTmp := HmasWriteReal32LE(pPayload, 32, rRms);
+xTmp := HmasWriteReal32LE(pPayload, 36, rPeak);
+xTmp := HmasWriteReal32LE(pPayload, 40, rCrestFactor);
+xTmp := HmasWriteReal32LE(pPayload, 44, rThd);
+
+IF xUseBearing THEN
+    xTmp := HmasWriteReal32LE(pPayload, 48, GVL_HmasChannels.rBpfiHz);
+    xTmp := HmasWriteReal32LE(pPayload, 52, GVL_HmasChannels.rBpfiDb);
+    xTmp := HmasWriteReal32LE(pPayload, 56, GVL_HmasChannels.rBpfoHz);
+    xTmp := HmasWriteReal32LE(pPayload, 60, GVL_HmasChannels.rBpfoDb);
+    xTmp := HmasWriteReal32LE(pPayload, 64, GVL_HmasChannels.rBsfHz);
+    xTmp := HmasWriteReal32LE(pPayload, 68, GVL_HmasChannels.rBsfDb);
+    xTmp := HmasWriteReal32LE(pPayload, 72, GVL_HmasChannels.rFtfHz);
+    xTmp := HmasWriteReal32LE(pPayload, 76, GVL_HmasChannels.rFtfDb);
+ELSE
+    xTmp := HmasWriteNaN32(pPayload, 48);
+    xTmp := HmasWriteNaN32(pPayload, 52);
+    xTmp := HmasWriteNaN32(pPayload, 56);
+    xTmp := HmasWriteNaN32(pPayload, 60);
+    xTmp := HmasWriteNaN32(pPayload, 64);
+    xTmp := HmasWriteNaN32(pPayload, 68);
+    xTmp := HmasWriteNaN32(pPayload, 72);
+    xTmp := HmasWriteNaN32(pPayload, 76);
+END_IF
+
+// Channel ID, ASCII, zero-padded to 16 bytes.
+pChannel := ADR(sChannelId);
+FOR i := 0 TO uiChannelLen - 1 DO
+    pPayload[80 + i] := pChannel[i];
+END_FOR
+
+// Channel value block: CH01..CH08,F01,F02,V01,V02,S01.
+xTmp := HmasWriteReal32LE(pPayload, 96,  GVL_HmasChannels.rCH01);
+xTmp := HmasWriteReal32LE(pPayload, 100, GVL_HmasChannels.rCH02);
+xTmp := HmasWriteReal32LE(pPayload, 104, GVL_HmasChannels.rCH03);
+xTmp := HmasWriteReal32LE(pPayload, 108, GVL_HmasChannels.rCH04);
+xTmp := HmasWriteReal32LE(pPayload, 112, GVL_HmasChannels.rCH05);
+xTmp := HmasWriteReal32LE(pPayload, 116, GVL_HmasChannels.rCH06);
+xTmp := HmasWriteReal32LE(pPayload, 120, GVL_HmasChannels.rCH07);
+xTmp := HmasWriteReal32LE(pPayload, 124, GVL_HmasChannels.rCH08);
+xTmp := HmasWriteReal32LE(pPayload, 128, GVL_HmasChannels.rF01);
+xTmp := HmasWriteReal32LE(pPayload, 132, GVL_HmasChannels.rF02);
+xTmp := HmasWriteReal32LE(pPayload, 136, GVL_HmasChannels.rV01);
+xTmp := HmasWriteReal32LE(pPayload, 140, GVL_HmasChannels.rV02);
+xTmp := HmasWriteReal32LE(pPayload, 144, GVL_HmasChannels.rS01);
+
+// Spectrum bins, INT16 little-endian, already quantized as dB * 10.
+udiOffset := 148;
+FOR i := 0 TO GVL_HmasChannels.cHmasLastBin DO
+    xTmp := HmasWriteI16LE(pPayload, udiOffset, pSpectrum[i]);
+    udiOffset := udiOffset + 2;
+END_FOR
+
+xDone := TRUE;
+END_FUNCTION_BLOCK

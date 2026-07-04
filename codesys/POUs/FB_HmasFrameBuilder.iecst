@@ -1,0 +1,106 @@
+// ==========================================================================
+//  FUNCTION_BLOCK  FB_HmasFrameBuilder
+// ==========================================================================
+//  Builds an HMAS WebSocket text frame (single-frame mode):
+//      {"type":"frame","ts":<unix-ms>,"ch":{"CH01":1.23,"CH02":4.56,...}}
+//
+//  Reads channel values from GVL_HmasChannels and writes the result into
+//  a caller-supplied buffer. Returns the byte count written.
+//
+//  REAL → string conversion uses REAL_TO_STRING which produces ~7 significant
+//  digits — sufficient for dashboard visualisation.
+// ==========================================================================
+FUNCTION_BLOCK FB_HmasFrameBuilder
+VAR_INPUT
+    udiTimestampMs : ULINT;     // Unix epoch milliseconds
+    pbyOutBuf      : POINTER TO BYTE;
+    udiOutBufSize  : UDINT;
+END_VAR
+VAR_OUTPUT
+    udiOutLen   : UDINT;        // bytes written (excludes terminator)
+    xOverflow   : BOOL;         // TRUE if buffer too small (output may be truncated)
+END_VAR
+VAR
+    sFrame      : STRING(1024);
+    sValue      : STRING(32);
+    pDst        : POINTER TO BYTE;
+    pSrc        : POINTER TO BYTE;
+    i           : UDINT;
+END_VAR
+// --------------------------------------------------------------------------
+
+xOverflow := FALSE;
+udiOutLen := 0;
+
+// Build the JSON in a STRING workspace
+sFrame := '{"type":"frame","ts":';
+sFrame := CONCAT(sFrame, ULINT_TO_STRING(udiTimestampMs));
+sFrame := CONCAT(sFrame, ',"ch":{');
+
+sValue := REAL_TO_STRING(GVL_HmasChannels.rCH01);
+sFrame := CONCAT(sFrame, '"CH01":');
+sFrame := CONCAT(sFrame, sValue);
+
+sValue := REAL_TO_STRING(GVL_HmasChannels.rCH02);
+sFrame := CONCAT(sFrame, ',"CH02":');
+sFrame := CONCAT(sFrame, sValue);
+
+sValue := REAL_TO_STRING(GVL_HmasChannels.rCH03);
+sFrame := CONCAT(sFrame, ',"CH03":');
+sFrame := CONCAT(sFrame, sValue);
+
+sValue := REAL_TO_STRING(GVL_HmasChannels.rCH04);
+sFrame := CONCAT(sFrame, ',"CH04":');
+sFrame := CONCAT(sFrame, sValue);
+
+sValue := REAL_TO_STRING(GVL_HmasChannels.rCH05);
+sFrame := CONCAT(sFrame, ',"CH05":');
+sFrame := CONCAT(sFrame, sValue);
+
+sValue := REAL_TO_STRING(GVL_HmasChannels.rCH06);
+sFrame := CONCAT(sFrame, ',"CH06":');
+sFrame := CONCAT(sFrame, sValue);
+
+sValue := REAL_TO_STRING(GVL_HmasChannels.rCH07);
+sFrame := CONCAT(sFrame, ',"CH07":');
+sFrame := CONCAT(sFrame, sValue);
+
+sValue := REAL_TO_STRING(GVL_HmasChannels.rCH08);
+sFrame := CONCAT(sFrame, ',"CH08":');
+sFrame := CONCAT(sFrame, sValue);
+
+sValue := REAL_TO_STRING(GVL_HmasChannels.rF01);
+sFrame := CONCAT(sFrame, ',"F01":');
+sFrame := CONCAT(sFrame, sValue);
+
+sValue := REAL_TO_STRING(GVL_HmasChannels.rF02);
+sFrame := CONCAT(sFrame, ',"F02":');
+sFrame := CONCAT(sFrame, sValue);
+
+sValue := REAL_TO_STRING(GVL_HmasChannels.rV01);
+sFrame := CONCAT(sFrame, ',"V01":');
+sFrame := CONCAT(sFrame, sValue);
+
+sValue := REAL_TO_STRING(GVL_HmasChannels.rV02);
+sFrame := CONCAT(sFrame, ',"V02":');
+sFrame := CONCAT(sFrame, sValue);
+
+sValue := REAL_TO_STRING(GVL_HmasChannels.rS01);
+sFrame := CONCAT(sFrame, ',"S01":');
+sFrame := CONCAT(sFrame, sValue);
+
+sFrame := CONCAT(sFrame, '}}');
+
+// Copy into output byte buffer
+udiOutLen := LEN(sFrame);
+IF udiOutLen > udiOutBufSize THEN
+    udiOutLen := udiOutBufSize;
+    xOverflow := TRUE;
+END_IF
+
+pSrc := ADR(sFrame);
+pDst := pbyOutBuf;
+FOR i := 0 TO udiOutLen - 1 DO
+    pDst[i] := pSrc[i];
+END_FOR
+END_FUNCTION_BLOCK

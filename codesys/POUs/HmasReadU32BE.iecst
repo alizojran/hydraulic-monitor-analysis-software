@@ -1,0 +1,12 @@
+// Reads UDINT big-endian.
+FUNCTION HmasReadU32BE : UDINT
+VAR_INPUT
+    pbyBuf    : POINTER TO BYTE;
+    udiOffset : UDINT;
+END_VAR
+    HmasReadU32BE :=
+        SHL(TO_UDINT(pbyBuf[udiOffset]), 24) OR
+        SHL(TO_UDINT(pbyBuf[udiOffset + 1]), 16) OR
+        SHL(TO_UDINT(pbyBuf[udiOffset + 2]), 8) OR
+        TO_UDINT(pbyBuf[udiOffset + 3]);
+END_FUNCTION

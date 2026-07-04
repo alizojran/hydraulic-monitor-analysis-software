@@ -1,0 +1,83 @@
+// ==========================================================================
+//  GVL  GVL_HmasChannels
+// ==========================================================================
+//  Shared HMAS acquisition values and cloud upload configuration.
+//
+//  Current architecture:
+//    CODESYS PLC -> TCP client -> Aliyun 8.148.228.136:9100
+//    Only FFT result frames are uploaded. Raw 10 kHz samples stay in PLC.
+// ==========================================================================
+
+VAR_GLOBAL
+    // ---- Protocol constants. Treat these as constants unless the cloud
+    // protocol is changed at the same time. ----
+    cHmasSampleRateHz : UDINT := 10000;
+    cHmasFftSize      : UINT  := 2048;
+    cHmasBinCount     : UINT  := 1024;
+    cHmasLastBin      : UINT  := 1023;
+    cHmasDbScale      : INT   := 10;       // spectrum INT = dB * 10
+
+    // ---- Cloud TCP settings ----
+    xCloudEnable          : BOOL := TRUE;
+    sCloudHost            : STRING(80) := '8.148.228.136';
+    uiCloudPort           : UINT := 9100;
+    sDeviceId             : STRING(32) := 'HMAS-002';
+    sDeviceSecret         : STRING(80) := 'change-this-device-secret';
+    udiCloudSendIntervalMs: UDINT := 1000;       // send V02 and S01 once per second
+
+    // ---- Simulator switch ----
+    xUseSimulator         : BOOL := TRUE;        // TRUE until real sensors are wired
+
+    // ---- 8 generic analog channels ----
+    rCH01 : REAL := 0.0;     // Main pump outlet pressure, bar
+    rCH02 : REAL := 0.0;     // Auxiliary pressure, bar
+    rCH03 : REAL := 0.0;     // Accumulator pressure, bar
+    rCH04 : REAL := 0.0;     // Return pressure, bar
+    rCH05 : REAL := 0.0;     // Oil temperature, deg C
+    rCH06 : REAL := 0.0;     // Return oil temperature, deg C
+    rCH07 : REAL := 0.0;     // Cylinder displacement, mm
+    rCH08 : REAL := 0.0;     // Valve position, %
+
+    // ---- Flow and particle channels ----
+    rF01 : REAL := 0.0;      // Main flow rate, L/min
+    rF02 : REAL := 0.0;      // ISO 4406 first code or simplified cleanliness value
+
+    // ---- Vibration / motor / acoustic ----
+    rV01 : REAL := 0.0;      // Motor RPM
+    rV02 : REAL := 0.0;      // Vibration RMS, g
+    rS01 : REAL := 0.0;      // Sound pressure level, dB SPL
+
+    // ---- FFT spectra, quantized as dB * 10 ----
+    aiV02Spectrum : ARRAY[0..1023] OF INT;
+    aiS01Spectrum : ARRAY[0..1023] OF INT;
+
+    // ---- Feature values for V02 and S01 frames ----
+    rV02Peak        : REAL := 0.0;
+    rV02CrestFactor : REAL := 0.0;
+    rV02Thd         : REAL := 0.0;
+    rS01Peak        : REAL := 0.0;
+    rS01CrestFactor : REAL := 0.0;
+    rS01Thd         : REAL := 0.0;
+
+    // ---- Bearing markers for vibration channel ----
+    rBpfiHz : REAL := 135.2;
+    rBpfiDb : REAL := -45.0;
+    rBpfoHz : REAL := 89.7;
+    rBpfoDb : REAL := -52.0;
+    rBsfHz  : REAL := 61.4;
+    rBsfDb  : REAL := -56.0;
+    rFtfHz  : REAL := 12.8;
+    rFtfDb  : REAL := -62.0;
+
+    // ---- Liveness flag: TRUE after one simulator/IO scan has completed ----
+    xChannelsValid : BOOL := FALSE;
+
+    // ---- Cloud diagnostics for HMI/watch window ----
+    eCloudState          : E_HmasCloudState := E_HmasCloudState.DISABLED;
+    xCloudConnected      : BOOL := FALSE;
+    xCloudAuthenticated  : BOOL := FALSE;
+    udiCloudFramesSent   : UDINT := 0;
+    udiCloudBytesSent    : UDINT := 0;
+    udiCloudReconnects   : UDINT := 0;
+    sCloudLastError      : STRING(255) := '';
+END_VAR

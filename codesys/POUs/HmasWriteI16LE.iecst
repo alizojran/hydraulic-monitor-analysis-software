@@ -1,0 +1,15 @@
+// Writes INT16 little-endian.
+FUNCTION HmasWriteI16LE : BOOL
+VAR_INPUT
+    pbyBuf    : POINTER TO BYTE;
+    udiOffset : UDINT;
+    iValue    : INT;
+END_VAR
+VAR
+    wValue : WORD;
+END_VAR
+    wValue := INT_TO_WORD(iValue);
+    pbyBuf[udiOffset] := TO_BYTE(wValue AND 16#00FF);
+    pbyBuf[udiOffset + 1] := TO_BYTE(SHR(wValue, 8) AND 16#00FF);
+    HmasWriteI16LE := TRUE;
+END_FUNCTION

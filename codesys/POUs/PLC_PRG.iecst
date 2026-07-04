@@ -1,0 +1,55 @@
+// ==========================================================================
+//  PROGRAM  PLC_PRG
+// ==========================================================================
+//  Main cyclic program for the current cloud architecture.
+//
+//  Recommended task config:
+//    - Cyclic, 10 ms period, priority 1
+//
+//  Data path:
+//    simulator or real IO -> GVL_HmasChannels -> TCP client -> Aliyun
+// ==========================================================================
+PROGRAM PLC_PRG
+VAR
+    fbSimulator : FB_HmasSensorSimulator;
+    fbCloud     : FB_HmasCloudTcpClient;
+END_VAR
+// --------------------------------------------------------------------------
+
+// ---- (1) Acquire data -----------------------------------------------------
+IF GVL_HmasChannels.xUseSimulator THEN
+    fbSimulator(
+        xEnable := TRUE,
+        tStep   := T#100MS
+    );
+ELSE
+    fbSimulator(xEnable := FALSE);
+
+    // Production: insert IO scan and scaling here.
+    // Write these variables:
+    //   rCH01..rCH08, rF01, rF02, rV01, rV02, rS01
+    //   aiV02Spectrum[0..1023], aiS01Spectrum[0..1023]
+    // Then set:
+    //   GVL_HmasChannels.xChannelsValid := TRUE;
+    ;
+END_IF
+
+// ---- (2) Upload FFT result frames to Aliyun -------------------------------
+fbCloud(
+    xEnable           := GVL_HmasChannels.xCloudEnable AND GVL_HmasChannels.xChannelsValid,
+    sHost             := GVL_HmasChannels.sCloudHost,
+    uiPort            := GVL_HmasChannels.uiCloudPort,
+    sDeviceId         := GVL_HmasChannels.sDeviceId,
+    sDeviceSecret     := GVL_HmasChannels.sDeviceSecret,
+    udiSendIntervalMs := GVL_HmasChannels.udiCloudSendIntervalMs
+);
+
+// ---- (3) Diagnostics ------------------------------------------------------
+// Watch these online in CODESYS:
+//   GVL_HmasChannels.eCloudState
+//   GVL_HmasChannels.xCloudConnected
+//   GVL_HmasChannels.xCloudAuthenticated
+//   GVL_HmasChannels.udiCloudFramesSent
+//   GVL_HmasChannels.udiCloudBytesSent
+//   GVL_HmasChannels.sCloudLastError
+END_PROGRAM

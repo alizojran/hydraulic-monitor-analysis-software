@@ -1,0 +1,115 @@
+// ==========================================================================
+//  FUNCTION_BLOCK  FB_HmasSensorSimulator
+// ==========================================================================
+//  Generates deterministic demo values until the real field sensors are
+//  connected. The simulator produces:
+//    - 13 engineering channels CH01..CH08, F01, F02, V01, V02, S01
+//    - V02 and S01 FFT spectra, 1024 bins, quantized as dB * 10
+// ==========================================================================
+FUNCTION_BLOCK FB_HmasSensorSimulator
+VAR_INPUT
+    xEnable   : BOOL := TRUE;
+    tStep     : TIME := T#100MS;
+END_VAR
+VAR_OUTPUT
+    xValid    : BOOL;
+    udiTicks  : UDINT;
+END_VAR
+VAR
+    tonStep   : TON;
+    rPhase    : REAL := 0.0;
+    rSlow     : REAL;
+    rFast     : REAL;
+    i         : UINT;
+    rFreq     : REAL;
+    rDb       : REAL;
+END_VAR
+// --------------------------------------------------------------------------
+
+IF NOT xEnable THEN
+    tonStep(IN := FALSE);
+    xValid := FALSE;
+    RETURN;
+END_IF
+
+tonStep(IN := NOT tonStep.Q, PT := tStep);
+IF tonStep.Q THEN
+    udiTicks := udiTicks + 1;
+    rPhase := rPhase + 0.0628319;      // roughly 10 s per full cycle at 100 ms
+    IF rPhase > 6.28319 THEN
+        rPhase := rPhase - 6.28319;
+    END_IF
+
+    rSlow := SIN(rPhase);
+    rFast := SIN(rPhase * 4.7);
+
+    // Hydraulic channels. Values are intentionally close to normal operating
+    // ranges so the cloud UI looks like a running machine.
+    GVL_HmasChannels.rCH01 := 220.0 + 8.0 * rSlow + 1.5 * SIN(rPhase * 3.0);
+    GVL_HmasChannels.rCH02 := 210.0 + 6.0 * SIN(rPhase * 0.8);
+    GVL_HmasChannels.rCH03 := 186.0 + 4.0 * SIN(rPhase * 0.6 + 0.8);
+    GVL_HmasChannels.rCH04 := 14.0 + 1.2 * SIN(rPhase * 1.7);
+    GVL_HmasChannels.rCH05 := 53.0 + 1.8 * SIN(rPhase * 0.25);
+    GVL_HmasChannels.rCH06 := 63.0 + 2.0 * SIN(rPhase * 0.22 + 0.6);
+    GVL_HmasChannels.rCH07 := 48.0 + 11.0 * SIN(rPhase * 0.45);
+    GVL_HmasChannels.rCH08 := 37.0 + 18.0 * SIN(rPhase * 0.35 + 1.2);
+    GVL_HmasChannels.rF01  := 128.0 + 7.0 * SIN(rPhase * 0.9);
+    GVL_HmasChannels.rF02  := 18.0 + 0.4 * SIN(rPhase * 0.15);
+    GVL_HmasChannels.rV01  := 1500.0 + 18.0 * SIN(rPhase * 0.4);
+    GVL_HmasChannels.rV02  := 0.40 + 0.035 * rFast;
+    GVL_HmasChannels.rS01  := 72.0 + 1.5 * SIN(rPhase * 1.1);
+
+    GVL_HmasChannels.rV02Peak        := 1.12 + 0.10 * SIN(rPhase * 2.0);
+    GVL_HmasChannels.rV02CrestFactor := GVL_HmasChannels.rV02Peak / GVL_HmasChannels.rV02;
+    GVL_HmasChannels.rV02Thd         := 0.030 + 0.006 * SIN(rPhase * 0.7);
+    GVL_HmasChannels.rS01Peak        := GVL_HmasChannels.rS01 + 7.0;
+    GVL_HmasChannels.rS01CrestFactor := 1.8 + 0.1 * SIN(rPhase * 0.5);
+    GVL_HmasChannels.rS01Thd         := 0.020 + 0.004 * SIN(rPhase * 0.9);
+
+    GVL_HmasChannels.rBpfiHz := 135.2;
+    GVL_HmasChannels.rBpfiDb := -45.0 + 1.2 * SIN(rPhase * 0.8);
+    GVL_HmasChannels.rBpfoHz := 89.7;
+    GVL_HmasChannels.rBpfoDb := -52.0 + 1.0 * SIN(rPhase * 0.5);
+    GVL_HmasChannels.rBsfHz  := 61.4;
+    GVL_HmasChannels.rBsfDb  := -56.0;
+    GVL_HmasChannels.rFtfHz  := 12.8;
+    GVL_HmasChannels.rFtfDb  := -62.0;
+
+    FOR i := 0 TO GVL_HmasChannels.cHmasLastBin DO
+        rFreq := UINT_TO_REAL(i) * UDINT_TO_REAL(GVL_HmasChannels.cHmasSampleRateHz) / UINT_TO_REAL(GVL_HmasChannels.cHmasFftSize);
+
+        // V02: vibration spectrum with 1x/2x/3x rotating components and
+        // bearing markers.
+        rDb := -94.0 + 2.0 * SIN(rPhase + UINT_TO_REAL(i) * 0.017);
+        rDb := rDb + HmasPeakShape(rFreq, 50.0, 4.0, 58.0);
+        rDb := rDb + HmasPeakShape(rFreq, 100.0, 6.0, 42.0);
+        rDb := rDb + HmasPeakShape(rFreq, 150.0, 7.0, 34.0);
+        rDb := rDb + HmasPeakShape(rFreq, GVL_HmasChannels.rBpfiHz, 5.0, 32.0);
+        rDb := rDb + HmasPeakShape(rFreq, GVL_HmasChannels.rBpfoHz, 5.0, 25.0);
+        IF rDb > -18.0 THEN
+            rDb := -18.0;
+        END_IF
+        IF rDb < -120.0 THEN
+            rDb := -120.0;
+        END_IF
+        GVL_HmasChannels.aiV02Spectrum[i] := REAL_TO_INT(rDb * 10.0);
+
+        // S01: acoustic spectrum with pump fundamental and broadband energy.
+        rDb := -82.0 + 2.5 * SIN(rPhase * 0.6 + UINT_TO_REAL(i) * 0.011);
+        rDb := rDb + HmasPeakShape(rFreq, 250.0, 18.0, 40.0);
+        rDb := rDb + HmasPeakShape(rFreq, 500.0, 28.0, 31.0);
+        rDb := rDb + HmasPeakShape(rFreq, 1000.0, 55.0, 24.0);
+        rDb := rDb + HmasPeakShape(rFreq, 1800.0, 90.0, 14.0);
+        IF rDb > -22.0 THEN
+            rDb := -22.0;
+        END_IF
+        IF rDb < -120.0 THEN
+            rDb := -120.0;
+        END_IF
+        GVL_HmasChannels.aiS01Spectrum[i] := REAL_TO_INT(rDb * 10.0);
+    END_FOR
+
+    GVL_HmasChannels.xChannelsValid := TRUE;
+    xValid := TRUE;
+END_IF
+END_FUNCTION_BLOCK

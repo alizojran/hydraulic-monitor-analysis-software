@@ -1,0 +1,17 @@
+// Writes ULINT little-endian.
+FUNCTION HmasWriteU64LE : BOOL
+VAR_INPUT
+    pbyBuf    : POINTER TO BYTE;
+    udiOffset : UDINT;
+    uliValue  : ULINT;
+END_VAR
+    pbyBuf[udiOffset] := TO_BYTE(uliValue AND TO_ULINT(16#FF));
+    pbyBuf[udiOffset + 1] := TO_BYTE(SHR(uliValue, 8) AND TO_ULINT(16#FF));
+    pbyBuf[udiOffset + 2] := TO_BYTE(SHR(uliValue, 16) AND TO_ULINT(16#FF));
+    pbyBuf[udiOffset + 3] := TO_BYTE(SHR(uliValue, 24) AND TO_ULINT(16#FF));
+    pbyBuf[udiOffset + 4] := TO_BYTE(SHR(uliValue, 32) AND TO_ULINT(16#FF));
+    pbyBuf[udiOffset + 5] := TO_BYTE(SHR(uliValue, 40) AND TO_ULINT(16#FF));
+    pbyBuf[udiOffset + 6] := TO_BYTE(SHR(uliValue, 48) AND TO_ULINT(16#FF));
+    pbyBuf[udiOffset + 7] := TO_BYTE(SHR(uliValue, 56) AND TO_ULINT(16#FF));
+    HmasWriteU64LE := TRUE;
+END_FUNCTION

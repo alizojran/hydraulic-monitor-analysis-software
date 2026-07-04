@@ -1,0 +1,13 @@
+// Writes UDINT big-endian.
+FUNCTION HmasWriteU32BE : BOOL
+VAR_INPUT
+    pbyBuf    : POINTER TO BYTE;
+    udiOffset : UDINT;
+    udiValue  : UDINT;
+END_VAR
+    pbyBuf[udiOffset] := TO_BYTE(SHR(udiValue, 24) AND 16#000000FF);
+    pbyBuf[udiOffset + 1] := TO_BYTE(SHR(udiValue, 16) AND 16#000000FF);
+    pbyBuf[udiOffset + 2] := TO_BYTE(SHR(udiValue, 8) AND 16#000000FF);
+    pbyBuf[udiOffset + 3] := TO_BYTE(udiValue AND 16#000000FF);
+    HmasWriteU32BE := TRUE;
+END_FUNCTION

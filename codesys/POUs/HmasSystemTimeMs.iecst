@@ -1,0 +1,10 @@
+// Current Unix time in milliseconds.
+FUNCTION HmasSystemTimeMs : ULINT
+VAR
+    dt      : DATE_AND_TIME;
+    udiSecs : UDINT;
+END_VAR
+    dt := SysTimeRtcGetGeneric();
+    udiSecs := DT_TO_UDINT(dt);
+    HmasSystemTimeMs := TO_ULINT(udiSecs) * 1000;
+END_FUNCTION

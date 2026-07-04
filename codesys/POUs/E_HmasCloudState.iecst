@@ -1,0 +1,19 @@
+// ==========================================================================
+//  TYPE  E_HmasCloudState
+// ==========================================================================
+//  State machine for the HMAS cloud TCP client.
+// ==========================================================================
+
+TYPE E_HmasCloudState :
+(
+    DISABLED         := 0,
+    CONNECTING       := 1,
+    SEND_HELLO       := 2,
+    WAIT_HELLO_ACK   := 3,
+    READY            := 4,
+    SEND_V02         := 5,
+    SEND_S01         := 6,
+    RECONNECT_WAIT   := 20,
+    ERROR_STATE      := 99
+);
+END_TYPE

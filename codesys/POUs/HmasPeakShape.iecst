@@ -1,0 +1,14 @@
+// Simple inverse-quadratic spectral peak shape.
+FUNCTION HmasPeakShape : REAL
+VAR_INPUT
+    rFreqHz   : REAL;
+    rCenterHz : REAL;
+    rWidthHz  : REAL;
+    rGainDb   : REAL;
+END_VAR
+VAR
+    rX : REAL;
+END_VAR
+    rX := (rFreqHz - rCenterHz) / rWidthHz;
+    HmasPeakShape := rGainDb / (1.0 + rX * rX);
+END_FUNCTION

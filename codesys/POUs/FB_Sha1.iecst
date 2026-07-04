@@ -1,0 +1,160 @@
+// ==========================================================================
+//  FUNCTION_BLOCK  FB_Sha1
+// ==========================================================================
+//  Pure-ST SHA-1 implementation, sufficient for WebSocket handshake
+//  (input ≤ 256 bytes — secKey + GUID is ~60 bytes).
+//
+//  Reference: RFC 3174 (US Secure Hash Algorithm 1).
+//
+//  Usage:
+//      fbSha1(xExecute := TRUE,
+//             pbyData  := ADR(sInput),
+//             udiLen   := LEN2(ADR(sInput)));
+//      // fbSha1.abyHash[0..19] now contains the 20-byte digest.
+// ==========================================================================
+FUNCTION_BLOCK FB_Sha1
+VAR_INPUT
+    xExecute  : BOOL;
+    pbyData   : POINTER TO BYTE;
+    udiLen    : UDINT;             // input length in bytes
+END_VAR
+VAR_OUTPUT
+    xDone     : BOOL;
+    abyHash   : ARRAY[0..19] OF BYTE;
+END_VAR
+VAR
+    h0, h1, h2, h3, h4 : DWORD;
+    a, b, c, d, e      : DWORD;
+    f, k, temp         : DWORD;
+    w                  : ARRAY[0..79] OF DWORD;
+    abyBuf             : ARRAY[0..511] OF BYTE;   // padded message (max 8 blocks)
+    udiPaddedLen       : UDINT;
+    udiBlocks          : UDINT;
+    udiBlockIdx        : UDINT;
+    udiBitLen          : ULINT;
+    pSrc               : POINTER TO BYTE;
+    i                  : INT;
+    iBase              : UDINT;
+END_VAR
+// --------------------------------------------------------------------------
+
+xDone := FALSE;
+IF NOT xExecute THEN
+    RETURN;
+END_IF
+
+IF udiLen > 440 THEN
+    // Out of buffer — caller must keep input small (handshake fits well within)
+    RETURN;
+END_IF
+
+// ---- 1. Pre-process: pad the message ------------------------------------
+udiBitLen := TO_ULINT(udiLen) * 8;
+pSrc      := pbyData;
+
+FOR iBase := 0 TO udiLen - 1 DO
+    abyBuf[iBase] := pSrc^;
+    pSrc := pSrc + 1;
+END_FOR
+
+// Append 0x80 then zero-pad to 56 mod 64
+abyBuf[udiLen]    := 16#80;
+udiPaddedLen      := udiLen + 1;
+WHILE (udiPaddedLen MOD 64) <> 56 DO
+    abyBuf[udiPaddedLen] := 16#00;
+    udiPaddedLen := udiPaddedLen + 1;
+END_WHILE
+
+// Append 64-bit big-endian length (in bits)
+abyBuf[udiPaddedLen + 0] := TO_BYTE(SHR(udiBitLen, 56) AND 16#FF);
+abyBuf[udiPaddedLen + 1] := TO_BYTE(SHR(udiBitLen, 48) AND 16#FF);
+abyBuf[udiPaddedLen + 2] := TO_BYTE(SHR(udiBitLen, 40) AND 16#FF);
+abyBuf[udiPaddedLen + 3] := TO_BYTE(SHR(udiBitLen, 32) AND 16#FF);
+abyBuf[udiPaddedLen + 4] := TO_BYTE(SHR(udiBitLen, 24) AND 16#FF);
+abyBuf[udiPaddedLen + 5] := TO_BYTE(SHR(udiBitLen, 16) AND 16#FF);
+abyBuf[udiPaddedLen + 6] := TO_BYTE(SHR(udiBitLen,  8) AND 16#FF);
+abyBuf[udiPaddedLen + 7] := TO_BYTE(udiBitLen AND 16#FF);
+udiPaddedLen := udiPaddedLen + 8;
+udiBlocks    := udiPaddedLen / 64;
+
+// ---- 2. Initialise hash state -------------------------------------------
+h0 := 16#67452301;
+h1 := 16#EFCDAB89;
+h2 := 16#98BADCFE;
+h3 := 16#10325476;
+h4 := 16#C3D2E1F0;
+
+// ---- 3. Process each 512-bit block --------------------------------------
+FOR udiBlockIdx := 0 TO udiBlocks - 1 DO
+    iBase := udiBlockIdx * 64;
+
+    // Build w[0..15] from 16 big-endian 32-bit words
+    FOR i := 0 TO 15 DO
+        w[i] :=  SHL(TO_DWORD(abyBuf[iBase + i*4 + 0]), 24)
+              OR SHL(TO_DWORD(abyBuf[iBase + i*4 + 1]), 16)
+              OR SHL(TO_DWORD(abyBuf[iBase + i*4 + 2]),  8)
+              OR     TO_DWORD(abyBuf[iBase + i*4 + 3]);
+    END_FOR
+
+    // Extend to w[16..79]
+    FOR i := 16 TO 79 DO
+        temp := w[i-3] XOR w[i-8] XOR w[i-14] XOR w[i-16];
+        w[i] := SHL(temp, 1) OR SHR(temp, 31);   // ROTL 1
+    END_FOR
+
+    a := h0;  b := h1;  c := h2;  d := h3;  e := h4;
+
+    FOR i := 0 TO 79 DO
+        IF i < 20 THEN
+            f := (b AND c) OR ((NOT b) AND d);
+            k := 16#5A827999;
+        ELSIF i < 40 THEN
+            f := b XOR c XOR d;
+            k := 16#6ED9EBA1;
+        ELSIF i < 60 THEN
+            f := (b AND c) OR (b AND d) OR (c AND d);
+            k := 16#8F1BBCDC;
+        ELSE
+            f := b XOR c XOR d;
+            k := 16#CA62C1D6;
+        END_IF
+
+        temp := (SHL(a, 5) OR SHR(a, 27)) + f + e + k + w[i];
+        e := d;
+        d := c;
+        c := SHL(b, 30) OR SHR(b, 2);   // ROTL 30
+        b := a;
+        a := temp;
+    END_FOR
+
+    h0 := h0 + a;
+    h1 := h1 + b;
+    h2 := h2 + c;
+    h3 := h3 + d;
+    h4 := h4 + e;
+END_FOR
+
+// ---- 4. Output 20-byte big-endian digest --------------------------------
+abyHash[ 0] := TO_BYTE(SHR(h0, 24) AND 16#FF);
+abyHash[ 1] := TO_BYTE(SHR(h0, 16) AND 16#FF);
+abyHash[ 2] := TO_BYTE(SHR(h0,  8) AND 16#FF);
+abyHash[ 3] := TO_BYTE(h0 AND 16#FF);
+abyHash[ 4] := TO_BYTE(SHR(h1, 24) AND 16#FF);
+abyHash[ 5] := TO_BYTE(SHR(h1, 16) AND 16#FF);
+abyHash[ 6] := TO_BYTE(SHR(h1,  8) AND 16#FF);
+abyHash[ 7] := TO_BYTE(h1 AND 16#FF);
+abyHash[ 8] := TO_BYTE(SHR(h2, 24) AND 16#FF);
+abyHash[ 9] := TO_BYTE(SHR(h2, 16) AND 16#FF);
+abyHash[10] := TO_BYTE(SHR(h2,  8) AND 16#FF);
+abyHash[11] := TO_BYTE(h2 AND 16#FF);
+abyHash[12] := TO_BYTE(SHR(h3, 24) AND 16#FF);
+abyHash[13] := TO_BYTE(SHR(h3, 16) AND 16#FF);
+abyHash[14] := TO_BYTE(SHR(h3,  8) AND 16#FF);
+abyHash[15] := TO_BYTE(h3 AND 16#FF);
+abyHash[16] := TO_BYTE(SHR(h4, 24) AND 16#FF);
+abyHash[17] := TO_BYTE(SHR(h4, 16) AND 16#FF);
+abyHash[18] := TO_BYTE(SHR(h4,  8) AND 16#FF);
+abyHash[19] := TO_BYTE(h4 AND 16#FF);
+
+xDone := TRUE;
+END_FUNCTION_BLOCK

@@ -1,0 +1,1557 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project xmlns="http://www.plcopen.org/xml/tc6_0200">
+  <fileHeader companyName="HMAS"
+              productName="CODESYS"
+              productVersion="CODESYS V3.5"
+              creationDateTime="2026-06-29T01:41:01.509Z" />
+  <contentHeader name="HMAS_Codesys_TCP_Client.project"
+                 modificationDateTime="2026-06-29T01:41:01.509Z">
+    <coordinateInfo>
+      <fbd><scaling x="1" y="1" /></fbd>
+      <ld><scaling x="1" y="1" /></ld>
+      <sfc><scaling x="1" y="1" /></sfc>
+    </coordinateInfo>
+    <addData>
+      <data name="http://www.3s-software.com/plcopenxml/projectinformation" handleUnknown="implementation">
+        <ProjectInformation>
+          <property name="Project" type="string">HMAS_Codesys_TCP_Client</property>
+        </ProjectInformation>
+      </data>
+    </addData>
+  </contentHeader>
+  <types>
+    <dataTypes>
+      <dataType name="E_HmasCloudState">
+        <baseType>
+          <enum>
+            <values>
+            <value name="DISABLED" value="0" />
+            <value name="CONNECTING" value="1" />
+            <value name="SEND_HELLO" value="2" />
+            <value name="WAIT_HELLO_ACK" value="3" />
+            <value name="READY" value="4" />
+            <value name="SEND_V02" value="5" />
+            <value name="SEND_S01" value="6" />
+            <value name="RECONNECT_WAIT" value="20" />
+            <value name="ERROR_STATE" value="99" />
+            </values>
+          </enum>
+        </baseType>
+        <addData>
+          <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
+            <ObjectId>97d5e9ea-3c53-db25-34bf-b916cc1413ad</ObjectId>
+          </data>
+        </addData>
+      </dataType>
+    </dataTypes>
+    <pous>
+      <pou name="HmasPeakShape" pouType="function">
+        <interface>
+          <returnType>
+            <REAL />
+          </returnType>
+          <inputVars>
+            <variable name="rFreqHz">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="rCenterHz">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="rWidthHz">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="rGainDb">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+          </inputVars>
+          <localVars>
+            <variable name="rX">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+          </localVars>
+        </interface>
+        <body>
+          <ST>
+            <xhtml xmlns="http://www.w3.org/1999/xhtml">rX := (rFreqHz - rCenterHz) / rWidthHz;
+    HmasPeakShape := rGainDb / (1.0 + rX * rX);</xhtml>
+          </ST>
+        </body>
+        <addData>
+          <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
+            <ObjectId>5b46755c-48fe-6944-e58c-1cf77d58ec27</ObjectId>
+          </data>
+        </addData>
+      </pou>
+      <pou name="FB_HmasSensorSimulator" pouType="functionBlock">
+        <interface>
+          <inputVars>
+            <variable name="xEnable">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="TRUE" />
+              </initialValue>
+            </variable>
+            <variable name="tStep">
+              <type>
+                <TIME />
+              </type>
+              <initialValue>
+                <simpleValue value="T#100MS" />
+              </initialValue>
+            </variable>
+          </inputVars>
+          <outputVars>
+            <variable name="xValid">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="udiTicks">
+              <type>
+                <UDINT />
+              </type>
+            </variable>
+          </outputVars>
+          <localVars>
+            <variable name="tonStep">
+              <type>
+                <derived name="TON" />
+              </type>
+            </variable>
+            <variable name="rPhase">
+              <type>
+                <REAL />
+              </type>
+              <initialValue>
+                <simpleValue value="0.0" />
+              </initialValue>
+            </variable>
+            <variable name="rSlow">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="rFast">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="i">
+              <type>
+                <UINT />
+              </type>
+            </variable>
+            <variable name="rFreq">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="rDb">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+          </localVars>
+        </interface>
+        <body>
+          <ST>
+            <xhtml xmlns="http://www.w3.org/1999/xhtml">// --------------------------------------------------------------------------
+
+IF NOT xEnable THEN
+    tonStep(IN := FALSE);
+    xValid := FALSE;
+    RETURN;
+END_IF
+
+tonStep(IN := NOT tonStep.Q, PT := tStep);
+IF tonStep.Q THEN
+    udiTicks := udiTicks + 1;
+    rPhase := rPhase + 0.0628319;      // roughly 10 s per full cycle at 100 ms
+    IF rPhase &gt; 6.28319 THEN
+        rPhase := rPhase - 6.28319;
+    END_IF
+
+    rSlow := SIN(rPhase);
+    rFast := SIN(rPhase * 4.7);
+
+    // Hydraulic channels. Values are intentionally close to normal operating
+    // ranges so the cloud UI looks like a running machine.
+    GVL_HmasChannels.rCH01 := 220.0 + 8.0 * rSlow + 1.5 * SIN(rPhase * 3.0);
+    GVL_HmasChannels.rCH02 := 210.0 + 6.0 * SIN(rPhase * 0.8);
+    GVL_HmasChannels.rCH03 := 186.0 + 4.0 * SIN(rPhase * 0.6 + 0.8);
+    GVL_HmasChannels.rCH04 := 14.0 + 1.2 * SIN(rPhase * 1.7);
+    GVL_HmasChannels.rCH05 := 53.0 + 1.8 * SIN(rPhase * 0.25);
+    GVL_HmasChannels.rCH06 := 63.0 + 2.0 * SIN(rPhase * 0.22 + 0.6);
+    GVL_HmasChannels.rCH07 := 48.0 + 11.0 * SIN(rPhase * 0.45);
+    GVL_HmasChannels.rCH08 := 37.0 + 18.0 * SIN(rPhase * 0.35 + 1.2);
+    GVL_HmasChannels.rF01  := 128.0 + 7.0 * SIN(rPhase * 0.9);
+    GVL_HmasChannels.rF02  := 18.0 + 0.4 * SIN(rPhase * 0.15);
+    GVL_HmasChannels.rV01  := 1500.0 + 18.0 * SIN(rPhase * 0.4);
+    GVL_HmasChannels.rV02  := 0.40 + 0.035 * rFast;
+    GVL_HmasChannels.rS01  := 72.0 + 1.5 * SIN(rPhase * 1.1);
+
+    GVL_HmasChannels.rV02Peak        := 1.12 + 0.10 * SIN(rPhase * 2.0);
+    GVL_HmasChannels.rV02CrestFactor := GVL_HmasChannels.rV02Peak / GVL_HmasChannels.rV02;
+    GVL_HmasChannels.rV02Thd         := 0.030 + 0.006 * SIN(rPhase * 0.7);
+    GVL_HmasChannels.rS01Peak        := GVL_HmasChannels.rS01 + 7.0;
+    GVL_HmasChannels.rS01CrestFactor := 1.8 + 0.1 * SIN(rPhase * 0.5);
+    GVL_HmasChannels.rS01Thd         := 0.020 + 0.004 * SIN(rPhase * 0.9);
+
+    GVL_HmasChannels.rBpfiHz := 135.2;
+    GVL_HmasChannels.rBpfiDb := -45.0 + 1.2 * SIN(rPhase * 0.8);
+    GVL_HmasChannels.rBpfoHz := 89.7;
+    GVL_HmasChannels.rBpfoDb := -52.0 + 1.0 * SIN(rPhase * 0.5);
+    GVL_HmasChannels.rBsfHz  := 61.4;
+    GVL_HmasChannels.rBsfDb  := -56.0;
+    GVL_HmasChannels.rFtfHz  := 12.8;
+    GVL_HmasChannels.rFtfDb  := -62.0;
+
+    FOR i := 0 TO GVL_HmasChannels.cHmasLastBin DO
+        rFreq := UINT_TO_REAL(i) * UDINT_TO_REAL(GVL_HmasChannels.cHmasSampleRateHz) / UINT_TO_REAL(GVL_HmasChannels.cHmasFftSize);
+
+        // V02: vibration spectrum with 1x/2x/3x rotating components and
+        // bearing markers.
+        rDb := -94.0 + 2.0 * SIN(rPhase + UINT_TO_REAL(i) * 0.017);
+        rDb := rDb + HmasPeakShape(rFreq, 50.0, 4.0, 58.0);
+        rDb := rDb + HmasPeakShape(rFreq, 100.0, 6.0, 42.0);
+        rDb := rDb + HmasPeakShape(rFreq, 150.0, 7.0, 34.0);
+        rDb := rDb + HmasPeakShape(rFreq, GVL_HmasChannels.rBpfiHz, 5.0, 32.0);
+        rDb := rDb + HmasPeakShape(rFreq, GVL_HmasChannels.rBpfoHz, 5.0, 25.0);
+        IF rDb &gt; -18.0 THEN
+            rDb := -18.0;
+        END_IF
+        IF rDb &lt; -120.0 THEN
+            rDb := -120.0;
+        END_IF
+        GVL_HmasChannels.aiV02Spectrum[i] := REAL_TO_INT(rDb * 10.0);
+
+        // S01: acoustic spectrum with pump fundamental and broadband energy.
+        rDb := -82.0 + 2.5 * SIN(rPhase * 0.6 + UINT_TO_REAL(i) * 0.011);
+        rDb := rDb + HmasPeakShape(rFreq, 250.0, 18.0, 40.0);
+        rDb := rDb + HmasPeakShape(rFreq, 500.0, 28.0, 31.0);
+        rDb := rDb + HmasPeakShape(rFreq, 1000.0, 55.0, 24.0);
+        rDb := rDb + HmasPeakShape(rFreq, 1800.0, 90.0, 14.0);
+        IF rDb &gt; -22.0 THEN
+            rDb := -22.0;
+        END_IF
+        IF rDb &lt; -120.0 THEN
+            rDb := -120.0;
+        END_IF
+        GVL_HmasChannels.aiS01Spectrum[i] := REAL_TO_INT(rDb * 10.0);
+    END_FOR
+
+    GVL_HmasChannels.xChannelsValid := TRUE;
+    xValid := TRUE;
+END_IF</xhtml>
+          </ST>
+        </body>
+        <addData>
+          <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
+            <ObjectId>babb04ec-edc3-fc01-340c-522b57bad221</ObjectId>
+          </data>
+        </addData>
+      </pou>
+      <pou name="FB_HmasCloudTcpClient" pouType="functionBlock">
+        <interface>
+          <inputVars>
+            <variable name="xEnable">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="sHost">
+              <type>
+                <string length="80" />
+              </type>
+              <initialValue>
+                <simpleValue value="'8.148.228.136'" />
+              </initialValue>
+            </variable>
+            <variable name="uiPort">
+              <type>
+                <UINT />
+              </type>
+              <initialValue>
+                <simpleValue value="9100" />
+              </initialValue>
+            </variable>
+            <variable name="sDeviceId">
+              <type>
+                <string length="32" />
+              </type>
+              <initialValue>
+                <simpleValue value="'HMAS-002'" />
+              </initialValue>
+            </variable>
+            <variable name="sDeviceSecret">
+              <type>
+                <string length="80" />
+              </type>
+              <initialValue>
+                <simpleValue value="'change-this-device-secret'" />
+              </initialValue>
+            </variable>
+            <variable name="udiSendIntervalMs">
+              <type>
+                <UDINT />
+              </type>
+              <initialValue>
+                <simpleValue value="1000" />
+              </initialValue>
+            </variable>
+          </inputVars>
+          <outputVars>
+            <variable name="eState">
+              <type>
+                <derived name="E_HmasCloudState" />
+              </type>
+            </variable>
+            <variable name="xConnected">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="xAuthenticated">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="udiFramesSent">
+              <type>
+                <UDINT />
+              </type>
+            </variable>
+            <variable name="udiBytesSent">
+              <type>
+                <UDINT />
+              </type>
+            </variable>
+            <variable name="udiReconnects">
+              <type>
+                <UDINT />
+              </type>
+            </variable>
+            <variable name="sLastError">
+              <type>
+                <string length="255" />
+              </type>
+            </variable>
+          </outputVars>
+          <localVars>
+            <variable name="fbClient">
+              <type>
+                <derived name="NBS.TCP_Client" />
+              </type>
+            </variable>
+            <variable name="fbRead">
+              <type>
+                <derived name="NBS.TCP_Read" />
+              </type>
+            </variable>
+            <variable name="fbWrite">
+              <type>
+                <derived name="NBS.TCP_Write" />
+              </type>
+            </variable>
+            <variable name="ipServer">
+              <type>
+                <derived name="NBS.IP_ADDR" />
+              </type>
+            </variable>
+            <variable name="hConnection">
+              <type>
+                <derived name="CAA.HANDLE" />
+              </type>
+            </variable>
+            <variable name="xHasConnection">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="tonSend">
+              <type>
+                <derived name="TON" />
+              </type>
+            </variable>
+            <variable name="tonReconnect">
+              <type>
+                <derived name="TON" />
+              </type>
+            </variable>
+            <variable name="tonAckTimeout">
+              <type>
+                <derived name="TON" />
+              </type>
+            </variable>
+            <variable name="abyHelloFrame">
+              <type>
+                <array>
+                    <dimension lower="0" upper="511" />
+                  <baseType>
+                    <BYTE />
+                  </baseType>
+                </array>
+              </type>
+            </variable>
+            <variable name="abyFftFrame">
+              <type>
+                <array>
+                    <dimension lower="0" upper="2303" />
+                  <baseType>
+                    <BYTE />
+                  </baseType>
+                </array>
+              </type>
+            </variable>
+            <variable name="udiHelloLen">
+              <type>
+                <UDINT />
+              </type>
+            </variable>
+            <variable name="udiPayloadLen">
+              <type>
+                <UDINT />
+              </type>
+            </variable>
+            <variable name="sHello">
+              <type>
+                <string length="320" />
+              </type>
+            </variable>
+            <variable name="pHello">
+              <type>
+                <pointer>
+                  <baseType>
+                    <BYTE />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="pPayload">
+              <type>
+                <pointer>
+                  <baseType>
+                    <BYTE />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="pChannel">
+              <type>
+                <pointer>
+                  <baseType>
+                    <BYTE />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="pReal">
+              <type>
+                <pointer>
+                  <baseType>
+                    <BYTE />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="abyRxBuf">
+              <type>
+                <array>
+                    <dimension lower="0" upper="1023" />
+                  <baseType>
+                    <BYTE />
+                  </baseType>
+                </array>
+              </type>
+            </variable>
+            <variable name="udiRxLen">
+              <type>
+                <UDINT />
+              </type>
+            </variable>
+            <variable name="udiExpectedLen">
+              <type>
+                <UDINT />
+              </type>
+            </variable>
+            <variable name="sRxText">
+              <type>
+                <string length="1023" />
+              </type>
+            </variable>
+            <variable name="pRxText">
+              <type>
+                <pointer>
+                  <baseType>
+                    <BYTE />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="xWriteBusy">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="eAfterWriteState">
+              <type>
+                <derived name="E_HmasCloudState" />
+              </type>
+            </variable>
+            <variable name="pWriteData">
+              <type>
+                <pointer>
+                  <baseType>
+                    <BYTE />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="udiWriteLen">
+              <type>
+                <UDINT />
+              </type>
+            </variable>
+            <variable name="xWriteCountsFrame">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="udiSeq">
+              <type>
+                <UDINT />
+              </type>
+            </variable>
+            <variable name="udiCopyIndex">
+              <type>
+                <UDINT />
+              </type>
+            </variable>
+            <variable name="udiCopyLen">
+              <type>
+                <UDINT />
+              </type>
+            </variable>
+            <variable name="udiOffset">
+              <type>
+                <UDINT />
+              </type>
+            </variable>
+            <variable name="udiReadCount">
+              <type>
+                <UDINT />
+              </type>
+            </variable>
+            <variable name="i">
+              <type>
+                <UINT />
+              </type>
+            </variable>
+            <variable name="uiChannelLen">
+              <type>
+                <UINT />
+              </type>
+            </variable>
+            <variable name="sTxChannelId">
+              <type>
+                <string length="16" />
+              </type>
+            </variable>
+            <variable name="rTxRms">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="rTxPeak">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="rTxCrestFactor">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="rTxThd">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="rPack">
+              <type>
+                <REAL />
+              </type>
+            </variable>
+            <variable name="iBinValue">
+              <type>
+                <INT />
+              </type>
+            </variable>
+            <variable name="wBinValue">
+              <type>
+                <WORD />
+              </type>
+            </variable>
+            <variable name="xTxUseBearing">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="xTxUseV02Spectrum">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="xBuildFftFrame">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+          </localVars>
+        </interface>
+        <body>
+          <ST>
+            <xhtml xmlns="http://www.w3.org/1999/xhtml">// --------------------------------------------------------------------------
+
+IF NOT xEnable THEN
+    fbWrite(xExecute := FALSE);
+    fbRead(xEnable := FALSE);
+    fbClient(xEnable := FALSE);
+    xHasConnection := FALSE;
+    xWriteBusy := FALSE;
+    xConnected := FALSE;
+    xAuthenticated := FALSE;
+    eState := E_HmasCloudState.DISABLED;
+    GVL_HmasChannels.eCloudState := eState;
+    GVL_HmasChannels.xCloudConnected := xConnected;
+    GVL_HmasChannels.xCloudAuthenticated := xAuthenticated;
+    GVL_HmasChannels.udiCloudFramesSent := udiFramesSent;
+    GVL_HmasChannels.udiCloudBytesSent := udiBytesSent;
+    GVL_HmasChannels.udiCloudReconnects := udiReconnects;
+    GVL_HmasChannels.sCloudLastError := sLastError;
+    RETURN;
+END_IF
+
+// Keep diagnostics in the GVL so they can be watched or displayed by HMI.
+xBuildFftFrame := FALSE;
+GVL_HmasChannels.eCloudState := eState;
+GVL_HmasChannels.xCloudConnected := xConnected;
+GVL_HmasChannels.xCloudAuthenticated := xAuthenticated;
+GVL_HmasChannels.udiCloudFramesSent := udiFramesSent;
+GVL_HmasChannels.udiCloudBytesSent := udiBytesSent;
+GVL_HmasChannels.udiCloudReconnects := udiReconnects;
+GVL_HmasChannels.sCloudLastError := sLastError;
+
+// Keep TCP_Client executing while the socket is expected to be alive.
+IF xHasConnection AND NOT xWriteBusy AND eState &lt;&gt; E_HmasCloudState.CONNECTING AND eState &lt;&gt; E_HmasCloudState.RECONNECT_WAIT THEN
+    ipServer.sAddr := sHost;
+    fbClient(
+        xEnable    := TRUE,
+        udiTimeOut := 5000000,
+        ipAddr     := ipServer,
+        uiPort     := uiPort,
+        hConnection =&gt; hConnection
+    );
+    IF fbClient.xError THEN
+        sLastError := 'TCP_Client keepalive error';
+        eState := E_HmasCloudState.RECONNECT_WAIT;
+    ELSIF NOT fbClient.xActive THEN
+        sLastError := 'cloud connection closed';
+        eState := E_HmasCloudState.RECONNECT_WAIT;
+    END_IF
+END_IF
+
+// Shared write operation. It can take multiple PLC cycles. While it is busy,
+// do not rebuild the same frame or overwrite the write buffer.
+IF xWriteBusy THEN
+    fbWrite(
+        xExecute    := TRUE,
+        udiTimeOut  := 5000000,
+        hConnection := hConnection,
+        szSize      := udiWriteLen,
+        pData       := pWriteData
+    );
+    IF fbWrite.xDone THEN
+        fbWrite(xExecute := FALSE);
+        xWriteBusy := FALSE;
+        IF xWriteCountsFrame THEN
+            udiFramesSent := udiFramesSent + 1;
+        END_IF
+        udiBytesSent := udiBytesSent + udiWriteLen;
+        eState := eAfterWriteState;
+    ELSIF fbWrite.xError THEN
+        sLastError := 'TCP_Write error';
+        fbWrite(xExecute := FALSE);
+        xWriteBusy := FALSE;
+        eState := E_HmasCloudState.RECONNECT_WAIT;
+    END_IF
+
+    GVL_HmasChannels.eCloudState := eState;
+    GVL_HmasChannels.xCloudConnected := xConnected;
+    GVL_HmasChannels.xCloudAuthenticated := xAuthenticated;
+    GVL_HmasChannels.udiCloudFramesSent := udiFramesSent;
+    GVL_HmasChannels.udiCloudBytesSent := udiBytesSent;
+    GVL_HmasChannels.udiCloudReconnects := udiReconnects;
+    GVL_HmasChannels.sCloudLastError := sLastError;
+    RETURN;
+END_IF
+
+CASE eState OF
+
+// --------------------------------------------------------------------------
+E_HmasCloudState.DISABLED:
+    xConnected := FALSE;
+    xAuthenticated := FALSE;
+    udiRxLen := 0;
+    xWriteBusy := FALSE;
+    fbWrite(xExecute := FALSE);
+    fbRead(xEnable := FALSE);
+    fbClient(xEnable := FALSE);
+    xHasConnection := FALSE;
+    ipServer.sAddr := sHost;
+    eState := E_HmasCloudState.CONNECTING;
+
+// --------------------------------------------------------------------------
+E_HmasCloudState.CONNECTING:
+    ipServer.sAddr := sHost;
+    fbClient(
+        xEnable    := TRUE,
+        udiTimeOut := 5000000,
+        ipAddr     := ipServer,
+        uiPort     := uiPort,
+        hConnection =&gt; hConnection
+    );
+
+    IF fbClient.xError THEN
+        sLastError := 'TCP_Client error';
+        eState := E_HmasCloudState.RECONNECT_WAIT;
+    ELSIF fbClient.xActive THEN
+        xConnected := TRUE;
+        xHasConnection := TRUE;
+        xAuthenticated := FALSE;
+        udiRxLen := 0;
+        eState := E_HmasCloudState.SEND_HELLO;
+    END_IF
+
+// --------------------------------------------------------------------------
+E_HmasCloudState.SEND_HELLO:
+    sHello := '{&quot;v&quot;:1,&quot;type&quot;:&quot;hello&quot;,&quot;deviceId&quot;:&quot;';
+    sHello := CONCAT(sHello, sDeviceId);
+    sHello := CONCAT(sHello, '&quot;,&quot;secret&quot;:&quot;');
+    sHello := CONCAT(sHello, sDeviceSecret);
+    sHello := CONCAT(sHello, '&quot;,&quot;ts&quot;:');
+    sHello := CONCAT(sHello, '0');
+    sHello := CONCAT(sHello, '}');
+
+    udiHelloLen := TO_UDINT(LEN(sHello));
+    IF udiHelloLen + 4 &gt; TO_UDINT(SIZEOF(abyHelloFrame)) THEN
+        sLastError := 'hello frame too large';
+        eState := E_HmasCloudState.RECONNECT_WAIT;
+    ELSE
+        abyHelloFrame[0] := TO_BYTE(SHR(udiHelloLen, 24) AND 16#000000FF);
+        abyHelloFrame[1] := TO_BYTE(SHR(udiHelloLen, 16) AND 16#000000FF);
+        abyHelloFrame[2] := TO_BYTE(SHR(udiHelloLen, 8) AND 16#000000FF);
+        abyHelloFrame[3] := TO_BYTE(udiHelloLen AND 16#000000FF);
+        pHello := ADR(sHello);
+        FOR udiCopyIndex := 0 TO udiHelloLen - 1 DO
+            abyHelloFrame[4 + udiCopyIndex] := pHello[udiCopyIndex];
+        END_FOR
+
+        pWriteData := ADR(abyHelloFrame[0]);
+        udiWriteLen := udiHelloLen + 4;
+        eAfterWriteState := E_HmasCloudState.WAIT_HELLO_ACK;
+        xWriteCountsFrame := FALSE;
+        xWriteBusy := TRUE;
+        tonAckTimeout(IN := FALSE);
+        tonAckTimeout(IN := TRUE, PT := T#5S);
+    END_IF
+
+// --------------------------------------------------------------------------
+E_HmasCloudState.WAIT_HELLO_ACK:
+    // Read length-prefixed JSON response. The cloud replies with hello_ack.
+    fbRead(
+        xEnable     := TRUE,
+        hConnection := hConnection,
+        szSize      := TO_UDINT(SIZEOF(abyRxBuf)) - udiRxLen,
+        pData       := ADR(abyRxBuf[0]) + udiRxLen
+    );
+
+    IF fbRead.xReady THEN
+        udiReadCount := TO_UDINT(fbRead.szCount);
+        IF udiReadCount &gt; 0 THEN
+            udiRxLen := udiRxLen + udiReadCount;
+            IF udiRxLen &gt;= 4 THEN
+                udiExpectedLen :=
+                    SHL(TO_UDINT(abyRxBuf[0]), 24) OR
+                    SHL(TO_UDINT(abyRxBuf[1]), 16) OR
+                    SHL(TO_UDINT(abyRxBuf[2]), 8) OR
+                    TO_UDINT(abyRxBuf[3]);
+                IF udiExpectedLen &gt; 0 AND udiExpectedLen &lt;= TO_UDINT(SIZEOF(abyRxBuf)) - 4 THEN
+                    IF udiRxLen &gt;= udiExpectedLen + 4 THEN
+                        pRxText := ADR(sRxText);
+                        IF udiExpectedLen &gt; 1022 THEN
+                            udiCopyLen := 1022;
+                        ELSE
+                            udiCopyLen := udiExpectedLen;
+                        END_IF
+                        FOR udiCopyIndex := 0 TO udiCopyLen - 1 DO
+                            pRxText[udiCopyIndex] := abyRxBuf[4 + udiCopyIndex];
+                        END_FOR
+                        pRxText[udiCopyLen] := 0;
+
+                        IF FIND(sRxText, 'hello_ack') &gt; 0 THEN
+                            xAuthenticated := TRUE;
+                            udiRxLen := 0;
+                            tonSend(IN := FALSE);
+                            eState := E_HmasCloudState.READY;
+                        ELSIF FIND(sRxText, 'error') &gt; 0 THEN
+                            sLastError := CONCAT('cloud auth rejected: ', sRxText);
+                            eState := E_HmasCloudState.RECONNECT_WAIT;
+                        END_IF
+                    END_IF
+                ELSE
+                    sLastError := 'invalid hello_ack length';
+                    eState := E_HmasCloudState.RECONNECT_WAIT;
+                END_IF
+            END_IF
+        END_IF
+        fbRead(xEnable := FALSE);
+    ELSIF fbRead.xError THEN
+        sLastError := 'TCP_Read error';
+        eState := E_HmasCloudState.RECONNECT_WAIT;
+    END_IF
+
+    tonAckTimeout(IN := TRUE);
+    IF tonAckTimeout.Q THEN
+        sLastError := 'hello_ack timeout';
+        eState := E_HmasCloudState.RECONNECT_WAIT;
+    END_IF
+
+// --------------------------------------------------------------------------
+E_HmasCloudState.READY:
+    IF NOT fbClient.xActive THEN
+        sLastError := 'cloud connection closed';
+        eState := E_HmasCloudState.RECONNECT_WAIT;
+    ELSE
+        // Drain ack/error frames returned by the cloud after FFT writes.
+        fbRead(
+            xEnable     := TRUE,
+            hConnection := hConnection,
+            szSize      := TO_UDINT(SIZEOF(abyRxBuf)),
+            pData       := ADR(abyRxBuf[0])
+        );
+        IF fbRead.xError THEN
+            sLastError := 'TCP_Read ack error';
+            eState := E_HmasCloudState.RECONNECT_WAIT;
+        ELSIF fbRead.xReady THEN
+            fbRead(xEnable := FALSE);
+        END_IF
+
+        tonSend(IN := NOT tonSend.Q, PT := UDINT_TO_TIME(udiSendIntervalMs));
+        IF tonSend.Q AND GVL_HmasChannels.xChannelsValid THEN
+            fbRead(xEnable := FALSE);
+            eState := E_HmasCloudState.SEND_V02;
+        END_IF
+    END_IF
+
+// --------------------------------------------------------------------------
+E_HmasCloudState.SEND_V02:
+    udiSeq := udiSeq + 1;
+    sTxChannelId := 'V02';
+    rTxRms := GVL_HmasChannels.rV02;
+    rTxPeak := GVL_HmasChannels.rV02Peak;
+    rTxCrestFactor := GVL_HmasChannels.rV02CrestFactor;
+    rTxThd := GVL_HmasChannels.rV02Thd;
+    xTxUseBearing := TRUE;
+    xTxUseV02Spectrum := TRUE;
+    eAfterWriteState := E_HmasCloudState.SEND_S01;
+    xBuildFftFrame := TRUE;
+
+// --------------------------------------------------------------------------
+E_HmasCloudState.SEND_S01:
+    udiSeq := udiSeq + 1;
+    sTxChannelId := 'S01';
+    rTxRms := GVL_HmasChannels.rS01;
+    rTxPeak := GVL_HmasChannels.rS01Peak;
+    rTxCrestFactor := GVL_HmasChannels.rS01CrestFactor;
+    rTxThd := GVL_HmasChannels.rS01Thd;
+    xTxUseBearing := FALSE;
+    xTxUseV02Spectrum := FALSE;
+    eAfterWriteState := E_HmasCloudState.READY;
+    xBuildFftFrame := TRUE;
+
+// --------------------------------------------------------------------------
+E_HmasCloudState.RECONNECT_WAIT:
+    xConnected := FALSE;
+    xAuthenticated := FALSE;
+    fbRead(xEnable := FALSE);
+    fbWrite(xExecute := FALSE);
+    fbClient(xEnable := FALSE);
+    xHasConnection := FALSE;
+    tonReconnect(IN := TRUE, PT := T#5S);
+    IF tonReconnect.Q THEN
+        tonReconnect(IN := FALSE);
+        udiReconnects := udiReconnects + 1;
+        eState := E_HmasCloudState.CONNECTING;
+    END_IF
+
+// --------------------------------------------------------------------------
+E_HmasCloudState.ERROR_STATE:
+    ;
+
+END_CASE
+
+IF xBuildFftFrame THEN
+    udiPayloadLen := 148 + UINT_TO_UDINT(GVL_HmasChannels.cHmasBinCount) * 2;
+    udiWriteLen := udiPayloadLen + 4;
+    IF udiWriteLen &gt; TO_UDINT(SIZEOF(abyFftFrame)) THEN
+        sLastError := 'FFT frame buffer too small';
+        eState := E_HmasCloudState.RECONNECT_WAIT;
+    ELSE
+        FOR udiOffset := 0 TO udiWriteLen - 1 DO
+            abyFftFrame[udiOffset] := 0;
+        END_FOR
+
+        // Outer payload length, big-endian.
+        abyFftFrame[0] := TO_BYTE(SHR(udiPayloadLen, 24) AND 16#000000FF);
+        abyFftFrame[1] := TO_BYTE(SHR(udiPayloadLen, 16) AND 16#000000FF);
+        abyFftFrame[2] := TO_BYTE(SHR(udiPayloadLen, 8) AND 16#000000FF);
+        abyFftFrame[3] := TO_BYTE(udiPayloadLen AND 16#000000FF);
+        pPayload := ADR(abyFftFrame[0]) + 4;
+
+        // HMF1 fixed header.
+        pPayload[0] := 16#48;     // H
+        pPayload[1] := 16#4D;     // M
+        pPayload[2] := 16#46;     // F
+        pPayload[3] := 16#31;     // 1
+        pPayload[4] := 1;         // version
+
+        uiChannelLen := TO_UINT(LEN(sTxChannelId));
+        IF uiChannelLen &gt; 16 THEN
+            uiChannelLen := 16;
+        END_IF
+        pPayload[5] := TO_BYTE(uiChannelLen);
+        pPayload[6] := 0;         // flags
+        pPayload[7] := 0;
+
+        // seq, uint32 little-endian.
+        pPayload[8] := TO_BYTE(udiSeq AND 16#000000FF);
+        pPayload[9] := TO_BYTE(SHR(udiSeq, 8) AND 16#000000FF);
+        pPayload[10] := TO_BYTE(SHR(udiSeq, 16) AND 16#000000FF);
+        pPayload[11] := TO_BYTE(SHR(udiSeq, 24) AND 16#000000FF);
+
+        // timestamp_ms = 0, cloud server will use receive time.
+        pPayload[12] := 0;
+        pPayload[13] := 0;
+        pPayload[14] := 0;
+        pPayload[15] := 0;
+        pPayload[16] := 0;
+        pPayload[17] := 0;
+        pPayload[18] := 0;
+        pPayload[19] := 0;
+
+        // sample_rate, fft_size, bin_count, scale.
+        pPayload[20] := TO_BYTE(GVL_HmasChannels.cHmasSampleRateHz AND 16#000000FF);
+        pPayload[21] := TO_BYTE(SHR(GVL_HmasChannels.cHmasSampleRateHz, 8) AND 16#000000FF);
+        pPayload[22] := TO_BYTE(SHR(GVL_HmasChannels.cHmasSampleRateHz, 16) AND 16#000000FF);
+        pPayload[23] := TO_BYTE(SHR(GVL_HmasChannels.cHmasSampleRateHz, 24) AND 16#000000FF);
+        pPayload[24] := TO_BYTE(GVL_HmasChannels.cHmasFftSize AND 16#00FF);
+        pPayload[25] := TO_BYTE(SHR(GVL_HmasChannels.cHmasFftSize, 8) AND 16#00FF);
+        pPayload[26] := TO_BYTE(GVL_HmasChannels.cHmasBinCount AND 16#00FF);
+        pPayload[27] := TO_BYTE(SHR(GVL_HmasChannels.cHmasBinCount, 8) AND 16#00FF);
+        pPayload[28] := TO_BYTE(INT_TO_WORD(GVL_HmasChannels.cHmasDbScale) AND 16#00FF);
+        pPayload[29] := TO_BYTE(SHR(INT_TO_WORD(GVL_HmasChannels.cHmasDbScale), 8) AND 16#00FF);
+        pPayload[30] := 0;        // reserved
+        pPayload[31] := 0;
+
+        // REAL fields. Assumes little-endian x86/ARM CODESYS runtime.
+        rPack := rTxRms; pReal := ADR(rPack);
+        pPayload[32] := pReal[0]; pPayload[33] := pReal[1]; pPayload[34] := pReal[2]; pPayload[35] := pReal[3];
+        rPack := rTxPeak; pReal := ADR(rPack);
+        pPayload[36] := pReal[0]; pPayload[37] := pReal[1]; pPayload[38] := pReal[2]; pPayload[39] := pReal[3];
+        rPack := rTxCrestFactor; pReal := ADR(rPack);
+        pPayload[40] := pReal[0]; pPayload[41] := pReal[1]; pPayload[42] := pReal[2]; pPayload[43] := pReal[3];
+        rPack := rTxThd; pReal := ADR(rPack);
+        pPayload[44] := pReal[0]; pPayload[45] := pReal[1]; pPayload[46] := pReal[2]; pPayload[47] := pReal[3];
+
+        IF xTxUseBearing THEN
+            rPack := GVL_HmasChannels.rBpfiHz; pReal := ADR(rPack);
+            pPayload[48] := pReal[0]; pPayload[49] := pReal[1]; pPayload[50] := pReal[2]; pPayload[51] := pReal[3];
+            rPack := GVL_HmasChannels.rBpfiDb; pReal := ADR(rPack);
+            pPayload[52] := pReal[0]; pPayload[53] := pReal[1]; pPayload[54] := pReal[2]; pPayload[55] := pReal[3];
+            rPack := GVL_HmasChannels.rBpfoHz; pReal := ADR(rPack);
+            pPayload[56] := pReal[0]; pPayload[57] := pReal[1]; pPayload[58] := pReal[2]; pPayload[59] := pReal[3];
+            rPack := GVL_HmasChannels.rBpfoDb; pReal := ADR(rPack);
+            pPayload[60] := pReal[0]; pPayload[61] := pReal[1]; pPayload[62] := pReal[2]; pPayload[63] := pReal[3];
+            rPack := GVL_HmasChannels.rBsfHz; pReal := ADR(rPack);
+            pPayload[64] := pReal[0]; pPayload[65] := pReal[1]; pPayload[66] := pReal[2]; pPayload[67] := pReal[3];
+            rPack := GVL_HmasChannels.rBsfDb; pReal := ADR(rPack);
+            pPayload[68] := pReal[0]; pPayload[69] := pReal[1]; pPayload[70] := pReal[2]; pPayload[71] := pReal[3];
+            rPack := GVL_HmasChannels.rFtfHz; pReal := ADR(rPack);
+            pPayload[72] := pReal[0]; pPayload[73] := pReal[1]; pPayload[74] := pReal[2]; pPayload[75] := pReal[3];
+            rPack := GVL_HmasChannels.rFtfDb; pReal := ADR(rPack);
+            pPayload[76] := pReal[0]; pPayload[77] := pReal[1]; pPayload[78] := pReal[2]; pPayload[79] := pReal[3];
+        ELSE
+            // IEEE-754 quiet NaN, little-endian: 0x7FC00000.
+            FOR udiOffset := 48 TO 76 BY 4 DO
+                pPayload[udiOffset] := 16#00;
+                pPayload[udiOffset + 1] := 16#00;
+                pPayload[udiOffset + 2] := 16#C0;
+                pPayload[udiOffset + 3] := 16#7F;
+            END_FOR
+        END_IF
+
+        pChannel := ADR(sTxChannelId);
+        FOR i := 0 TO uiChannelLen - 1 DO
+            pPayload[80 + i] := pChannel[i];
+        END_FOR
+
+        rPack := GVL_HmasChannels.rCH01; pReal := ADR(rPack);
+        pPayload[96] := pReal[0]; pPayload[97] := pReal[1]; pPayload[98] := pReal[2]; pPayload[99] := pReal[3];
+        rPack := GVL_HmasChannels.rCH02; pReal := ADR(rPack);
+        pPayload[100] := pReal[0]; pPayload[101] := pReal[1]; pPayload[102] := pReal[2]; pPayload[103] := pReal[3];
+        rPack := GVL_HmasChannels.rCH03; pReal := ADR(rPack);
+        pPayload[104] := pReal[0]; pPayload[105] := pReal[1]; pPayload[106] := pReal[2]; pPayload[107] := pReal[3];
+        rPack := GVL_HmasChannels.rCH04; pReal := ADR(rPack);
+        pPayload[108] := pReal[0]; pPayload[109] := pReal[1]; pPayload[110] := pReal[2]; pPayload[111] := pReal[3];
+        rPack := GVL_HmasChannels.rCH05; pReal := ADR(rPack);
+        pPayload[112] := pReal[0]; pPayload[113] := pReal[1]; pPayload[114] := pReal[2]; pPayload[115] := pReal[3];
+        rPack := GVL_HmasChannels.rCH06; pReal := ADR(rPack);
+        pPayload[116] := pReal[0]; pPayload[117] := pReal[1]; pPayload[118] := pReal[2]; pPayload[119] := pReal[3];
+        rPack := GVL_HmasChannels.rCH07; pReal := ADR(rPack);
+        pPayload[120] := pReal[0]; pPayload[121] := pReal[1]; pPayload[122] := pReal[2]; pPayload[123] := pReal[3];
+        rPack := GVL_HmasChannels.rCH08; pReal := ADR(rPack);
+        pPayload[124] := pReal[0]; pPayload[125] := pReal[1]; pPayload[126] := pReal[2]; pPayload[127] := pReal[3];
+        rPack := GVL_HmasChannels.rF01; pReal := ADR(rPack);
+        pPayload[128] := pReal[0]; pPayload[129] := pReal[1]; pPayload[130] := pReal[2]; pPayload[131] := pReal[3];
+        rPack := GVL_HmasChannels.rF02; pReal := ADR(rPack);
+        pPayload[132] := pReal[0]; pPayload[133] := pReal[1]; pPayload[134] := pReal[2]; pPayload[135] := pReal[3];
+        rPack := GVL_HmasChannels.rV01; pReal := ADR(rPack);
+        pPayload[136] := pReal[0]; pPayload[137] := pReal[1]; pPayload[138] := pReal[2]; pPayload[139] := pReal[3];
+        rPack := GVL_HmasChannels.rV02; pReal := ADR(rPack);
+        pPayload[140] := pReal[0]; pPayload[141] := pReal[1]; pPayload[142] := pReal[2]; pPayload[143] := pReal[3];
+        rPack := GVL_HmasChannels.rS01; pReal := ADR(rPack);
+        pPayload[144] := pReal[0]; pPayload[145] := pReal[1]; pPayload[146] := pReal[2]; pPayload[147] := pReal[3];
+
+        udiOffset := 148;
+        FOR i := 0 TO GVL_HmasChannels.cHmasLastBin DO
+            IF xTxUseV02Spectrum THEN
+                iBinValue := GVL_HmasChannels.aiV02Spectrum[i];
+            ELSE
+                iBinValue := GVL_HmasChannels.aiS01Spectrum[i];
+            END_IF
+            wBinValue := INT_TO_WORD(iBinValue);
+            pPayload[udiOffset] := TO_BYTE(wBinValue AND 16#00FF);
+            pPayload[udiOffset + 1] := TO_BYTE(SHR(wBinValue, 8) AND 16#00FF);
+            udiOffset := udiOffset + 2;
+        END_FOR
+
+        pWriteData := ADR(abyFftFrame[0]);
+        xWriteCountsFrame := TRUE;
+        xWriteBusy := TRUE;
+    END_IF
+END_IF
+
+GVL_HmasChannels.eCloudState := eState;
+GVL_HmasChannels.xCloudConnected := xConnected;
+GVL_HmasChannels.xCloudAuthenticated := xAuthenticated;
+GVL_HmasChannels.udiCloudFramesSent := udiFramesSent;
+GVL_HmasChannels.udiCloudBytesSent := udiBytesSent;
+GVL_HmasChannels.udiCloudReconnects := udiReconnects;
+GVL_HmasChannels.sCloudLastError := sLastError;</xhtml>
+          </ST>
+        </body>
+        <addData>
+          <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
+            <ObjectId>536418ee-9756-b0ad-f8a2-c3f13b2cec33</ObjectId>
+          </data>
+        </addData>
+      </pou>
+      <pou name="PLC_PRG" pouType="program">
+        <interface>
+          <localVars>
+            <variable name="fbSimulator">
+              <type>
+                <derived name="FB_HmasSensorSimulator" />
+              </type>
+            </variable>
+            <variable name="fbCloud">
+              <type>
+                <derived name="FB_HmasCloudTcpClient" />
+              </type>
+            </variable>
+          </localVars>
+        </interface>
+        <body>
+          <ST>
+            <xhtml xmlns="http://www.w3.org/1999/xhtml">// --------------------------------------------------------------------------
+
+// ---- (1) Acquire data -----------------------------------------------------
+IF GVL_HmasChannels.xUseSimulator THEN
+    fbSimulator(
+        xEnable := TRUE,
+        tStep   := T#100MS
+    );
+ELSE
+    fbSimulator(xEnable := FALSE);
+
+    // Production: insert IO scan and scaling here.
+    // Write these variables:
+    //   rCH01..rCH08, rF01, rF02, rV01, rV02, rS01
+    //   aiV02Spectrum[0..1023], aiS01Spectrum[0..1023]
+    // Then set:
+    //   GVL_HmasChannels.xChannelsValid := TRUE;
+    ;
+END_IF
+
+// ---- (2) Upload FFT result frames to Aliyun -------------------------------
+fbCloud(
+    xEnable           := GVL_HmasChannels.xCloudEnable AND GVL_HmasChannels.xChannelsValid,
+    sHost             := GVL_HmasChannels.sCloudHost,
+    uiPort            := GVL_HmasChannels.uiCloudPort,
+    sDeviceId         := GVL_HmasChannels.sDeviceId,
+    sDeviceSecret     := GVL_HmasChannels.sDeviceSecret,
+    udiSendIntervalMs := GVL_HmasChannels.udiCloudSendIntervalMs
+);
+
+// ---- (3) Diagnostics ------------------------------------------------------
+// Watch these online in CODESYS:
+//   GVL_HmasChannels.eCloudState
+//   GVL_HmasChannels.xCloudConnected
+//   GVL_HmasChannels.xCloudAuthenticated
+//   GVL_HmasChannels.udiCloudFramesSent
+//   GVL_HmasChannels.udiCloudBytesSent
+//   GVL_HmasChannels.sCloudLastError</xhtml>
+          </ST>
+        </body>
+        <addData>
+          <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
+            <ObjectId>c284c311-0875-9167-1e14-8ee113acb613</ObjectId>
+          </data>
+        </addData>
+      </pou>
+    </pous>
+  </types>
+  <instances>
+    <configurations />
+  </instances>
+  <addData>
+    <data name="http://www.3s-software.com/plcopenxml/globalvars" handleUnknown="implementation">
+      <globalVars name="GVL_HmasChannels">
+        <variable name="cHmasSampleRateHz">
+          <type>
+            <UDINT />
+          </type>
+          <initialValue>
+            <simpleValue value="10000" />
+          </initialValue>
+        </variable>
+        <variable name="cHmasFftSize">
+          <type>
+            <UINT />
+          </type>
+          <initialValue>
+            <simpleValue value="2048" />
+          </initialValue>
+        </variable>
+        <variable name="cHmasBinCount">
+          <type>
+            <UINT />
+          </type>
+          <initialValue>
+            <simpleValue value="1024" />
+          </initialValue>
+        </variable>
+        <variable name="cHmasLastBin">
+          <type>
+            <UINT />
+          </type>
+          <initialValue>
+            <simpleValue value="1023" />
+          </initialValue>
+        </variable>
+        <variable name="cHmasDbScale">
+          <type>
+            <INT />
+          </type>
+          <initialValue>
+            <simpleValue value="10" />
+          </initialValue>
+        </variable>
+        <variable name="xCloudEnable">
+          <type>
+            <BOOL />
+          </type>
+          <initialValue>
+            <simpleValue value="TRUE" />
+          </initialValue>
+        </variable>
+        <variable name="sCloudHost">
+          <type>
+            <string length="80" />
+          </type>
+          <initialValue>
+            <simpleValue value="'8.148.228.136'" />
+          </initialValue>
+        </variable>
+        <variable name="uiCloudPort">
+          <type>
+            <UINT />
+          </type>
+          <initialValue>
+            <simpleValue value="9100" />
+          </initialValue>
+        </variable>
+        <variable name="sDeviceId">
+          <type>
+            <string length="32" />
+          </type>
+          <initialValue>
+            <simpleValue value="'HMAS-002'" />
+          </initialValue>
+        </variable>
+        <variable name="sDeviceSecret">
+          <type>
+            <string length="80" />
+          </type>
+          <initialValue>
+            <simpleValue value="'change-this-device-secret'" />
+          </initialValue>
+        </variable>
+        <variable name="udiCloudSendIntervalMs">
+          <type>
+            <UDINT />
+          </type>
+          <initialValue>
+            <simpleValue value="1000" />
+          </initialValue>
+        </variable>
+        <variable name="xUseSimulator">
+          <type>
+            <BOOL />
+          </type>
+          <initialValue>
+            <simpleValue value="TRUE" />
+          </initialValue>
+        </variable>
+        <variable name="rCH01">
+          <type>
+            <REAL />
+          </type>
+          <initialValue>
+            <simpleValue value="0.0" />
+          </initialValue>
+        </variable>
+        <variable name="rCH02">
+          <type>
+            <REAL />
+          </type>
+          <initialValue>
+            <simpleValue value="0.0" />
+          </initialValue>
+        </variable>
+        <variable name="rCH03">
+          <type>
+            <REAL />
+          </type>
+          <initialValue>
+            <simpleValue value="0.0" />
+          </initialValue>
+        </variable>
+        <variable name="rCH04">
+          <type>
+            <REAL />
+          </type>
+          <initialValue>
+            <simpleValue value="0.0" />
+          </initialValue>
+        </variable>
+        <variable name="rCH05">
+          <type>
+            <REAL />
+          </type>
+          <initialValue>
+            <simpleValue value="0.0" />
+          </initialValue>
+        </variable>
+        <variable name="rCH06">
+          <type>
+            <REAL />
+          </type>
+          <initialValue>
+            <simpleValue value="0.0" />
+          </initialValue>
+        </variable>
+        <variable name="rCH07">
+          <type>
+            <REAL />
+          </type>
+          <initialValue>
+            <simpleValue value="0.0" />
+          </initialValue>
+        </variable>
+        <variable name="rCH08">
+          <type>
+            <REAL />
+          </type>
+          <initialValue>
+            <simpleValue value="0.0" />
+          </initialValue>
+        </variable>
+        <variable name="rF01">
+          <type>
+            <REAL />
+          </type>
+          <initialValue>
+            <simpleValue value="0.0" />
+          </initialValue>
+        </variable>
+        <variable name="rF02">
+          <type>
+            <REAL />
+          </type>
+          <initialValue>
+            <simpleValue value="0.0" />
+          </initialValue>
+        </variable>
+        <variable name="rV01">
+          <type>
+            <REAL />
+          </type>
+          <initialValue>
+            <simpleValue value="0.0" />
+          </initialValue>
+        </variable>
+        <variable name="rV02">
+          <type>
+            <REAL />
+          </type>
+          <initialValue>
+            <simpleValue value="0.0" />
+          </initialValue>
+        </variable>
+        <variable name="rS01">
+          <type>
+            <REAL />
+          </type>
+          <initialValue>
+            <simpleValue value="0.0" />
+          </initialValue>
+        </variable>
+        <variable name="aiV02Spectrum">
+          <type>
+            <array>
+                <dimension lower="0" upper="1023" />
+              <baseType>
+                <INT />
+              </baseType>
+            </array>
+          </type>
+        </variable>
+        <variable name="aiS01Spectrum">
+          <type>
+            <array>
+                <dimension lower="0" upper="1023" />
+              <baseType>
+                <INT />
+              </baseType>
+            </array>
+          </type>
+        </variable>
+        <variable name="rV02Peak">
+          <type>
+            <REAL />
+          </type>
+          <initialValue>
+            <simpleValue value="0.0" />
+          </initialValue>
+        </variable>
+        <variable name="rV02CrestFactor">
+          <type>
+            <REAL />
+          </type>
+          <initialValue>
+            <simpleValue value="0.0" />
+          </initialValue>
+        </variable>
+        <variable name="rV02Thd">
+          <type>
+            <REAL />
+          </type>
+          <initialValue>
+            <simpleValue value="0.0" />
+          </initialValue>
+        </variable>
+        <variable name="rS01Peak">
+          <type>
+            <REAL />
+          </type>
+          <initialValue>
+            <simpleValue value="0.0" />
+          </initialValue>
+        </variable>
+        <variable name="rS01CrestFactor">
+          <type>
+            <REAL />
+          </type>
+          <initialValue>
+            <simpleValue value="0.0" />
+          </initialValue>
+        </variable>
+        <variable name="rS01Thd">
+          <type>
+            <REAL />
+          </type>
+          <initialValue>
+            <simpleValue value="0.0" />
+          </initialValue>
+        </variable>
+        <variable name="rBpfiHz">
+          <type>
+            <REAL />
+          </type>
+          <initialValue>
+            <simpleValue value="135.2" />
+          </initialValue>
+        </variable>
+        <variable name="rBpfiDb">
+          <type>
+            <REAL />
+          </type>
+          <initialValue>
+            <simpleValue value="-45.0" />
+          </initialValue>
+        </variable>
+        <variable name="rBpfoHz">
+          <type>
+            <REAL />
+          </type>
+          <initialValue>
+            <simpleValue value="89.7" />
+          </initialValue>
+        </variable>
+        <variable name="rBpfoDb">
+          <type>
+            <REAL />
+          </type>
+          <initialValue>
+            <simpleValue value="-52.0" />
+          </initialValue>
+        </variable>
+        <variable name="rBsfHz">
+          <type>
+            <REAL />
+          </type>
+          <initialValue>
+            <simpleValue value="61.4" />
+          </initialValue>
+        </variable>
+        <variable name="rBsfDb">
+          <type>
+            <REAL />
+          </type>
+          <initialValue>
+            <simpleValue value="-56.0" />
+          </initialValue>
+        </variable>
+        <variable name="rFtfHz">
+          <type>
+            <REAL />
+          </type>
+          <initialValue>
+            <simpleValue value="12.8" />
+          </initialValue>
+        </variable>
+        <variable name="rFtfDb">
+          <type>
+            <REAL />
+          </type>
+          <initialValue>
+            <simpleValue value="-62.0" />
+          </initialValue>
+        </variable>
+        <variable name="xChannelsValid">
+          <type>
+            <BOOL />
+          </type>
+          <initialValue>
+            <simpleValue value="FALSE" />
+          </initialValue>
+        </variable>
+        <variable name="eCloudState">
+          <type>
+            <derived name="E_HmasCloudState" />
+          </type>
+          <initialValue>
+            <simpleValue value="E_HmasCloudState.DISABLED" />
+          </initialValue>
+        </variable>
+        <variable name="xCloudConnected">
+          <type>
+            <BOOL />
+          </type>
+          <initialValue>
+            <simpleValue value="FALSE" />
+          </initialValue>
+        </variable>
+        <variable name="xCloudAuthenticated">
+          <type>
+            <BOOL />
+          </type>
+          <initialValue>
+            <simpleValue value="FALSE" />
+          </initialValue>
+        </variable>
+        <variable name="udiCloudFramesSent">
+          <type>
+            <UDINT />
+          </type>
+          <initialValue>
+            <simpleValue value="0" />
+          </initialValue>
+        </variable>
+        <variable name="udiCloudBytesSent">
+          <type>
+            <UDINT />
+          </type>
+          <initialValue>
+            <simpleValue value="0" />
+          </initialValue>
+        </variable>
+        <variable name="udiCloudReconnects">
+          <type>
+            <UDINT />
+          </type>
+          <initialValue>
+            <simpleValue value="0" />
+          </initialValue>
+        </variable>
+        <variable name="sCloudLastError">
+          <type>
+            <string length="255" />
+          </type>
+          <initialValue>
+            <simpleValue value="''" />
+          </initialValue>
+        </variable>
+        <addData>
+          <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
+            <ObjectId>fb603ca5-d9ba-0cbd-bfa0-e33c91c341b6</ObjectId>
+          </data>
+        </addData>
+      </globalVars>
+    </data>
+  </addData>
+</project>

@@ -1,0 +1,19 @@
+// Writes REAL as IEEE-754 little-endian.
+FUNCTION HmasWriteReal32LE : BOOL
+VAR_INPUT
+    pbyBuf    : POINTER TO BYTE;
+    udiOffset : UDINT;
+    rValue    : REAL;
+END_VAR
+VAR
+    pbyReal : POINTER TO BYTE;
+END_VAR
+    // CODESYS runtimes on x86/ARM are normally little-endian. If the target
+    // CPU is big-endian, replace this with explicit REAL packing.
+    pbyReal := ADR(rValue);
+    pbyBuf[udiOffset] := pbyReal[0];
+    pbyBuf[udiOffset + 1] := pbyReal[1];
+    pbyBuf[udiOffset + 2] := pbyReal[2];
+    pbyBuf[udiOffset + 3] := pbyReal[3];
+    HmasWriteReal32LE := TRUE;
+END_FUNCTION

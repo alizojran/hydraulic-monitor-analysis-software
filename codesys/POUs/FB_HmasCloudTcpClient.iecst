@@ -1,0 +1,535 @@
+// ==========================================================================
+//  FUNCTION_BLOCK  FB_HmasCloudTcpClient
+// ==========================================================================
+//  CODESYS TCP client for the HMAS Aliyun ingest service.
+//
+//  Protocol:
+//    1) Connect to cloud TCP server.
+//    2) Send [uint32_be length][JSON hello].
+//    3) Wait for JSON hello_ack.
+//    4) Send V02 and S01 HMF1 binary FFT frames once per send interval.
+//
+//  Library dependency:
+//    CAA Net Base Services, namespace NBS
+//    CAA Types Extern, namespace CAA
+// ==========================================================================
+FUNCTION_BLOCK FB_HmasCloudTcpClient
+VAR_INPUT
+    xEnable           : BOOL;
+    sHost             : STRING(80) := '8.148.228.136';
+    uiPort            : UINT := 9100;
+    sDeviceId         : STRING(32) := 'HMAS-002';
+    sDeviceSecret     : STRING(80) := 'change-this-device-secret';
+    udiSendIntervalMs : UDINT := 1000;
+END_VAR
+VAR_OUTPUT
+    eState            : E_HmasCloudState;
+    xConnected        : BOOL;
+    xAuthenticated    : BOOL;
+    udiFramesSent     : UDINT;
+    udiBytesSent      : UDINT;
+    udiReconnects     : UDINT;
+    sLastError        : STRING(255);
+END_VAR
+VAR
+    fbClient          : NBS.TCP_Client;
+    fbRead            : NBS.TCP_Read;
+    fbWrite           : NBS.TCP_Write;
+    ipServer          : NBS.IP_ADDR;
+    hConnection       : CAA.HANDLE;
+    xHasConnection    : BOOL;
+
+    tonSend           : TON;
+    tonReconnect      : TON;
+    tonAckTimeout     : TON;
+
+    abyHelloFrame     : ARRAY[0..511] OF BYTE;
+    abyFftFrame       : ARRAY[0..2303] OF BYTE;
+    udiHelloLen       : UDINT;
+    udiPayloadLen     : UDINT;
+    sHello            : STRING(320);
+    pHello            : POINTER TO BYTE;
+    pPayload          : POINTER TO BYTE;
+    pChannel          : POINTER TO BYTE;
+    pReal             : POINTER TO BYTE;
+
+    abyRxBuf          : ARRAY[0..1023] OF BYTE;
+    udiRxLen          : UDINT;
+    udiExpectedLen    : UDINT;
+    sRxText           : STRING(1023);
+    pRxText           : POINTER TO BYTE;
+
+    xWriteBusy        : BOOL;
+    eAfterWriteState  : E_HmasCloudState;
+    pWriteData        : POINTER TO BYTE;
+    udiWriteLen       : UDINT;
+    xWriteCountsFrame : BOOL;
+
+    udiSeq            : UDINT;
+    udiCopyIndex      : UDINT;
+    udiCopyLen        : UDINT;
+    udiOffset         : UDINT;
+    udiReadCount      : UDINT;
+    i                 : UINT;
+    uiChannelLen      : UINT;
+    sTxChannelId      : STRING(16);
+    rTxRms            : REAL;
+    rTxPeak           : REAL;
+    rTxCrestFactor    : REAL;
+    rTxThd            : REAL;
+    rPack             : REAL;
+    iBinValue         : INT;
+    wBinValue         : WORD;
+    xTxUseBearing     : BOOL;
+    xTxUseV02Spectrum : BOOL;
+    xBuildFftFrame    : BOOL;
+END_VAR
+// --------------------------------------------------------------------------
+
+IF NOT xEnable THEN
+    fbWrite(xExecute := FALSE);
+    fbRead(xEnable := FALSE);
+    fbClient(xEnable := FALSE);
+    xHasConnection := FALSE;
+    xWriteBusy := FALSE;
+    xConnected := FALSE;
+    xAuthenticated := FALSE;
+    eState := E_HmasCloudState.DISABLED;
+    GVL_HmasChannels.eCloudState := eState;
+    GVL_HmasChannels.xCloudConnected := xConnected;
+    GVL_HmasChannels.xCloudAuthenticated := xAuthenticated;
+    GVL_HmasChannels.udiCloudFramesSent := udiFramesSent;
+    GVL_HmasChannels.udiCloudBytesSent := udiBytesSent;
+    GVL_HmasChannels.udiCloudReconnects := udiReconnects;
+    GVL_HmasChannels.sCloudLastError := sLastError;
+    RETURN;
+END_IF
+
+// Keep diagnostics in the GVL so they can be watched or displayed by HMI.
+xBuildFftFrame := FALSE;
+GVL_HmasChannels.eCloudState := eState;
+GVL_HmasChannels.xCloudConnected := xConnected;
+GVL_HmasChannels.xCloudAuthenticated := xAuthenticated;
+GVL_HmasChannels.udiCloudFramesSent := udiFramesSent;
+GVL_HmasChannels.udiCloudBytesSent := udiBytesSent;
+GVL_HmasChannels.udiCloudReconnects := udiReconnects;
+GVL_HmasChannels.sCloudLastError := sLastError;
+
+// Keep TCP_Client executing while the socket is expected to be alive.
+IF xHasConnection AND NOT xWriteBusy AND eState <> E_HmasCloudState.CONNECTING AND eState <> E_HmasCloudState.RECONNECT_WAIT THEN
+    ipServer.sAddr := sHost;
+    fbClient(
+        xEnable    := TRUE,
+        udiTimeOut := 5000000,
+        ipAddr     := ipServer,
+        uiPort     := uiPort,
+        hConnection => hConnection
+    );
+    IF fbClient.xError THEN
+        sLastError := 'TCP_Client keepalive error';
+        eState := E_HmasCloudState.RECONNECT_WAIT;
+    ELSIF NOT fbClient.xActive THEN
+        sLastError := 'cloud connection closed';
+        eState := E_HmasCloudState.RECONNECT_WAIT;
+    END_IF
+END_IF
+
+// Shared write operation. It can take multiple PLC cycles. While it is busy,
+// do not rebuild the same frame or overwrite the write buffer.
+IF xWriteBusy THEN
+    fbWrite(
+        xExecute    := TRUE,
+        udiTimeOut  := 5000000,
+        hConnection := hConnection,
+        szSize      := udiWriteLen,
+        pData       := pWriteData
+    );
+    IF fbWrite.xDone THEN
+        fbWrite(xExecute := FALSE);
+        xWriteBusy := FALSE;
+        IF xWriteCountsFrame THEN
+            udiFramesSent := udiFramesSent + 1;
+        END_IF
+        udiBytesSent := udiBytesSent + udiWriteLen;
+        eState := eAfterWriteState;
+    ELSIF fbWrite.xError THEN
+        sLastError := 'TCP_Write error';
+        fbWrite(xExecute := FALSE);
+        xWriteBusy := FALSE;
+        eState := E_HmasCloudState.RECONNECT_WAIT;
+    END_IF
+
+    GVL_HmasChannels.eCloudState := eState;
+    GVL_HmasChannels.xCloudConnected := xConnected;
+    GVL_HmasChannels.xCloudAuthenticated := xAuthenticated;
+    GVL_HmasChannels.udiCloudFramesSent := udiFramesSent;
+    GVL_HmasChannels.udiCloudBytesSent := udiBytesSent;
+    GVL_HmasChannels.udiCloudReconnects := udiReconnects;
+    GVL_HmasChannels.sCloudLastError := sLastError;
+    RETURN;
+END_IF
+
+CASE eState OF
+
+// --------------------------------------------------------------------------
+E_HmasCloudState.DISABLED:
+    xConnected := FALSE;
+    xAuthenticated := FALSE;
+    udiRxLen := 0;
+    xWriteBusy := FALSE;
+    fbWrite(xExecute := FALSE);
+    fbRead(xEnable := FALSE);
+    fbClient(xEnable := FALSE);
+    xHasConnection := FALSE;
+    ipServer.sAddr := sHost;
+    eState := E_HmasCloudState.CONNECTING;
+
+// --------------------------------------------------------------------------
+E_HmasCloudState.CONNECTING:
+    ipServer.sAddr := sHost;
+    fbClient(
+        xEnable    := TRUE,
+        udiTimeOut := 5000000,
+        ipAddr     := ipServer,
+        uiPort     := uiPort,
+        hConnection => hConnection
+    );
+
+    IF fbClient.xError THEN
+        sLastError := 'TCP_Client error';
+        eState := E_HmasCloudState.RECONNECT_WAIT;
+    ELSIF fbClient.xActive THEN
+        xConnected := TRUE;
+        xHasConnection := TRUE;
+        xAuthenticated := FALSE;
+        udiRxLen := 0;
+        eState := E_HmasCloudState.SEND_HELLO;
+    END_IF
+
+// --------------------------------------------------------------------------
+E_HmasCloudState.SEND_HELLO:
+    sHello := '{"v":1,"type":"hello","deviceId":"';
+    sHello := CONCAT(sHello, sDeviceId);
+    sHello := CONCAT(sHello, '","secret":"');
+    sHello := CONCAT(sHello, sDeviceSecret);
+    sHello := CONCAT(sHello, '","ts":');
+    sHello := CONCAT(sHello, '0');
+    sHello := CONCAT(sHello, '}');
+
+    udiHelloLen := TO_UDINT(LEN(sHello));
+    IF udiHelloLen + 4 > TO_UDINT(SIZEOF(abyHelloFrame)) THEN
+        sLastError := 'hello frame too large';
+        eState := E_HmasCloudState.RECONNECT_WAIT;
+    ELSE
+        abyHelloFrame[0] := TO_BYTE(SHR(udiHelloLen, 24) AND 16#000000FF);
+        abyHelloFrame[1] := TO_BYTE(SHR(udiHelloLen, 16) AND 16#000000FF);
+        abyHelloFrame[2] := TO_BYTE(SHR(udiHelloLen, 8) AND 16#000000FF);
+        abyHelloFrame[3] := TO_BYTE(udiHelloLen AND 16#000000FF);
+        pHello := ADR(sHello);
+        FOR udiCopyIndex := 0 TO udiHelloLen - 1 DO
+            abyHelloFrame[4 + udiCopyIndex] := pHello[udiCopyIndex];
+        END_FOR
+
+        pWriteData := ADR(abyHelloFrame[0]);
+        udiWriteLen := udiHelloLen + 4;
+        eAfterWriteState := E_HmasCloudState.WAIT_HELLO_ACK;
+        xWriteCountsFrame := FALSE;
+        xWriteBusy := TRUE;
+        tonAckTimeout(IN := FALSE);
+        tonAckTimeout(IN := TRUE, PT := T#5S);
+    END_IF
+
+// --------------------------------------------------------------------------
+E_HmasCloudState.WAIT_HELLO_ACK:
+    // Read length-prefixed JSON response. The cloud replies with hello_ack.
+    fbRead(
+        xEnable     := TRUE,
+        hConnection := hConnection,
+        szSize      := TO_UDINT(SIZEOF(abyRxBuf)) - udiRxLen,
+        pData       := ADR(abyRxBuf[0]) + udiRxLen
+    );
+
+    IF fbRead.xReady THEN
+        udiReadCount := TO_UDINT(fbRead.szCount);
+        IF udiReadCount > 0 THEN
+            udiRxLen := udiRxLen + udiReadCount;
+            IF udiRxLen >= 4 THEN
+                udiExpectedLen :=
+                    SHL(TO_UDINT(abyRxBuf[0]), 24) OR
+                    SHL(TO_UDINT(abyRxBuf[1]), 16) OR
+                    SHL(TO_UDINT(abyRxBuf[2]), 8) OR
+                    TO_UDINT(abyRxBuf[3]);
+                IF udiExpectedLen > 0 AND udiExpectedLen <= TO_UDINT(SIZEOF(abyRxBuf)) - 4 THEN
+                    IF udiRxLen >= udiExpectedLen + 4 THEN
+                        pRxText := ADR(sRxText);
+                        IF udiExpectedLen > 1022 THEN
+                            udiCopyLen := 1022;
+                        ELSE
+                            udiCopyLen := udiExpectedLen;
+                        END_IF
+                        FOR udiCopyIndex := 0 TO udiCopyLen - 1 DO
+                            pRxText[udiCopyIndex] := abyRxBuf[4 + udiCopyIndex];
+                        END_FOR
+                        pRxText[udiCopyLen] := 0;
+
+                        IF FIND(sRxText, 'hello_ack') > 0 THEN
+                            xAuthenticated := TRUE;
+                            udiRxLen := 0;
+                            tonSend(IN := FALSE);
+                            eState := E_HmasCloudState.READY;
+                        ELSIF FIND(sRxText, 'error') > 0 THEN
+                            sLastError := CONCAT('cloud auth rejected: ', sRxText);
+                            eState := E_HmasCloudState.RECONNECT_WAIT;
+                        END_IF
+                    END_IF
+                ELSE
+                    sLastError := 'invalid hello_ack length';
+                    eState := E_HmasCloudState.RECONNECT_WAIT;
+                END_IF
+            END_IF
+        END_IF
+        fbRead(xEnable := FALSE);
+    ELSIF fbRead.xError THEN
+        sLastError := 'TCP_Read error';
+        eState := E_HmasCloudState.RECONNECT_WAIT;
+    END_IF
+
+    tonAckTimeout(IN := TRUE);
+    IF tonAckTimeout.Q THEN
+        sLastError := 'hello_ack timeout';
+        eState := E_HmasCloudState.RECONNECT_WAIT;
+    END_IF
+
+// --------------------------------------------------------------------------
+E_HmasCloudState.READY:
+    IF NOT fbClient.xActive THEN
+        sLastError := 'cloud connection closed';
+        eState := E_HmasCloudState.RECONNECT_WAIT;
+    ELSE
+        // Drain ack/error frames returned by the cloud after FFT writes.
+        fbRead(
+            xEnable     := TRUE,
+            hConnection := hConnection,
+            szSize      := TO_UDINT(SIZEOF(abyRxBuf)),
+            pData       := ADR(abyRxBuf[0])
+        );
+        IF fbRead.xError THEN
+            sLastError := 'TCP_Read ack error';
+            eState := E_HmasCloudState.RECONNECT_WAIT;
+        ELSIF fbRead.xReady THEN
+            fbRead(xEnable := FALSE);
+        END_IF
+
+        tonSend(IN := NOT tonSend.Q, PT := UDINT_TO_TIME(udiSendIntervalMs));
+        IF tonSend.Q AND GVL_HmasChannels.xChannelsValid THEN
+            fbRead(xEnable := FALSE);
+            eState := E_HmasCloudState.SEND_V02;
+        END_IF
+    END_IF
+
+// --------------------------------------------------------------------------
+E_HmasCloudState.SEND_V02:
+    udiSeq := udiSeq + 1;
+    sTxChannelId := 'V02';
+    rTxRms := GVL_HmasChannels.rV02;
+    rTxPeak := GVL_HmasChannels.rV02Peak;
+    rTxCrestFactor := GVL_HmasChannels.rV02CrestFactor;
+    rTxThd := GVL_HmasChannels.rV02Thd;
+    xTxUseBearing := TRUE;
+    xTxUseV02Spectrum := TRUE;
+    eAfterWriteState := E_HmasCloudState.SEND_S01;
+    xBuildFftFrame := TRUE;
+
+// --------------------------------------------------------------------------
+E_HmasCloudState.SEND_S01:
+    udiSeq := udiSeq + 1;
+    sTxChannelId := 'S01';
+    rTxRms := GVL_HmasChannels.rS01;
+    rTxPeak := GVL_HmasChannels.rS01Peak;
+    rTxCrestFactor := GVL_HmasChannels.rS01CrestFactor;
+    rTxThd := GVL_HmasChannels.rS01Thd;
+    xTxUseBearing := FALSE;
+    xTxUseV02Spectrum := FALSE;
+    eAfterWriteState := E_HmasCloudState.READY;
+    xBuildFftFrame := TRUE;
+
+// --------------------------------------------------------------------------
+E_HmasCloudState.RECONNECT_WAIT:
+    xConnected := FALSE;
+    xAuthenticated := FALSE;
+    fbRead(xEnable := FALSE);
+    fbWrite(xExecute := FALSE);
+    fbClient(xEnable := FALSE);
+    xHasConnection := FALSE;
+    tonReconnect(IN := TRUE, PT := T#5S);
+    IF tonReconnect.Q THEN
+        tonReconnect(IN := FALSE);
+        udiReconnects := udiReconnects + 1;
+        eState := E_HmasCloudState.CONNECTING;
+    END_IF
+
+// --------------------------------------------------------------------------
+E_HmasCloudState.ERROR_STATE:
+    ;
+
+END_CASE
+
+IF xBuildFftFrame THEN
+    udiPayloadLen := 148 + UINT_TO_UDINT(GVL_HmasChannels.cHmasBinCount) * 2;
+    udiWriteLen := udiPayloadLen + 4;
+    IF udiWriteLen > TO_UDINT(SIZEOF(abyFftFrame)) THEN
+        sLastError := 'FFT frame buffer too small';
+        eState := E_HmasCloudState.RECONNECT_WAIT;
+    ELSE
+        FOR udiOffset := 0 TO udiWriteLen - 1 DO
+            abyFftFrame[udiOffset] := 0;
+        END_FOR
+
+        // Outer payload length, big-endian.
+        abyFftFrame[0] := TO_BYTE(SHR(udiPayloadLen, 24) AND 16#000000FF);
+        abyFftFrame[1] := TO_BYTE(SHR(udiPayloadLen, 16) AND 16#000000FF);
+        abyFftFrame[2] := TO_BYTE(SHR(udiPayloadLen, 8) AND 16#000000FF);
+        abyFftFrame[3] := TO_BYTE(udiPayloadLen AND 16#000000FF);
+        pPayload := ADR(abyFftFrame[0]) + 4;
+
+        // HMF1 fixed header.
+        pPayload[0] := 16#48;     // H
+        pPayload[1] := 16#4D;     // M
+        pPayload[2] := 16#46;     // F
+        pPayload[3] := 16#31;     // 1
+        pPayload[4] := 1;         // version
+
+        uiChannelLen := TO_UINT(LEN(sTxChannelId));
+        IF uiChannelLen > 16 THEN
+            uiChannelLen := 16;
+        END_IF
+        pPayload[5] := TO_BYTE(uiChannelLen);
+        pPayload[6] := 0;         // flags
+        pPayload[7] := 0;
+
+        // seq, uint32 little-endian.
+        pPayload[8] := TO_BYTE(udiSeq AND 16#000000FF);
+        pPayload[9] := TO_BYTE(SHR(udiSeq, 8) AND 16#000000FF);
+        pPayload[10] := TO_BYTE(SHR(udiSeq, 16) AND 16#000000FF);
+        pPayload[11] := TO_BYTE(SHR(udiSeq, 24) AND 16#000000FF);
+
+        // timestamp_ms = 0, cloud server will use receive time.
+        pPayload[12] := 0;
+        pPayload[13] := 0;
+        pPayload[14] := 0;
+        pPayload[15] := 0;
+        pPayload[16] := 0;
+        pPayload[17] := 0;
+        pPayload[18] := 0;
+        pPayload[19] := 0;
+
+        // sample_rate, fft_size, bin_count, scale.
+        pPayload[20] := TO_BYTE(GVL_HmasChannels.cHmasSampleRateHz AND 16#000000FF);
+        pPayload[21] := TO_BYTE(SHR(GVL_HmasChannels.cHmasSampleRateHz, 8) AND 16#000000FF);
+        pPayload[22] := TO_BYTE(SHR(GVL_HmasChannels.cHmasSampleRateHz, 16) AND 16#000000FF);
+        pPayload[23] := TO_BYTE(SHR(GVL_HmasChannels.cHmasSampleRateHz, 24) AND 16#000000FF);
+        pPayload[24] := TO_BYTE(GVL_HmasChannels.cHmasFftSize AND 16#00FF);
+        pPayload[25] := TO_BYTE(SHR(GVL_HmasChannels.cHmasFftSize, 8) AND 16#00FF);
+        pPayload[26] := TO_BYTE(GVL_HmasChannels.cHmasBinCount AND 16#00FF);
+        pPayload[27] := TO_BYTE(SHR(GVL_HmasChannels.cHmasBinCount, 8) AND 16#00FF);
+        pPayload[28] := TO_BYTE(INT_TO_WORD(GVL_HmasChannels.cHmasDbScale) AND 16#00FF);
+        pPayload[29] := TO_BYTE(SHR(INT_TO_WORD(GVL_HmasChannels.cHmasDbScale), 8) AND 16#00FF);
+        pPayload[30] := 0;        // reserved
+        pPayload[31] := 0;
+
+        // REAL fields. Assumes little-endian x86/ARM CODESYS runtime.
+        rPack := rTxRms; pReal := ADR(rPack);
+        pPayload[32] := pReal[0]; pPayload[33] := pReal[1]; pPayload[34] := pReal[2]; pPayload[35] := pReal[3];
+        rPack := rTxPeak; pReal := ADR(rPack);
+        pPayload[36] := pReal[0]; pPayload[37] := pReal[1]; pPayload[38] := pReal[2]; pPayload[39] := pReal[3];
+        rPack := rTxCrestFactor; pReal := ADR(rPack);
+        pPayload[40] := pReal[0]; pPayload[41] := pReal[1]; pPayload[42] := pReal[2]; pPayload[43] := pReal[3];
+        rPack := rTxThd; pReal := ADR(rPack);
+        pPayload[44] := pReal[0]; pPayload[45] := pReal[1]; pPayload[46] := pReal[2]; pPayload[47] := pReal[3];
+
+        IF xTxUseBearing THEN
+            rPack := GVL_HmasChannels.rBpfiHz; pReal := ADR(rPack);
+            pPayload[48] := pReal[0]; pPayload[49] := pReal[1]; pPayload[50] := pReal[2]; pPayload[51] := pReal[3];
+            rPack := GVL_HmasChannels.rBpfiDb; pReal := ADR(rPack);
+            pPayload[52] := pReal[0]; pPayload[53] := pReal[1]; pPayload[54] := pReal[2]; pPayload[55] := pReal[3];
+            rPack := GVL_HmasChannels.rBpfoHz; pReal := ADR(rPack);
+            pPayload[56] := pReal[0]; pPayload[57] := pReal[1]; pPayload[58] := pReal[2]; pPayload[59] := pReal[3];
+            rPack := GVL_HmasChannels.rBpfoDb; pReal := ADR(rPack);
+            pPayload[60] := pReal[0]; pPayload[61] := pReal[1]; pPayload[62] := pReal[2]; pPayload[63] := pReal[3];
+            rPack := GVL_HmasChannels.rBsfHz; pReal := ADR(rPack);
+            pPayload[64] := pReal[0]; pPayload[65] := pReal[1]; pPayload[66] := pReal[2]; pPayload[67] := pReal[3];
+            rPack := GVL_HmasChannels.rBsfDb; pReal := ADR(rPack);
+            pPayload[68] := pReal[0]; pPayload[69] := pReal[1]; pPayload[70] := pReal[2]; pPayload[71] := pReal[3];
+            rPack := GVL_HmasChannels.rFtfHz; pReal := ADR(rPack);
+            pPayload[72] := pReal[0]; pPayload[73] := pReal[1]; pPayload[74] := pReal[2]; pPayload[75] := pReal[3];
+            rPack := GVL_HmasChannels.rFtfDb; pReal := ADR(rPack);
+            pPayload[76] := pReal[0]; pPayload[77] := pReal[1]; pPayload[78] := pReal[2]; pPayload[79] := pReal[3];
+        ELSE
+            // IEEE-754 quiet NaN, little-endian: 0x7FC00000.
+            FOR udiOffset := 48 TO 76 BY 4 DO
+                pPayload[udiOffset] := 16#00;
+                pPayload[udiOffset + 1] := 16#00;
+                pPayload[udiOffset + 2] := 16#C0;
+                pPayload[udiOffset + 3] := 16#7F;
+            END_FOR
+        END_IF
+
+        pChannel := ADR(sTxChannelId);
+        FOR i := 0 TO uiChannelLen - 1 DO
+            pPayload[80 + i] := pChannel[i];
+        END_FOR
+
+        rPack := GVL_HmasChannels.rCH01; pReal := ADR(rPack);
+        pPayload[96] := pReal[0]; pPayload[97] := pReal[1]; pPayload[98] := pReal[2]; pPayload[99] := pReal[3];
+        rPack := GVL_HmasChannels.rCH02; pReal := ADR(rPack);
+        pPayload[100] := pReal[0]; pPayload[101] := pReal[1]; pPayload[102] := pReal[2]; pPayload[103] := pReal[3];
+        rPack := GVL_HmasChannels.rCH03; pReal := ADR(rPack);
+        pPayload[104] := pReal[0]; pPayload[105] := pReal[1]; pPayload[106] := pReal[2]; pPayload[107] := pReal[3];
+        rPack := GVL_HmasChannels.rCH04; pReal := ADR(rPack);
+        pPayload[108] := pReal[0]; pPayload[109] := pReal[1]; pPayload[110] := pReal[2]; pPayload[111] := pReal[3];
+        rPack := GVL_HmasChannels.rCH05; pReal := ADR(rPack);
+        pPayload[112] := pReal[0]; pPayload[113] := pReal[1]; pPayload[114] := pReal[2]; pPayload[115] := pReal[3];
+        rPack := GVL_HmasChannels.rCH06; pReal := ADR(rPack);
+        pPayload[116] := pReal[0]; pPayload[117] := pReal[1]; pPayload[118] := pReal[2]; pPayload[119] := pReal[3];
+        rPack := GVL_HmasChannels.rCH07; pReal := ADR(rPack);
+        pPayload[120] := pReal[0]; pPayload[121] := pReal[1]; pPayload[122] := pReal[2]; pPayload[123] := pReal[3];
+        rPack := GVL_HmasChannels.rCH08; pReal := ADR(rPack);
+        pPayload[124] := pReal[0]; pPayload[125] := pReal[1]; pPayload[126] := pReal[2]; pPayload[127] := pReal[3];
+        rPack := GVL_HmasChannels.rF01; pReal := ADR(rPack);
+        pPayload[128] := pReal[0]; pPayload[129] := pReal[1]; pPayload[130] := pReal[2]; pPayload[131] := pReal[3];
+        rPack := GVL_HmasChannels.rF02; pReal := ADR(rPack);
+        pPayload[132] := pReal[0]; pPayload[133] := pReal[1]; pPayload[134] := pReal[2]; pPayload[135] := pReal[3];
+        rPack := GVL_HmasChannels.rV01; pReal := ADR(rPack);
+        pPayload[136] := pReal[0]; pPayload[137] := pReal[1]; pPayload[138] := pReal[2]; pPayload[139] := pReal[3];
+        rPack := GVL_HmasChannels.rV02; pReal := ADR(rPack);
+        pPayload[140] := pReal[0]; pPayload[141] := pReal[1]; pPayload[142] := pReal[2]; pPayload[143] := pReal[3];
+        rPack := GVL_HmasChannels.rS01; pReal := ADR(rPack);
+        pPayload[144] := pReal[0]; pPayload[145] := pReal[1]; pPayload[146] := pReal[2]; pPayload[147] := pReal[3];
+
+        udiOffset := 148;
+        FOR i := 0 TO GVL_HmasChannels.cHmasLastBin DO
+            IF xTxUseV02Spectrum THEN
+                iBinValue := GVL_HmasChannels.aiV02Spectrum[i];
+            ELSE
+                iBinValue := GVL_HmasChannels.aiS01Spectrum[i];
+            END_IF
+            wBinValue := INT_TO_WORD(iBinValue);
+            pPayload[udiOffset] := TO_BYTE(wBinValue AND 16#00FF);
+            pPayload[udiOffset + 1] := TO_BYTE(SHR(wBinValue, 8) AND 16#00FF);
+            udiOffset := udiOffset + 2;
+        END_FOR
+
+        pWriteData := ADR(abyFftFrame[0]);
+        xWriteCountsFrame := TRUE;
+        xWriteBusy := TRUE;
+    END_IF
+END_IF
+
+GVL_HmasChannels.eCloudState := eState;
+GVL_HmasChannels.xCloudConnected := xConnected;
+GVL_HmasChannels.xCloudAuthenticated := xAuthenticated;
+GVL_HmasChannels.udiCloudFramesSent := udiFramesSent;
+GVL_HmasChannels.udiCloudBytesSent := udiBytesSent;
+GVL_HmasChannels.udiCloudReconnects := udiReconnects;
+GVL_HmasChannels.sCloudLastError := sLastError;
+END_FUNCTION_BLOCK

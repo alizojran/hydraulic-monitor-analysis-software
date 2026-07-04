@@ -1,0 +1,11 @@
+// Writes UINT16 little-endian.
+FUNCTION HmasWriteU16LE : BOOL
+VAR_INPUT
+    pbyBuf    : POINTER TO BYTE;
+    udiOffset : UDINT;
+    uiValue   : UINT;
+END_VAR
+    pbyBuf[udiOffset] := TO_BYTE(uiValue AND 16#00FF);
+    pbyBuf[udiOffset + 1] := TO_BYTE(SHR(uiValue, 8) AND 16#00FF);
+    HmasWriteU16LE := TRUE;
+END_FUNCTION
