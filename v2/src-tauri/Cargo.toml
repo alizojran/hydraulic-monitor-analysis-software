@@ -1,0 +1,29 @@
+[package]
+name = "hydraulic-monitor"
+version = "0.1.0"
+description = "Hydraulic Monitor Analysis Software — desktop client"
+authors = ["Hydraulic Monitor Team"]
+edition = "2021"
+
+[lib]
+name = "hydraulic_monitor_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "hydraulic-monitor"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+tokio-modbus = { version = "0.14", features = ["tcp"] }
+tokio-serial = "5.4"
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

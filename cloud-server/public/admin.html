@@ -1,0 +1,1104 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HMAS 数据库管理</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        --bg: #f4f7fb;
+        --panel: #ffffff;
+        --soft: #f7fafc;
+        --text: #17212f;
+        --muted: #64748b;
+        --line: #dbe4ee;
+        --accent: #0f766e;
+        --accent-soft: #e6f6f3;
+        --danger: #b42318;
+        --danger-soft: #fff1f0;
+        --ok: #0f7a3b;
+        --warn: #a45f00;
+        --shadow: 0 10px 28px rgba(15, 23, 42, 0.07);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      .shell {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 22px;
+      }
+
+      header {
+        display: flex;
+        gap: 16px;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 14px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 26px;
+        line-height: 1.2;
+      }
+
+      h2 {
+        margin: 0;
+        font-size: 16px;
+      }
+
+      label {
+        display: block;
+        margin: 0 0 6px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      input,
+      select,
+      textarea,
+      button {
+        font: inherit;
+      }
+
+      input,
+      select,
+      textarea {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--text);
+        padding: 10px 12px;
+        outline: none;
+      }
+
+      textarea {
+        min-height: 126px;
+        resize: vertical;
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      button {
+        min-height: 40px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--text);
+        padding: 9px 13px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      button.primary {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: #fff;
+      }
+
+      button.danger {
+        border-color: #ffcdc7;
+        background: var(--danger-soft);
+        color: var(--danger);
+      }
+
+      .toolbar,
+      .row,
+      .split {
+        display: flex;
+        gap: 10px;
+        align-items: end;
+        flex-wrap: wrap;
+      }
+
+      .split {
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      .token-box {
+        min-width: 320px;
+        flex: 1 1 460px;
+      }
+
+      .auto-refresh {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 40px;
+        padding: 0 4px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .auto-refresh input {
+        width: auto;
+        margin: 0;
+      }
+
+      .auto-refresh strong {
+        color: var(--accent);
+      }
+
+      .field {
+        flex: 1 1 150px;
+        min-width: 132px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 0.95fr 1.05fr;
+        gap: 14px;
+      }
+
+      .panel {
+        min-width: 0;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+        padding: 15px;
+      }
+
+      .panel.full {
+        grid-column: 1 / -1;
+      }
+
+      .muted {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .message {
+        margin: 0 0 14px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--muted);
+        min-height: 40px;
+      }
+
+      .message.ok {
+        border-color: #bfe8cd;
+        color: var(--ok);
+        background: #f0fff5;
+      }
+
+      .message.err {
+        border-color: #ffcdc7;
+        color: var(--danger);
+        background: var(--danger-soft);
+      }
+
+      .message.warn {
+        border-color: #ffe0a6;
+        color: var(--warn);
+        background: #fff8e8;
+      }
+
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      .process-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 10px;
+        margin: 8px 0 14px;
+      }
+
+      .metric {
+        min-height: 78px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--soft);
+        padding: 12px;
+      }
+
+      .metric span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 8px;
+        font-size: 20px;
+        overflow-wrap: anywhere;
+      }
+
+      .process-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--soft);
+        padding: 12px;
+        min-height: 92px;
+      }
+
+      .process-card span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .process-card strong {
+        display: block;
+        margin-top: 7px;
+        font-size: 21px;
+        line-height: 1.1;
+        font-variant-numeric: tabular-nums;
+        overflow-wrap: anywhere;
+      }
+
+      .process-card em {
+        display: block;
+        margin-top: 5px;
+        color: var(--muted);
+        font-size: 12px;
+        font-style: normal;
+      }
+
+      .metric strong.ok {
+        color: var(--ok);
+      }
+
+      .metric strong.warn {
+        color: var(--warn);
+      }
+
+      .device-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: 10px;
+      }
+
+      .device-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        padding: 12px;
+        cursor: pointer;
+      }
+
+      .device-card:hover,
+      .device-card.active {
+        border-color: var(--accent);
+        background: var(--accent-soft);
+      }
+
+      .device-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+
+      .device-id {
+        font-weight: 800;
+        overflow-wrap: anywhere;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        border-radius: 999px;
+        padding: 3px 8px;
+        font-size: 12px;
+        background: #edf2f7;
+        color: var(--muted);
+      }
+
+      .pill.online {
+        background: #e9fbef;
+        color: var(--ok);
+      }
+
+      .pill.offline {
+        background: #f2f5f8;
+        color: var(--muted);
+      }
+
+      .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+
+      .device-meta {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 5px 10px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .device-meta b {
+        color: var(--text);
+        font-weight: 650;
+      }
+
+      .tabs {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .tab {
+        min-height: 34px;
+        padding: 7px 10px;
+      }
+
+      .tab.active {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: var(--accent-soft);
+      }
+
+      .selected-line {
+        margin: 0 0 12px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .table-wrap {
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        max-height: 560px;
+      }
+
+      table {
+        width: 100%;
+        min-width: 900px;
+        border-collapse: separate;
+        border-spacing: 0;
+        table-layout: fixed;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--line);
+        padding: 8px 9px;
+        text-align: left;
+        vertical-align: middle;
+        font-size: 13px;
+        line-height: 1.32;
+      }
+
+      th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: #f8fafc;
+        color: #334155;
+        font-weight: 760;
+      }
+
+      tbody tr:nth-child(even) {
+        background: #fbfdff;
+      }
+
+      tbody tr:hover {
+        background: var(--accent-soft);
+      }
+
+      td {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .mono {
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      }
+
+      .num {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .json-cell {
+        color: var(--muted);
+      }
+
+      @media (max-width: 980px) {
+        .shell {
+          padding: 16px;
+        }
+
+        header,
+        .grid {
+          display: block;
+        }
+
+        .panel {
+          margin-bottom: 14px;
+        }
+
+        .metrics {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .process-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .metrics {
+          grid-template-columns: 1fr;
+        }
+
+        h1 {
+          font-size: 22px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <div>
+          <h1>HMAS 数据库管理</h1>
+          <div class="muted">设备状态、数据查询、只读 SQL、历史数据清理</div>
+        </div>
+        <div class="toolbar">
+          <div class="token-box">
+            <label for="token">管理 Token</label>
+            <input id="token" type="password" autocomplete="off" placeholder="输入 ADMIN_TOKEN" />
+          </div>
+          <button id="saveToken" class="primary">保存</button>
+          <button id="refreshAll">刷新</button>
+          <label class="auto-refresh">
+            <input id="autoRefresh" type="checkbox" />
+            <span>自动刷新 <strong>3 秒</strong></span>
+          </label>
+          <span id="refreshState" class="muted">未启动</span>
+        </div>
+      </header>
+
+      <p id="message" class="message">请输入管理 Token 后刷新。</p>
+
+      <section class="metrics" id="statusGrid"></section>
+
+      <section class="grid">
+        <div class="panel">
+          <div class="split">
+            <h2>在线设备</h2>
+            <span class="muted">点击设备查看该设备数据</span>
+          </div>
+          <div class="device-list" id="deviceList"></div>
+        </div>
+
+        <div class="panel">
+          <div class="split">
+            <h2>服务状态</h2>
+            <div>
+              <button id="startSimulator">启动模拟器</button>
+              <button id="stopSimulator">停止模拟器</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table id="tablesTable"></table>
+          </div>
+        </div>
+
+        <div class="panel full">
+          <div class="split">
+            <div>
+              <h2>设备数据</h2>
+              <p class="selected-line" id="selectedLine">未选择设备时显示全部设备。</p>
+            </div>
+            <div class="row">
+              <div class="field">
+                <label for="latestTable">表</label>
+                <select id="latestTable"></select>
+              </div>
+              <div class="field">
+                <label for="latestLimit">数量</label>
+                <input id="latestLimit" type="number" min="1" max="500" value="50" />
+              </div>
+              <button id="clearDevice">全部设备</button>
+              <button id="loadLatest" class="primary">查询</button>
+            </div>
+          </div>
+          <div class="process-grid" id="processGrid"></div>
+          <div class="tabs" id="tableTabs"></div>
+          <div class="table-wrap" style="margin-top: 12px">
+            <table id="latestRowsTable"></table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2 style="margin-bottom: 12px">只读 SQL</h2>
+          <textarea id="sql">SELECT ts, device_id, channel_id, rms, peak, main_freq, main_amp_db
+FROM fft_summary
+ORDER BY ts DESC
+LIMIT 20</textarea>
+          <div class="row" style="margin-top: 10px">
+            <button id="runSql" class="primary">运行只读查询</button>
+            <span class="muted">只允许 SELECT / WITH / EXPLAIN，最多显示 500 行。</span>
+          </div>
+          <div class="table-wrap" style="margin-top: 12px; max-height: 360px">
+            <table id="sqlResultTable"></table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2 style="margin-bottom: 12px">清理旧数据</h2>
+          <div class="row">
+            <div class="field">
+              <label for="deleteTable">表</label>
+              <select id="deleteTable"></select>
+            </div>
+            <div class="field">
+              <label for="deleteBefore">删除早于</label>
+              <input id="deleteBefore" type="datetime-local" />
+            </div>
+            <button id="deleteOld" class="danger">删除旧数据</button>
+          </div>
+          <p class="muted">
+            删除会直接写入数据库，只支持按时间清理历史表。建议先确认公司服务器已经完成备份。
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const tables = ["devices", "fft_summary", "fft_spectrum", "alarm_events", "device_ingest_log"];
+      const deletableTables = ["fft_summary", "fft_spectrum", "alarm_events", "device_ingest_log"];
+      const el = (id) => document.getElementById(id);
+      let activeTable = "fft_summary";
+      let selectedDeviceId = "";
+      let latestDevices = [];
+      let autoRefreshTimer = null;
+      let autoRefreshBusy = false;
+      let autoRefreshTick = 0;
+      const autoRefreshStorageKey = "hmas_admin_auto_refresh_v2";
+
+      const tableColumns = {
+        devices: [
+          ["id", "设备"],
+          ["effective_status", "显示状态"],
+          ["database_status", "数据库状态"],
+          ["last_active_at", "最后活跃"],
+          ["last_data_at", "最新数据"],
+          ["inactive_seconds", "离线秒数"],
+          ["fft_rows", "FFT 行数"],
+          ["created_at", "创建时间"],
+        ],
+        fft_summary: [
+          ["ts", "时间"],
+          ["device_id", "设备"],
+          ["channel_id", "通道"],
+          ["seq", "序号"],
+          ["ch01_pressure", "CH01 主泵出口 bar"],
+          ["ch02_pressure", "CH02 系统A bar"],
+          ["ch03_pressure", "CH03 系统B bar"],
+          ["ch04_pressure", "CH04 回油 bar"],
+          ["ch05_temp", "CH05 油箱 °C"],
+          ["ch06_temp", "CH06 回油 °C"],
+          ["ch07_displacement", "CH07 1#油缸 mm"],
+          ["ch08_displacement", "CH08 2#油缸 mm"],
+          ["f01_flow", "F01 流量 L/min"],
+          ["f02_iso", "F02 油液颗粒度 (ISO 4406)"],
+          ["v01_speed", "V01 转速 rpm"],
+          ["v02_vibration", "V02 振动 g"],
+          ["s01_sound", "S01 声学 dB"],
+          ["rms", "RMS"],
+          ["peak", "Peak"],
+          ["main_freq", "主频 Hz"],
+          ["main_amp_db", "主幅 dB"],
+          ["sample_rate", "采样率"],
+          ["fft_size", "FFT"],
+          ["bpfi_db", "BPFI dB"],
+          ["bpfo_db", "BPFO dB"],
+          ["created_at", "入库时间"],
+        ],
+        fft_spectrum: [
+          ["ts", "时间"],
+          ["device_id", "设备"],
+          ["channel_id", "通道"],
+          ["seq", "序号"],
+          ["spectrum_len", "频点"],
+          ["compressed_bytes", "压缩字节"],
+          ["spectrum_codec", "编码"],
+          ["sample_rate", "采样率"],
+          ["fft_size", "FFT"],
+          ["created_at", "入库时间"],
+        ],
+        alarm_events: [
+          ["ts", "时间"],
+          ["device_id", "设备"],
+          ["channel_id", "通道"],
+          ["severity", "级别"],
+          ["message", "消息"],
+          ["created_at", "入库时间"],
+        ],
+        device_ingest_log: [
+          ["ts", "时间"],
+          ["device_id", "设备"],
+          ["remote_addr", "来源"],
+          ["event", "事件"],
+          ["detail", "详情"],
+        ],
+      };
+
+      function setMessage(text, type = "") {
+        const node = el("message");
+        node.textContent = text;
+        node.className = `message ${type}`.trim();
+      }
+
+      function getToken() {
+        return el("token").value.trim();
+      }
+
+      async function api(path, options = {}) {
+        const token = getToken();
+        if (!token) throw new Error("请先输入管理 Token");
+        const headers = {
+          Authorization: `Bearer ${token}`,
+          ...(options.headers || {}),
+        };
+        if (options.body && !headers["content-type"]) headers["content-type"] = "application/json";
+        const res = await fetch(path, { ...options, headers });
+        const payload = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(payload.error || `HTTP ${res.status}`);
+        return payload;
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (char) => {
+          const map = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+          return map[char];
+        });
+      }
+
+      function fmtTime(value) {
+        if (!value) return "";
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) return String(value);
+        return d.toLocaleString("zh-CN", { hour12: false });
+      }
+
+      function fmtShortTime(value) {
+        if (!value) return "-";
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) return String(value);
+        return `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
+      }
+
+      function fmtBytes(bytes) {
+        const n = Number(bytes) || 0;
+        if (n < 1024) return `${n} B`;
+        if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+        if (n < 1024 * 1024 * 1024) return `${(n / 1024 / 1024).toFixed(1)} MB`;
+        return `${(n / 1024 / 1024 / 1024).toFixed(2)} GB`;
+      }
+
+      function fmtNumber(value, digits = 3) {
+        const n = Number(value);
+        if (!Number.isFinite(n)) return "";
+        if (Math.abs(n) >= 1000) return n.toFixed(0);
+        if (Math.abs(n) >= 100) return n.toFixed(1);
+        return n.toFixed(digits).replace(/0+$/, "").replace(/\.$/, "");
+      }
+
+      function formatIso4406(ch) {
+        const base = Number(ch?.F02);
+        const a = Number.isFinite(Number(ch?.F02_4um))
+          ? Math.round(Number(ch.F02_4um))
+          : Number.isFinite(base)
+            ? Math.round(base)
+            : null;
+        const b = Number.isFinite(Number(ch?.F02_6um))
+          ? Math.round(Number(ch.F02_6um))
+          : Number.isFinite(base)
+            ? Math.max(0, Math.round(base) - 2)
+            : null;
+        const c = Number.isFinite(Number(ch?.F02_14um))
+          ? Math.round(Number(ch.F02_14um))
+          : Number.isFinite(base)
+            ? Math.max(0, Math.round(base) - 5)
+            : null;
+        return a === null || b === null || c === null ? "-" : `${a} / ${b} / ${c}`;
+      }
+
+      function valueText(value, key = "") {
+        if (value === null || value === undefined) return "";
+        if (key.includes("ts") || key.endsWith("_at")) return fmtShortTime(value);
+        if (key.includes("bytes")) return fmtBytes(value);
+        if (typeof value === "number") return fmtNumber(value);
+        if (Array.isArray(value)) return `[${value.length} 项]`;
+        if (typeof value === "object") return JSON.stringify(value);
+        if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}T/.test(value)) return fmtShortTime(value);
+        return String(value);
+      }
+
+      function cellClass(value, key) {
+        if (typeof value === "number" || key.includes("bytes") || key === "seq") return "num mono";
+        if (Array.isArray(value) || (value && typeof value === "object")) return "json-cell";
+        if (key.includes("ts") || key.endsWith("_at")) return "mono";
+        return "";
+      }
+
+      function renderTable(tableEl, rows, tableName = "") {
+        if (!rows || rows.length === 0) {
+          tableEl.innerHTML = "<tbody><tr><td>没有数据</td></tr></tbody>";
+          return;
+        }
+        const configured = tableColumns[tableName] || null;
+        const columns = configured
+          ? configured.filter(([key]) => rows.some((row) => Object.prototype.hasOwnProperty.call(row, key)))
+          : Array.from(
+              rows.reduce((set, row) => {
+                Object.keys(row).forEach((key) => set.add(key));
+                return set;
+              }, new Set()),
+            ).map((key) => [key, key]);
+        const width = Math.max(880, columns.length * 118);
+        const head = `<thead><tr>${columns.map(([, label]) => `<th>${escapeHtml(label)}</th>`).join("")}</tr></thead>`;
+        const body = rows
+          .map(
+            (row) =>
+              `<tr>${columns
+                .map(([key]) => {
+                  const text = valueText(row[key], key);
+                  return `<td class="${cellClass(row[key], key)}" title="${escapeHtml(valueText(row[key], key))}">${escapeHtml(text)}</td>`;
+                })
+                .join("")}</tr>`,
+          )
+          .join("");
+        tableEl.style.minWidth = `${width}px`;
+        tableEl.innerHTML = `${head}<tbody>${body}</tbody>`;
+      }
+
+      function renderStatus(payload) {
+        const simRunning = Boolean(payload.simulator?.enabled || payload.simulator?.running);
+        const cards = [
+          ["在线设备", payload.service?.onlineDevices ?? 0, "ok"],
+          ["模拟器", simRunning ? "运行中" : "已停止", simRunning ? "ok" : "warn"],
+          ["实时网页连接", payload.service?.liveClients ?? 0, ""],
+          ["数据库时间", fmtShortTime(payload.database?.dbTime), ""],
+        ];
+        el("statusGrid").innerHTML = cards
+          .map(
+            ([label, value, cls]) =>
+              `<div class="metric"><span>${label}</span><strong class="${cls}">${escapeHtml(value)}</strong></div>`,
+          )
+          .join("");
+      }
+
+      function renderStats(rows) {
+        const normalized = rows.map((row) => ({
+          table: row.table,
+          rows: row.rowCount,
+          size: fmtBytes(row.totalBytes),
+          first: fmtShortTime(row.firstTs),
+          last: fmtShortTime(row.lastTs),
+        }));
+        renderTable(el("tablesTable"), normalized);
+      }
+
+      function latestDeviceValues() {
+        if (!selectedDeviceId) return {};
+        const dev = latestDevices.find((item) => item.id === selectedDeviceId);
+        return dev?.channel_values || {};
+      }
+
+      function renderProcessCards() {
+        const ch = latestDeviceValues();
+        const cards = [
+          ["主泵出口压力", ch.CH01, "bar", "CH01"],
+          ["系统A压力", ch.CH02, "bar", "CH02"],
+          ["系统B压力", ch.CH03, "bar", "CH03"],
+          ["回油压力", ch.CH04, "bar", "CH04"],
+          ["油箱温度", ch.CH05, "°C", "CH05"],
+          ["冷却回油温度", ch.CH06, "°C", "CH06"],
+          ["1#油缸位移", ch.CH07, "mm", "CH07"],
+          ["2#油缸位移", ch.CH08, "mm", "CH08"],
+          ["主管路流量", ch.F01, "L/min", "F01"],
+          ["油液颗粒度 (ISO 4406)", formatIso4406(ch), "", "F02"],
+          ["电机转速", ch.V01, "rpm", "V01"],
+          ["电机振动Y", ch.V02, "g RMS", "V02"],
+          ["声学噪声", ch.S01, "dB", "S01"],
+        ];
+        el("processGrid").innerHTML = cards
+          .map(([label, value, unit, channel]) => {
+            const digits = unit === "rpm" ? 0 : unit === "g RMS" ? 3 : 1;
+            const text =
+              typeof value === "string"
+                ? value
+                : value === null || value === undefined
+                  ? "-"
+                  : fmtNumber(value, digits);
+            return `<div class="process-card">
+              <span>${escapeHtml(label)}</span>
+              <strong>${escapeHtml(unit ? `${text} ${unit}` : text)}</strong>
+              <em>${escapeHtml(channel)}${selectedDeviceId ? "" : " - 请先选择设备"}</em>
+            </div>`;
+          })
+          .join("");
+      }
+
+      function renderDevices(devices) {
+        latestDevices = devices || [];
+        if (latestDevices.length === 0) {
+          el("deviceList").innerHTML = '<div class="muted">没有设备。</div>';
+          renderProcessCards();
+          return;
+        }
+        el("deviceList").innerHTML = latestDevices
+          .map((dev) => {
+            const channels = Object.keys(dev.channels || {});
+            const active = dev.id === selectedDeviceId ? "active" : "";
+            const online = dev.online ? "online" : "offline";
+            const inactiveText = Number.isFinite(Number(dev.inactive_seconds))
+              ? `${dev.inactive_seconds}s`
+              : "-";
+            return `<div class="device-card ${active}" data-device="${escapeHtml(dev.id)}">
+              <div class="device-top">
+                <div class="device-id">${escapeHtml(dev.id)}</div>
+                <span class="pill ${online}"><span class="dot"></span>${dev.online ? "在线" : "离线"}</span>
+              </div>
+              <div class="device-meta">
+                <span>最后活跃</span><b>${escapeHtml(fmtShortTime(dev.last_active_at))}</b>
+                <span>最新数据</span><b>${escapeHtml(fmtShortTime(dev.last_data_at))}</b>
+                <span>未活跃</span><b>${escapeHtml(inactiveText)}</b>
+                <span>数据库状态</span><b>${escapeHtml(dev.database_status || dev.status || "-")}</b>
+                <span>FFT 行数</span><b>${escapeHtml(dev.fft_rows ?? 0)}</b>
+                <span>通道</span><b>${escapeHtml(channels.length ? channels.join(", ") : "-")}</b>
+              </div>
+            </div>`;
+          })
+          .join("");
+        el("deviceList").querySelectorAll(".device-card").forEach((card) => {
+          card.addEventListener("click", () => selectDevice(card.dataset.device || ""));
+        });
+        renderProcessCards();
+      }
+
+      function updateSelectedLine() {
+        el("selectedLine").textContent = selectedDeviceId
+          ? `当前设备：${selectedDeviceId}`
+          : "未选择设备时显示全部设备，压力/流量/转速需先选择设备。";
+        renderProcessCards();
+      }
+
+      function selectDevice(deviceId) {
+        selectedDeviceId = deviceId;
+        updateSelectedLine();
+        renderDevices(latestDevices);
+        if (activeTable === "devices") {
+          activeTable = "fft_summary";
+          el("latestTable").value = activeTable;
+        }
+        renderTabs();
+        loadLatest();
+      }
+
+      function fillSelectors() {
+        el("latestTable").innerHTML = tables.map((table) => `<option value="${table}">${table}</option>`).join("");
+        el("latestTable").value = activeTable;
+        el("deleteTable").innerHTML = deletableTables
+          .map((table) => `<option value="${table}">${table}</option>`)
+          .join("");
+        renderTabs();
+      }
+
+      function renderTabs() {
+        el("tableTabs").innerHTML = tables
+          .map(
+            (table) =>
+              `<button class="tab ${table === activeTable ? "active" : ""}" data-table="${table}">${table}</button>`,
+          )
+          .join("");
+        el("tableTabs").querySelectorAll("button").forEach((button) => {
+          button.addEventListener("click", () => {
+            activeTable = button.dataset.table;
+            el("latestTable").value = activeTable;
+            renderTabs();
+            loadLatest();
+          });
+        });
+      }
+
+      async function refreshStatus() {
+        const payload = await api("/api/admin/status");
+        renderStatus(payload);
+      }
+
+      async function refreshDevices() {
+        const payload = await api("/api/admin/devices");
+        renderDevices(payload.devices);
+      }
+
+      async function refreshTables() {
+        const payload = await api("/api/admin/tables");
+        renderStats(payload.tables);
+      }
+
+      async function loadLatest() {
+        activeTable = el("latestTable").value;
+        renderTabs();
+        updateSelectedLine();
+        const limit = Math.min(Math.max(Number(el("latestLimit").value) || 50, 1), 500);
+        const u = new URL("/api/admin/latest", window.location.origin);
+        u.searchParams.set("table", activeTable);
+        u.searchParams.set("limit", String(limit));
+        if (selectedDeviceId && activeTable !== "devices") u.searchParams.set("deviceId", selectedDeviceId);
+        const payload = await api(`${u.pathname}${u.search}`);
+        renderTable(el("latestRowsTable"), payload.rows, activeTable);
+      }
+
+      async function refreshAll() {
+        try {
+          setMessage("正在刷新...", "warn");
+          await Promise.all([refreshStatus(), refreshDevices(), refreshTables()]);
+          await loadLatest();
+          setMessage("刷新完成。", "ok");
+        } catch (err) {
+          setMessage(err.message, "err");
+        }
+      }
+
+      async function refreshRealtime() {
+        if (!getToken() || autoRefreshBusy) return;
+        autoRefreshBusy = true;
+        autoRefreshTick++;
+        try {
+          const tasks = [refreshStatus(), refreshDevices(), loadLatest()];
+          if (autoRefreshTick % 60 === 0) tasks.push(refreshTables());
+          await Promise.all(tasks);
+          el("refreshState").textContent = `自动刷新中 ${fmtShortTime(Date.now())}`;
+          el("refreshState").style.color = "var(--muted)";
+        } catch (err) {
+          el("refreshState").textContent = `自动刷新失败：${err.message}`;
+          el("refreshState").style.color = "var(--danger)";
+        } finally {
+          autoRefreshBusy = false;
+        }
+      }
+
+      function setAutoRefresh(enabled) {
+        if (autoRefreshTimer) {
+          clearInterval(autoRefreshTimer);
+          autoRefreshTimer = null;
+        }
+        localStorage.setItem(autoRefreshStorageKey, enabled ? "1" : "0");
+        if (!enabled) {
+          el("refreshState").textContent = "自动刷新已关闭";
+          el("refreshState").style.color = "var(--muted)";
+          return;
+        }
+        el("refreshState").textContent = "自动刷新中";
+        autoRefreshTimer = setInterval(refreshRealtime, 3000);
+        void refreshRealtime();
+      }
+
+      async function runSql() {
+        try {
+          setMessage("正在运行 SQL...", "warn");
+          const payload = await api("/api/admin/query", {
+            method: "POST",
+            body: JSON.stringify({ sql: el("sql").value }),
+          });
+          renderTable(el("sqlResultTable"), payload.rows);
+          setMessage(`查询完成：${payload.rowCount ?? payload.rows.length} 行。`, "ok");
+        } catch (err) {
+          setMessage(err.message, "err");
+        }
+      }
+
+      async function deleteOld() {
+        const table = el("deleteTable").value;
+        const before = el("deleteBefore").value;
+        if (!before) {
+          setMessage("请选择清理截止时间。", "err");
+          return;
+        }
+        const confirmText = `确认删除 ${table} 中早于 ${fmtTime(before)} 的数据？`;
+        if (!window.confirm(confirmText)) return;
+        try {
+          setMessage("正在删除旧数据...", "warn");
+          const payload = await api("/api/admin/delete-before", {
+            method: "POST",
+            body: JSON.stringify({ table, before }),
+          });
+          setMessage(`删除完成：${payload.deleted} 行。`, "ok");
+          await Promise.all([refreshTables(), refreshDevices(), loadLatest()]);
+        } catch (err) {
+          setMessage(err.message, "err");
+        }
+      }
+
+      async function simulatorAction(action) {
+        try {
+          const payload = await api(`/api/admin/simulator/${action}`, { method: "POST" });
+          setMessage(`模拟器${payload.enabled || payload.running ? "运行中" : "已停止"}。`, "ok");
+          await Promise.all([refreshStatus(), refreshDevices()]);
+        } catch (err) {
+          setMessage(err.message, "err");
+        }
+      }
+
+      function setDefaultDeleteBefore() {
+        const d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        d.setSeconds(0, 0);
+        const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+        el("deleteBefore").value = local;
+      }
+
+      el("saveToken").addEventListener("click", () => {
+        localStorage.setItem("hmas_admin_token", getToken());
+        setMessage("Token 已保存到本机浏览器。", "ok");
+      });
+      el("refreshAll").addEventListener("click", refreshAll);
+      el("autoRefresh").addEventListener("change", () => setAutoRefresh(el("autoRefresh").checked));
+      el("loadLatest").addEventListener("click", loadLatest);
+      el("clearDevice").addEventListener("click", () => {
+        selectedDeviceId = "";
+        updateSelectedLine();
+        renderDevices(latestDevices);
+        loadLatest();
+      });
+      el("runSql").addEventListener("click", runSql);
+      el("deleteOld").addEventListener("click", deleteOld);
+      el("startSimulator").addEventListener("click", () => simulatorAction("start"));
+      el("stopSimulator").addEventListener("click", () => simulatorAction("stop"));
+
+      el("token").value = localStorage.getItem("hmas_admin_token") || "";
+      el("autoRefresh").checked = localStorage.getItem(autoRefreshStorageKey) === "1";
+      fillSelectors();
+      setDefaultDeleteBefore();
+      updateSelectedLine();
+      if (getToken()) refreshAll();
+      setAutoRefresh(el("autoRefresh").checked);
+    </script>
+  </body>
+</html>

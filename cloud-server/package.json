@@ -1,0 +1,20 @@
+{
+  "name": "hmas-cloud-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HMAS cloud-side TCP ingest, PostgreSQL storage, HTTP API, and WebSocket live relay.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "register-device": "node src/register-device.js",
+    "send-sample": "node src/send-sample.js",
+    "check": "node --check src/*.js"
+  },
+  "dependencies": {
+    "pg": "^8.13.1",
+    "ws": "^8.18.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
