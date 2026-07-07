@@ -3,13 +3,13 @@
 > 面向 HMAS 液压监测系统的**公司长期数据服务器**。
 > 目标：每晚从阿里云拉取 ~30 台设备的数据，用 PostgreSQL/TimescaleDB 长期保存，
 > ZFS 双盘镜像保证坏一块盘不丢数据。
-> 操作视角：你的日常电脑是 **Windows 11**，服务器那台机器装 **Linux（Ubuntu Server 24.04 LTS）**。
+> 操作视角：服务器装 **Linux（Ubuntu Server 24.04 LTS）**，你用 **MacBook（macOS）** 远程登录维护。
 
 ---
 
 ## 0. 先读这一段
 
-- **为什么不在 Windows 上直接跑 ZFS**：ZFS-on-Windows 目前是实验性（beta）版本，不适合存"唯一一份、要放好几年"的数据。所以服务器装 Linux，你的 Windows 11 只当远程管理终端。如果你确实想让手上的 Windows 11 机器当服务器且不碰 Linux，那要改用 Windows 自带的「存储空间 + ReFS」方案，本说明不适用——告诉我另写一份。
+- **分工**：服务器 7×24 无人值守跑数据库；MacBook 只当管理终端，macOS 自带完整的 `ssh` / `scp` / `rsync` 工具链，打开「终端」就能管，不用装任何额外软件（做启动盘时装一个 balenaEtcher 即可）。
 - **本说明假设**：服务器是一台单独的机器（新买或旧机改造），2 块数据盘做 ZFS 镜像，1~2 块小 SSD/NVMe 装系统。
 - **⚠️ 动手前先处理的安全问题**（仓库里已泄漏，本方案会用到 SSH 连阿里云）：
   1. `check-aliyun-status.sh` 里注释含阿里云 **root SSH 明文密码** → 立刻登录阿里云改密码，并改成**仅密钥登录**。
@@ -34,13 +34,17 @@
 
 ---
 
-## 2. 阶段 A：从 Windows 装 Ubuntu Server
+## 2. 阶段 A：从 MacBook 装 Ubuntu Server
 
-### A1. 在 Windows 11 上做启动 U 盘
+### A1. 在 macOS 上做启动 U 盘
 
 1. 下载 **Ubuntu Server 24.04 LTS** 的 ISO：<https://ubuntu.com/download/server>
-2. 下载 **Rufus**（免安装）：<https://rufus.ie>
-3. 插一个 ≥8GB 的 U 盘，打开 Rufus → 选 ISO → 分区类型选 **GPT** → 开始，写完拔下。
+2. 下载 **balenaEtcher**（macOS 版，免费图形工具）：<https://etcher.balena.io>
+3. 插一个 ≥8GB 的 U 盘，打开 Etcher → 选 ISO → 选 U 盘 → Flash，写完拔下。
+
+> 不想装软件也可以用命令行：`diskutil list` 找到 U 盘编号（如 disk4），然后
+> `diskutil unmountDisk /dev/disk4 && sudo dd if=ubuntu-24.04-live-server-amd64.iso of=/dev/rdisk4 bs=4m status=progress`。
+> **看清编号再执行，dd 写错盘无法挽回**；不确定就用 Etcher。
 
 ### A2. 装系统
 
@@ -51,20 +55,33 @@
    - 网络：给服务器设**固定内网 IP**（例如 `192.168.1.50`），后面所有连接都用它。
    - 存储：选 NVMe 系统盘，用默认整盘 + LVM 即可（数据不放这）。
    - 建一个管理员账号，比如 `hmas`。
-   - **勾选 "Install OpenSSH Server"** ← 关键，这样才能从 Windows 远程连。
+   - **勾选 "Install OpenSSH Server"** ← 关键，这样才能从 MacBook 远程连。
 4. 装完重启，拔 U 盘。屏幕会显示登录提示，记下它的 IP。
 
-### A3. 从 Windows 11 远程连上去
+### A3. 从 MacBook 远程连上去
 
-打开 Windows 自带的 **Terminal / PowerShell**：
+打开 macOS 的 **终端**（访达 → 应用程序 → 实用工具 → 终端，或 Spotlight 搜 "终端"）：
 
-```powershell
+```bash
 ssh hmas@192.168.1.50
 ```
 
 首次问指纹输 `yes`，再输密码即可登入。**之后所有操作都在这个 SSH 窗口里做。**
 
-> 建议顺手配 SSH 密钥登录（Windows 侧 `ssh-keygen` 生成，`type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh hmas@192.168.1.50 "cat >> ~/.ssh/authorized_keys"`），以后免密码。
+> 建议顺手配 SSH 密钥登录，以后免密码（macOS 自带这两个命令）：
+>
+> ```bash
+> ssh-keygen -t ed25519          # 一路回车
+> ssh-copy-id hmas@192.168.1.50  # 输一次密码，之后免密
+> ```
+>
+> 再往 MacBook 的 `~/.ssh/config` 里加几行，以后连服务器只需敲 `ssh hmas-db`：
+>
+> ```
+> Host hmas-db
+>     HostName 192.168.1.50
+>     User hmas
+> ```
 
 先更新系统：
 
@@ -343,7 +360,7 @@ sudo systemctl enable --now zfs-scrub-monthly@tank.timer   # 定时校验+自愈
 
 ## 8. 日常运维速查表
 
-| 目的 | 命令（在 Windows Terminal 里 `ssh hmas@192.168.1.50` 后执行） |
+| 目的 | 命令（在 MacBook 终端里 `ssh hmas-db` 登入后执行） |
 | --- | --- |
 | 看池健康 | `zpool status tank` |
 | 看容量/压缩率 | `zpool list` / `zfs get compressratio tank` |
@@ -375,4 +392,4 @@ sudo systemctl enable --now zfs-scrub-monthly@tank.timer   # 定时校验+自愈
 - 满了怎么扩：ZFS 支持在线加一组镜像 `sudo zpool add tank mirror 新盘1 新盘2`，容量翻倍，不用动现有数据。
 - 配合阶段 C4 的"完整频谱只留 1~2 年"，实际能撑更久。
 
-> 需要我把阶段 D 的拉取脚本、告警通知、`docker-compose`（postgres+timescaledb 一键起）落成仓库里的实际文件，或改成 Windows+ReFS 版本，告诉我即可。
+> 需要我把阶段 D 的拉取脚本、告警通知、`docker-compose`（postgres+timescaledb 一键起）落成仓库里的实际文件，告诉我即可。
