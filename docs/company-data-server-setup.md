@@ -89,6 +89,56 @@ ssh hmas@192.168.1.50
 sudo apt update && sudo apt -y upgrade
 ```
 
+### A4. 把动态 IP（DHCP）改成静态
+
+装系统时如果没设固定 IP、现在是 DHCP 自动获取，有两种改法，可任选或同时用（双保险）：
+
+**方案一：路由器里做静态绑定（最简单）**——服务器不改任何配置：
+
+1. 登录路由器管理页（一般 `192.168.1.1`），找「DHCP 静态分配 / 地址保留 / IP-MAC 绑定」。
+2. 把服务器网卡 MAC（服务器上 `ip -br link` 查看）绑定到固定 IP（如 `192.168.1.50`）。
+3. 重启服务器网络即生效。重装系统也不受影响。
+
+**方案二：服务器上改 netplan（Ubuntu 24.04 标准做法）**：
+
+```bash
+ip -br a          # 记下网卡名（如 enp3s0）和当前 IP
+ip route          # 记下 default via 后面的网关
+sudo nano /etc/netplan/50-cloud-init.yaml
+```
+
+改成如下内容（网卡名、IP、网关换成实际值；缩进必须用空格，不能用 Tab）：
+
+```yaml
+network:
+  version: 2
+  ethernets:
+    enp3s0:                      # ← 你的网卡名
+      dhcp4: false
+      addresses: [192.168.1.50/24]
+      routes:
+        - to: default
+          via: 192.168.1.1       # ← 你的网关
+      nameservers:
+        addresses: [223.5.5.5, 192.168.1.1]
+```
+
+安全地应用（`netplan try` 有 120 秒自动回滚，改错了断线也不怕）：
+
+```bash
+sudo chmod 600 /etc/netplan/*.yaml
+sudo netplan try     # 网络正常按回车确认；断线则等 120 秒自动回滚
+sudo netplan apply
+ip -br a             # 确认已是静态 IP
+```
+
+注意：
+
+- 选的 IP 要**避开路由器的 DHCP 地址池**（如池为 100~199 就选 50），否则会撞车。
+- 防止 cloud-init 覆盖网络配置，执行一次：
+  `echo 'network: {config: disabled}' | sudo tee /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg`
+- IP 变了记得更新 MacBook `~/.ssh/config` 里 `hmas-db` 的 `HostName`。
+
 ---
 
 ## 3. 阶段 B：装 ZFS，组镜像池
